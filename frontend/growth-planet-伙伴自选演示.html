@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>成长星球 · 伙伴自选演示（1–6 年级分层）</title>
+<style>
+  :root{
+    --pink:#FFB3C6; --mint:#A8E6CF; --yellow:#FFE5A0; --blue:#A0D2FF;
+    --lav:#CDB4FF; --peach:#FFD6A5; --bg1:#FFF6EC; --bg2:#FDEFF6; --bg3:#EAF7F2;
+    --ink:#5A5566; --ink2:#8A8499; --card:#fff; --line:#F0E9F2; --shadow:0 10px 30px rgba(150,130,170,.16);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2) 55%,var(--bg3));padding:26px;}
+  h1{font-size:26px;margin:0 0 6px;}
+  .sub{color:var(--ink2);margin-bottom:20px;font-size:14px;}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center;}
+  .bar label{font-size:14px;color:var(--ink2);}
+  select,button{font-family:inherit;font-weight:600;border:none;border-radius:14px;padding:10px 16px;font-size:14px;cursor:pointer;}
+  select{background:var(--card);box-shadow:var(--shadow);color:var(--ink);}
+  button{background:linear-gradient(135deg,var(--lav),var(--blue));color:#fff;box-shadow:var(--shadow);}
+  button.ghost{background:var(--card);color:var(--ink);box-shadow:var(--shadowS,0 4px 14px rgba(150,130,170,.18));}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;}
+  .card{background:var(--card);border-radius:22px;padding:16px;box-shadow:var(--shadow);text-align:center;transition:transform .18s,box-shadow .18s;cursor:pointer;border:3px solid transparent;}
+  .card:hover{transform:translateY(-4px);}
+  .card.sel{border-color:var(--lav);box-shadow:0 10px 30px rgba(205,180,255,.5);}
+  .card .emoji{font-size:46px;line-height:1.1;}
+  .card .nm{font-size:15px;margin-top:8px;font-weight:700;}
+  .card .tag{display:inline-block;font-size:11px;margin-top:6px;padding:3px 9px;border-radius:20px;background:var(--mint);color:#3a7a64;}
+  .card .tag.rare{background:var(--lav);color:#5b4a8a;}
+  .card .tag.epic{background:var(--peach);color:#a8632a;}
+  .stage{font-size:11px;color:var(--ink2);margin-top:6px;}
+  .preview{background:var(--card);border-radius:22px;box-shadow:var(--shadow);padding:20px;margin-top:20px;text-align:center;}
+  .preview .big{font-size:90px;}
+  .preview .nm{font-size:20px;font-weight:800;margin-top:6px;}
+  .nick{margin-top:12px;display:flex;gap:8px;justify-content:center;align-items:center;}
+  .nick input{border:2px solid var(--line);border-radius:12px;padding:8px 12px;font-family:inherit;font-size:14px;width:160px;outline:none;}
+  .code{margin-top:18px;background:var(--card);border-radius:22px;box-shadow:var(--shadow);padding:20px;text-align:center;}
+  .code .qr{width:140px;height:140px;margin:10px auto;border-radius:16px;background:
+    repeating-linear-gradient(45deg,#5A5566 0 8px,#fff 8px 16px);}
+  .note{font-size:12px;color:var(--ink2);margin-top:8px;line-height:1.6;}
+  .hint{background:#fff8e8;border-radius:16px;padding:14px 18px;margin-top:20px;font-size:13px;color:#a8632a;line-height:1.7;}
+</style>
+</head>
+<body>
+  <h1>🌱 伙伴自选 · 生命库（演示）</h1>
+  <div class="sub">按年级分层主题包 · 原创形象无版权风险 · 学生端上线后扫码认领即同步老师大屏</div>
+
+  <div class="bar">
+    <label>选择班级年级：</label>
+    <select id="grade">
+      <option value="1">一年级（萌系自然包）</option>
+      <option value="2">二年级（萌系自然包）</option>
+      <option value="3" selected>三年级（生命观察包）</option>
+      <option value="4">四年级（生命观察包）</option>
+      <option value="5">五年级（动漫原创包）</option>
+      <option value="6">六年级（动漫原创包）</option>
+    </select>
+    <button class="ghost" onclick="resetSel()">清除选择</button>
+  </div>
+
+  <div class="grid" id="lib"></div>
+
+  <div class="preview" id="preview" style="display:none">
+    <div class="big" id="pvEmoji">🥚</div>
+    <div class="nm" id="pvName">待认领</div>
+    <div class="nick">
+      <span>昵称：</span>
+      <input id="nick" placeholder="给学生起个昵称" oninput="updNick()">
+    </div>
+    <div class="note" id="pvNote"></div>
+  </div>
+
+  <div class="code">
+    <div style="font-weight:700;font-size:15px;">📱 入班码（学生端上线后生效）</div>
+    <div class="qr"></div>
+    <div class="note">老师大屏点「生成入班码」→ 学生扫码进本班 → 选伙伴认领 → 老师大屏实时变更。<br>
+    当前为演示占位；MVP 阶段老师可在「⚙ 伙伴库」里代学生预选。</div>
+  </div>
+
+  <div class="hint">
+    💡 版权说明：库中均为<b>原创抽象形象</b>（元素精灵 / 星灵 / 小生命），不含任何受保护 IP。
+    学生可自定义<b>昵称与主色</b>满足情怀。高年级（5–6）用「元素系 + 稀有进化」提供收集成就感，
+    低龄（1–2）用圆润萌系提供即时可爱反馈——避免全年级一套图导致高年级嫌幼稚。
+  </div>
+
+<script>
+// 伙伴库（原创，非IP）。pack: cute=萌系自然 / life=生命观察 / anime=动漫原创
+const LIB = [
+  // 萌系自然包 1-2
+  {kind:"tuan", name:"团团熊", pack:"cute", emoji:"🐻", rarity:"common", stage:0},
+  {kind:"ya",   name:"芽芽",   pack:"cute", emoji:"🌱", rarity:"common", stage:0},
+  {kind:"yun",  name:"云朵羊", pack:"cute", emoji:"🐑", rarity:"common", stage:0},
+  {kind:"star", name:"星仔",   pack:"cute", emoji:"⭐", rarity:"rare",   stage:0},
+  {kind:"bub",  name:"泡泡鱼", pack:"cute", emoji:"🐠", rarity:"common", stage:0},
+  // 生命观察包 3-4
+  {kind:"can",  name:"蚕宝",   pack:"life", emoji:"🐛", rarity:"common", stage:0},
+  {kind:"tad",  name:"蝌蚪",   pack:"life", emoji:"🐸", rarity:"common", stage:0},
+  {kind:"cry",  name:"晶簇",   pack:"life", emoji:"💎", rarity:"rare",   stage:0},
+  {kind:"seed", name:"种子精", pack:"life", emoji:"🌰", rarity:"common", stage:0},
+  {kind:"ant",  name:"蚁工",   pack:"life", emoji:"🐜", rarity:"common", stage:0},
+  {kind:"snail",name:"蜗牛",   pack:"life", emoji:"🐌", rarity:"common", stage:0},
+  // 动漫原创包 5-6（元素精灵，非任何IP）
+  {kind:"fire", name:"火灵",   pack:"anime",emoji:"🔥", rarity:"rare",   stage:0},
+  {kind:"water",name:"水灵",   pack:"anime",emoji:"💧", rarity:"rare",   stage:0},
+  {kind:"grass",name:"草灵",   pack:"anime",emoji:"🍃", rarity:"rare",   stage:0},
+  {kind:"thun", name:"电灵",   pack:"anime",emoji:"⚡", rarity:"epic",   stage:0},
+  {kind:"star2",name:"星灵",   pack:"anime",emoji:"🌟", rarity:"epic",   stage:0},
+  {kind:"mech", name:"机械生态",pack:"anime",emoji:"🤖", rarity:"epic",   stage:0},
+];
+const PACK_OF = {1:"cute",2:"cute",3:"life",4:"life",5:"anime",6:"anime"};
+const STAGE_NAMES = ["蛋","幼体","成体","进化体"];
+const RARITY_NAME = {common:"普通",rare:"稀有",epic:"史诗"};
+
+let sel = null;
+function render(){
+  const g = +document.getElementById('grade').value;
+  const pack = PACK_OF[g];
+  const list = LIB.filter(x=>x.pack===pack);
+  const box = document.getElementById('lib');
+  box.innerHTML = list.map(x=>`
+    <div class="card ${sel&&sel.kind===x.kind?'sel':''}" onclick="pick('${x.kind}')">
+      <div class="emoji">${x.emoji}</div>
+      <div class="nm">${x.name}</div>
+      <span class="tag ${x.rarity}">${RARITY_NAME[x.rarity]}</span>
+      <div class="stage">进化：${STAGE_NAMES[x.stage]} → 可成长</div>
+    </div>`).join('');
+}
+function pick(kind){
+  sel = LIB.find(x=>x.kind===kind);
+  render();
+  const pv = document.getElementById('preview');
+  pv.style.display='block';
+  document.getElementById('pvEmoji').textContent = sel.emoji;
+  document.getElementById('pvName').textContent = sel.name;
+  document.getElementById('nick').value = sel.name;
+  document.getElementById('pvNote').innerHTML =
+    `主题包：${sel.pack==='cute'?'萌系自然':sel.pack==='life'?'生命观察':'动漫原创'} · `+
+    `稀有度：${RARITY_NAME[sel.rarity]}<br>进化靠科学行为/作业/长期观察触发，答错不退化不羞辱。`;
+  pv.scrollIntoView({behavior:'smooth'});
+}
+function updNick(){ document.getElementById('pvName').textContent = document.getElementById('nick').value || sel.name; }
+function resetSel(){ sel=null; document.getElementById('preview').style.display='none'; render(); }
+document.getElementById('grade').addEventListener('change', ()=>{sel=null;document.getElementById('preview').style.display='none';render();});
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<!--
+====================================================================
+  成长星球 · 科学班生态 —— 老师大屏驾驶舱 高保真原型（Phase 1）
+  设计：潘澜图（UI 设计师）｜ 单文件自包含（内联 CSS/JS，无外部依赖）
+--------------------------------------------------------------------
+  【设计说明 200-300 字】
+  布局：1920×1080 大屏，自上而下三区——顶部栏（品牌+班级切换+星球阶段+
+  今日生态值+计时器+进度环）、中部（左侧生态星球全景 / 右侧光荣榜）、
+  底部一键点评面板。采用 CSS Grid 三行布局，主视觉占最大面积保证远距可读。
+  色彩：糖果马卡龙体系（粉/薄荷/鹅黄/天蓝/薰衣草），圆角卡片+柔和投影，
+  底图暖奶油渐变，营造童趣"生命感"。字体用系统圆体+大字号高对比，
+  文字极简，状态靠形状/颜色传达（亮=活跃、垂=蔫、爱心=被爱护、创可贴=受伤）。
+  交互：点伙伴→高亮；点科学标签→两步完成点评并触发开花/发光/长叶/藤蔓/
+  进化/蔫了等柔动效与"叮"音效；多班级数据隔离、一键切班、记住上次班级；
+  光荣榜与进度环随点评实时联动。负向统一"可恢复"，绝不公开羞辱。
+====================================================================
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>成长星球 · 科学班生态 — 老师大屏驾驶舱</title>
+<style>
+  :root{
+    --pink:#FFB3C6; --mint:#A8E6CF; --yellow:#FFE5A0; --blue:#A0D2FF;
+    --lav:#CDB4FF; --peach:#FFD6A5; --sky:#BDEBFF;
+    --bg1:#FFF6EC; --bg2:#FDEFF6; --bg3:#EAF7F2;
+    --ink:#5A5566; --ink2:#8A8499; --ink3:#B5AFC2;
+    --card:#FFFFFF; --line:#F0E9F2;
+    --shadow:0 10px 30px rgba(150,130,170,.16);
+    --shadowS:0 4px 14px rgba(150,130,170,.18);
+    --r:26px; --rS:16px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Comic Sans MS",sans-serif;
+    color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2) 55%,var(--bg3));
+    overflow:hidden;
+    font-weight:600;
+  }
+  #app{
+    height:100vh; width:100vw; padding:14px; gap:14px;
+    display:grid; grid-template-rows:104px 1fr 244px;
+  }
+
+  /* ---------- 顶部栏 ---------- */
+  #topbar{
+    grid-row:1; display:flex; align-items:center; gap:18px;
+    background:var(--card); border-radius:var(--r); box-shadow:var(--shadow);
+    padding:0 22px;
+  }
+  .brand{display:flex; align-items:center; gap:12px; flex-shrink:0;}
+  .brand .logo{
+    width:54px;height:54px;border-radius:18px;
+    background:radial-gradient(circle at 32% 30%,#fff,var(--mint) 70%,#7fd1b4);
+    display:flex;align-items:center;justify-content:center;font-size:30px;
+    box-shadow:var(--shadowS);
+  }
+  .brand .name{font-size:25px;font-weight:800;letter-spacing:.5px;line-height:1.1;}
+  .brand .sub{font-size:13px;color:var(--ink2);font-weight:600;}
+
+  .classchips{display:flex;gap:10px;flex:1;overflow:hidden;}
+  .chip{
+    display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:18px;
+    background:#FBF6FB;border:2px solid transparent;cursor:pointer;
+    transition:.18s; white-space:nowrap; box-shadow:var(--shadowS);
+  }
+  .chip:hover{transform:translateY(-2px);}
+  .chip .dot{width:14px;height:14px;border-radius:50%;}
+  .chip .ct{font-size:15px;font-weight:700;}
+  .chip .cs{font-size:11px;color:var(--ink2);}
+  .chip.active{border-color:var(--pink);background:#FFF0F5;transform:translateY(-2px);}
+
+  .topstats{display:flex;align-items:center;gap:16px;flex-shrink:0;}
+  .pill{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:6px 16px;border-radius:18px;min-width:96px;
+  }
+  .pill .pv{font-size:26px;font-weight:900;line-height:1;}
+  .pill .pl{font-size:12px;color:var(--ink2);margin-top:3px;font-weight:700;}
+  .pill.stage{background:linear-gradient(135deg,#FFF3D6,#FFE0EC);}
+  .pill.eco{background:linear-gradient(135deg,#E6F7EE,#DCF1FF);}
+  .pill.timer{background:linear-gradient(135deg,#F0ECFF,#FFE9F4);}
+  .timer .pv{font-variant-numeric:tabular-nums;}
+  .timerbtns{display:flex;gap:6px;margin-top:4px;}
+  .timerbtns button{
+    border:none;background:#fff;border-radius:10px;font-size:11px;font-weight:800;
+    padding:3px 8px;cursor:pointer;color:var(--ink);box-shadow:var(--shadowS);
+  }
+  .timerbtns button:hover{background:var(--pink);color:#fff;}
+
+  /* 进度环 */
+  .ringwrap{display:flex;align-items:center;gap:10px;
+    background:linear-gradient(135deg,#FFF7E8,#F3FBF4);border-radius:20px;padding:8px 14px;box-shadow:var(--shadowS);}
+  .ringwrap .rl{font-size:12px;color:var(--ink2);font-weight:700;line-height:1.3;}
+  .ringwrap .rl b{display:block;font-size:15px;color:var(--ink);}
+
+  /* ---------- 中部 ---------- */
+  #stage{grid-row:2;display:grid;grid-template-columns:1fr 384px;gap:14px;min-height:0;}
+  #planet{
+    position:relative;border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 50% 8%, #FFFDF8 0%, #EAF6FF 40%, #E7F6EE 100%);
+  }
+  .planet-core{
+    position:absolute;left:50%;top:54%;width:60%;height:70%;transform:translate(-50%,-50%);
+    background:radial-gradient(circle, rgba(168,230,207,.35), rgba(160,210,255,.12) 60%, transparent 72%);
+    filter:blur(6px);pointer-events:none;
+  }
+  .clouds{position:absolute;inset:0;pointer-events:none;opacity:.7;}
+  .cloud{position:absolute;background:#fff;border-radius:50px;box-shadow:0 6px 18px rgba(160,180,200,.18);}
+  .cloud::before,.cloud::after{content:"";position:absolute;background:#fff;border-radius:50%;}
+  .c1{width:120px;height:34px;top:14%;left:8%;}
+  .c1::before{width:46px;height:46px;top:-20px;left:18px;}
+  .c1::after{width:34px;height:34px;top:-12px;left:58px;}
+  .c2{width:90px;height:26px;top:22%;right:10%;}
+  .c2::before{width:36px;height:36px;top:-16px;left:14px;}
+  .c2::after{width:26px;height:26px;top:-10px;left:44px;}
+
+  .planet-grid{
+    position:absolute;inset:40px 44px 40px 300px;
+    display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:1fr;
+    gap:10px 6px;align-content:center;
+  }
+  #vines{position:absolute;inset:0;pointer-events:none;z-index:1;}
+
+  .partner{
+    position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;cursor:pointer;transition:transform .15s;
+  }
+  .partner:hover{transform:translateY(-3px);}
+  .blob{
+    position:relative;width:74%;max-width:128px;aspect-ratio:1/1;border-radius:50%;
+    background:radial-gradient(circle at 34% 30%, #ffffffcc, var(--c) 78%);
+    box-shadow:0 8px 18px rgba(120,100,140,.20), inset 0 -6px 14px rgba(0,0,0,.05);
+    display:flex;align-items:center;justify-content:center;
+    transition:filter .3s, transform .3s;
+  }
+  .blob svg{width:82%;height:82%;overflow:visible;}
+  .partner .name{
+    margin-top:4px;font-size:18px;font-weight:800;color:var(--ink);
+    text-shadow:0 1px 0 #fff; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .partner .grp{font-size:11px;color:var(--ink2);font-weight:700;margin-top:-1px;}
+  .partner .score{
+    position:absolute;top:2px;right:8%;min-width:30px;height:30px;border-radius:50%;
+    background:#fff;box-shadow:var(--shadowS);display:flex;align-items:center;justify-content:center;
+    font-size:15px;font-weight:900;color:var(--ink);z-index:3;
+  }
+
+  /* 状态 */
+  .partner.active .blob{animation:float 3.4s ease-in-out infinite;}
+  .partner.wilt .blob{filter:grayscale(.45) brightness(.94);transform:rotate(-9deg) translateY(6px);}
+  .partner.injured .blob{animation:carepulse 1.4s ease-in-out infinite;}
+  .partner.loved .blob{box-shadow:0 8px 18px rgba(120,100,140,.20),0 0 0 4px #FFD9E6, 0 0 22px #FFC2DC;}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+  @keyframes carepulse{0%,100%{box-shadow:0 8px 18px rgba(120,100,140,.20),0 0 0 3px #FFB3B3}50%{box-shadow:0 8px 18px rgba(120,100,140,.20),0 0 0 7px #ffd2d2}}
+
+  /* 选中 */
+  .partner.sel .blob{box-shadow:0 8px 18px rgba(120,100,140,.20),0 0 0 5px #fff,0 0 0 9px var(--pink);transform:scale(1.06);}
+  .partner.sel .name{color:var(--pink);}
+
+  /* 状态角标 */
+  .badge{position:absolute;top:-2px;left:6%;font-size:22px;z-index:4;animation:pop .3s;}
+  .carepill{
+    position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
+    background:#FF9E9E;color:#fff;font-size:11px;font-weight:900;padding:2px 9px;border-radius:10px;
+    white-space:nowrap;box-shadow:var(--shadowS);z-index:4;
+  }
+  @keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+
+  /* 装饰（叶/花） */
+  .fx{position:absolute;top:-6px;left:50%;transform:translateX(-50%);display:flex;gap:1px;z-index:3;pointer-events:none;}
+  .fx svg{width:20px;height:20px;}
+
+  /* 触发动效 */
+  .blob.glow{animation:glow .9s ease-out;}
+  @keyframes glow{0%{filter:brightness(1)}30%{filter:brightness(1.5) drop-shadow(0 0 16px #fff)}100%{filter:brightness(1)}}
+  .partner.evolve .blob{animation:evolve .8s ease-out;}
+  @keyframes evolve{0%{transform:scale(1)}40%{transform:scale(1.22) rotate(4deg)}100%{transform:scale(1)}}
+  .spark{position:absolute;left:50%;top:40%;font-size:22px;pointer-events:none;z-index:6;animation:spark .9s ease-out forwards;}
+  @keyframes spark{0%{transform:translate(-50%,-50%) scale(.3);opacity:1}100%{transform:translate(-50%,-160%) scale(1.3);opacity:0}}
+
+  /* 浮层卡片：进度环 + 图例 */
+  .floatcard{
+    position:absolute;z-index:5;background:rgba(255,255,255,.92);backdrop-filter:blur(4px);
+    border-radius:22px;box-shadow:var(--shadow);padding:14px 16px;
+  }
+  .progresscard{top:26px;left:22px;display:flex;align-items:center;gap:14px;}
+  .progresscard .ptxt .stage{font-size:21px;font-weight:900;}
+  .progresscard .ptxt .sub{font-size:12px;color:var(--ink2);font-weight:700;margin-top:3px;max-width:130px;}
+  .legend{top:170px;left:22px;bottom:auto;display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:700;color:var(--ink);}
+  .legend .row{display:flex;align-items:center;gap:8px;}
+  .legend .ic{width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+
+  /* ---------- 右侧光荣榜 ---------- */
+  #board{
+    background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);
+    padding:16px 16px 8px;display:flex;flex-direction:column;gap:12px;overflow:hidden;
+  }
+  .boardtop{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:900;}
+  .boardtop .em{font-size:22px;}
+  .boardlist{display:flex;flex-direction:column;gap:11px;overflow-y:auto;padding-right:4px;flex:1;}
+  .boardlist::-webkit-scrollbar{width:6px;}
+  .boardlist::-webkit-scrollbar-thumb{background:var(--pink);border-radius:6px;}
+  .bcard{
+    display:flex;align-items:center;gap:12px;border-radius:18px;padding:12px 14px;
+    background:linear-gradient(135deg,#FFF9F0,#F3FAFF);box-shadow:var(--shadowS);
+  }
+  .bcard .medal{width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+  .bcard .bmain{flex:1;min-width:0;}
+  .bcard .bt{font-size:13px;color:var(--ink2);font-weight:800;}
+  .bcard .bn{font-size:18px;font-weight:900;color:var(--ink);}
+  .bcard .bv{font-size:13px;font-weight:800;color:#E58BAE;white-space:nowrap;}
+
+  /* ---------- 底部点评面板 ---------- */
+  #dock{
+    grid-row:3;background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);
+    display:grid;grid-template-columns:252px 1fr;gap:14px;padding:14px 18px;min-height:0;
+  }
+  .selpanel{display:flex;flex-direction:column;gap:8px;}
+  .selpanel .h{font-size:15px;font-weight:900;color:var(--ink2);}
+  .selcard{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#FFF0F5,#EAF7FF);border-radius:18px;padding:10px 12px;flex:1;box-shadow:var(--shadowS);}
+  .selcard.empty{justify-content:center;color:var(--ink3);font-weight:800;font-size:15px;text-align:center;}
+  .selava{width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#fff,var(--c,#ddd) 80%);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:var(--shadowS);}
+  .selava svg{width:84%;height:84%;}
+  .selinfo .sn{font-size:18px;font-weight:900;}
+  .selinfo .ss{font-size:12px;color:var(--ink2);font-weight:700;}
+  .selbtns{display:flex;gap:8px;}
+  .selbtns button{flex:1;border:none;border-radius:14px;padding:9px 0;font-size:14px;font-weight:900;cursor:pointer;color:#fff;box-shadow:var(--shadowS);}
+  .selbtns .cardbtn{background:linear-gradient(135deg,#CDB4FF,#A0D2FF);}
+  .selbtns .clrbtn{background:linear-gradient(135deg,#FFB3C6,#FFD6A5);}
+
+  .tagarea{display:flex;flex-direction:column;gap:8px;overflow:hidden;}
+  .taghint{font-size:13px;color:var(--ink2);font-weight:800;}
+  .taghint b{color:var(--pink);}
+  .tagrow{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;flex:1;}
+  .tagrow::-webkit-scrollbar{height:6px;}
+  .tagrow::-webkit-scrollbar-thumb{background:var(--lav);border-radius:6px;}
+  .group{flex-shrink:0;background:#FBF7FC;border-radius:18px;padding:10px 12px;box-shadow:var(--shadowS);min-width:188px;}
+  .group .gt{font-size:13px;font-weight:900;margin-bottom:7px;display:flex;align-items:center;gap:6px;}
+  .group .gt .gd{width:10px;height:10px;border-radius:50%;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .tag{
+    border:none;cursor:pointer;border-radius:14px;padding:7px 11px;font-size:13.5px;font-weight:800;
+    color:var(--ink);background:#fff;box-shadow:var(--shadowS);transition:.15s;display:flex;align-items:center;gap:5px;
+    border:2px solid transparent;
+  }
+  .tag:hover{transform:translateY(-2px);border-color:var(--gc);}
+  .tag .v{font-size:11px;font-weight:900;background:var(--gc);color:#fff;border-radius:8px;padding:1px 6px;}
+  .tag.neg{background:#FFF3F3;}
+  .tag.neg .v{background:#FFB3B3;}
+
+  /* ---------- 成长卡浮层 ---------- */
+  #overlay{position:fixed;inset:0;background:rgba(90,70,100,.42);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;z-index:50;}
+  #overlay.hidden{display:none;}
+  .growth{
+    width:min(960px,92vw);max-height:90vh;overflow:auto;background:linear-gradient(160deg,#FFFDFB,#F4FAFF);
+    border-radius:30px;box-shadow:0 30px 70px rgba(80,60,100,.35);padding:26px 30px;position:relative;
+  }
+  .growth .close{position:absolute;top:18px;right:20px;border:none;background:#fff;border-radius:50%;
+    width:42px;height:42px;font-size:20px;cursor:pointer;box-shadow:var(--shadowS);font-weight:900;color:var(--ink);}
+  .ghead{display:flex;align-items:center;gap:18px;margin-bottom:18px;}
+  .gava{width:96px;height:96px;border-radius:28px;background:radial-gradient(circle at 34% 30%,#fff,var(--c,#ccc) 82%);
+    display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);}
+  .gava svg{width:82%;height:82%;}
+  .ghead .gn{font-size:28px;font-weight:900;}
+  .ghead .gm{font-size:14px;color:var(--ink2);font-weight:700;margin-top:4px;}
+  .gstate{display:inline-block;margin-top:6px;font-size:13px;font-weight:900;padding:3px 12px;border-radius:12px;background:#EAF7FF;color:#5AA0C8;}
+
+  .sec{margin-top:14px;}
+  .sect{font-size:17px;font-weight:900;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  /* 进化时间轴 */
+  .timeline{display:flex;align-items:center;justify-content:space-between;gap:6px;background:#fff;border-radius:20px;padding:18px 20px;box-shadow:var(--shadowS);}
+  .tnode{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;}
+  .tnode .dot{width:30px;height:30px;border-radius:50%;background:#EEE6F0;display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .tnode.done .dot{background:linear-gradient(135deg,var(--mint),var(--blue));color:#fff;}
+  .tnode.cur .dot{box-shadow:0 0 0 4px #FFE3EE;animation:float 2s infinite;}
+  .tnode .tl{font-size:13px;font-weight:800;color:var(--ink2);}
+  .tnode.done .tl{color:var(--ink);}
+  .tline{flex:1;height:4px;background:#EEE6F0;border-radius:4px;}
+  .tline.done{background:linear-gradient(90deg,var(--mint),var(--blue));}
+
+  .decor{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .ditem{background:#fff;border-radius:16px;padding:12px 8px;text-align:center;box-shadow:var(--shadowS);}
+  .ditem .di{font-size:30px;}
+  .ditem .dn{font-size:12px;font-weight:800;color:var(--ink);margin-top:4px;}
+  .ditem.lock{opacity:.45;filter:grayscale(.6);}
+  .ditem.lock .dn::after{content:" 🔒";}
+
+  .netcard{background:#fff;border-radius:20px;padding:14px;box-shadow:var(--shadowS);display:flex;align-items:center;gap:16px;}
+  .netsvg{flex-shrink:0;}
+  .netnote{font-size:13px;color:var(--ink2);font-weight:700;line-height:1.7;}
+  .netnote b{color:var(--ink);}
+
+  .toast{position:fixed;bottom:270px;left:50%;transform:translateX(-50%);background:rgba(90,70,100,.92);color:#fff;
+    padding:10px 22px;border-radius:18px;font-size:16px;font-weight:800;z-index:60;opacity:0;transition:.3s;pointer-events:none;}
+  .toast.show{opacity:1;bottom:290px;}
+
+  /* ---------- 顶部「花名册」齿轮入口 ---------- */
+  .gearbtn{
+    border:none;cursor:pointer;border-radius:18px;padding:12px 18px;font-size:16px;font-weight:900;color:#fff;
+    background:linear-gradient(135deg,#CDB4FF,#A0D2FF);box-shadow:var(--shadowS);
+    display:flex;align-items:center;gap:7px;flex-shrink:0;transition:.15s;white-space:nowrap;
+  }
+  .gearbtn:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(150,130,170,.28);}
+
+  /* ---------- 花名册管理模态 ---------- */
+  #roster{position:fixed;inset:0;background:rgba(90,70,100,.42);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;z-index:50;}
+  #roster.hidden{display:none;}
+  .roster-panel{
+    width:min(760px,94vw);max-height:88vh;overflow:auto;
+    background:linear-gradient(160deg,#FFFDFB,#F4FAFF);border-radius:30px;
+    box-shadow:0 30px 70px rgba(80,60,100,.35);padding:24px 30px;position:relative;
+  }
+  .roster-panel .close{position:absolute;top:16px;right:18px;border:none;background:#fff;border-radius:50%;
+    width:42px;height:42px;font-size:22px;cursor:pointer;box-shadow:var(--shadowS);font-weight:900;color:var(--ink);}
+  .roster-panel .close:hover{background:var(--pink);color:#fff;}
+  .rhead{display:flex;align-items:center;gap:14px;margin-bottom:6px;padding-right:50px;}
+  .rlogo{width:52px;height:52px;border-radius:18px;background:radial-gradient(circle at 32% 30%,#fff,var(--lav) 75%);
+    display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:var(--shadowS);flex-shrink:0;}
+  .rtitle{font-size:26px;font-weight:900;}
+  .rsub{font-size:14px;color:var(--ink2);font-weight:700;margin-top:2px;}
+  .rcount{margin-left:auto;background:linear-gradient(135deg,#E6F7EE,#DCF1FF);border-radius:16px;padding:8px 16px;
+    font-size:16px;font-weight:900;color:#5AA0C8;white-space:nowrap;}
+
+  .rsection{margin-top:18px;}
+  .rshead{font-size:16px;font-weight:900;margin-bottom:10px;color:var(--ink);}
+  .raddrow{display:flex;gap:10px;}
+  .rinput,.rtext{
+    flex:1;border:2px solid var(--line);border-radius:16px;padding:12px 14px;font-size:16px;font-weight:700;
+    font-family:inherit;color:var(--ink);background:#fff;outline:none;transition:.15s;min-width:0;
+  }
+  .rinput:focus,.rtext:focus{border-color:var(--pink);}
+  .rtext{resize:vertical;min-height:120px;line-height:1.6;}
+  .rbtn{border:none;border-radius:16px;padding:0 22px;font-size:16px;font-weight:900;cursor:pointer;color:#fff;
+    background:linear-gradient(135deg,#FFB3C6,#FFD6A5);box-shadow:var(--shadowS);transition:.15s;white-space:nowrap;flex-shrink:0;}
+  .rbtn:hover{transform:translateY(-2px);}
+  .rbtn.big{padding:12px 30px;font-size:18px;background:linear-gradient(135deg,#A8E6CF,#A0D2FF);}
+
+  .rlist{display:flex;flex-direction:column;gap:9px;max-height:40vh;overflow-y:auto;padding-right:4px;}
+  .rlist::-webkit-scrollbar{width:6px;}
+  .rlist::-webkit-scrollbar-thumb{background:var(--pink);border-radius:6px;}
+  .ritem{display:flex;align-items:center;gap:12px;background:#FBF7FC;border-radius:18px;padding:8px 12px;box-shadow:var(--shadowS);}
+  .ritem .ravi{width:46px;height:46px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#fff,var(--c,#ddd) 80%);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:var(--shadowS);}
+  .ritem .ravi svg{width:84%;height:84%;}
+  .ritem input{flex:1;border:2px solid transparent;border-radius:14px;padding:9px 12px;font-size:16px;font-weight:800;
+    font-family:inherit;color:var(--ink);background:#fff;outline:none;min-width:0;}
+  .ritem input:focus{border-color:var(--pink);}
+  .ritem .rdel{border:none;background:#FFE3E3;color:#E06A6A;font-size:14px;font-weight:900;border-radius:14px;
+    padding:9px 14px;cursor:pointer;flex-shrink:0;transition:.15s;white-space:nowrap;}
+  .ritem .rdel:hover{background:#FFB3B3;color:#fff;}
+  .rimprow{display:flex;align-items:center;gap:12px;margin-top:10px;}
+  .rhint{font-size:14px;color:var(--ink2);font-weight:800;}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- ================= 顶部栏 ================= -->
+  <header id="topbar">
+    <div class="brand">
+      <div class="logo">🌱</div>
+      <div>
+        <div class="name">成长星球</div>
+        <div class="sub">科学班生态 · 老师驾驶舱</div>
+      </div>
+    </div>
+    <div class="classchips" id="classChips"></div>
+    <div class="topstats">
+      <div class="pill stage" id="stagePill"><div class="pv" id="stageTxt">绿意</div><div class="pl">星球阶段</div></div>
+      <div class="pill eco"><div class="pv" id="ecoTxt">0</div><div class="pl">今日生态值</div></div>
+      <div class="pill timer">
+        <div class="pv" id="timerTxt">00:00</div><div class="pl">课堂计时</div>
+        <div class="timerbtns"><button id="tStart">开始</button><button id="tReset">重置</button></div>
+      </div>
+      <div class="ringwrap">
+        <div id="topRing"></div>
+        <div class="rl">集体目标<b id="ringPct">0%</b><span id="ringSub">距繁荣还差 —</span></div>
+      </div>
+      <button class="gearbtn" id="gearBtn"><span style="font-size:18px">⚙</span> 花名册</button>
+    </div>
+  </header>
+
+  <!-- ================= 中部 ================= -->
+  <div id="stage">
+    <section id="planet">
+      <div class="planet-core"></div>
+      <div class="clouds"><div class="cloud c1"></div><div class="cloud c2"></div></div>
+      <svg id="vines"></svg>
+      <div class="planet-grid" id="planetGrid"></div>
+      <div class="floatcard progresscard" id="progressCard">
+        <div id="bigRing"></div>
+        <div class="ptxt"><div class="stage" id="bigStage">绿意星球</div><div class="sub" id="bigSub">全班共同养护中…</div></div>
+      </div>
+      <div class="floatcard legend">
+        <div class="row"><span class="ic" style="background:#FFF3C4">✨</span>亮起 = 活跃有活力</div>
+        <div class="row"><span class="ic" style="background:#E8E8E8">🥀</span>垂头 = 蔫了（可养回）</div>
+        <div class="row"><span class="ic" style="background:#FFE0EC">💗</span>爱心 = 被爱护</div>
+        <div class="row"><span class="ic" style="background:#FFD9D9">🩹</span>创可贴 = 受伤需照料</div>
+      </div>
+    </section>
+
+    <aside id="board">
+      <div class="boardtop"><span class="em">🏆</span>光荣榜 · 共生榜</div>
+      <div class="boardlist" id="boardList"></div>
+    </aside>
+  </div>
+
+  <!-- ================= 底部点评面板 ================= -->
+  <footer id="dock">
+    <div class="selpanel">
+      <div class="h">当前点评对象</div>
+      <div class="selcard empty" id="selCard">👆 先点一个伙伴</div>
+      <div class="selbtns">
+        <button class="cardbtn" id="openCard" disabled style="opacity:.5">查看成长卡</button>
+        <button class="clrbtn" id="clearSel" disabled style="opacity:.5">取消选择</button>
+      </div>
+    </div>
+    <div class="tagarea">
+      <div class="taghint">科学学科专属点评 · <b>点伙伴 → 点标签</b> 两步完成，零打字</div>
+      <div class="tagrow" id="tagRow"></div>
+    </div>
+  </footer>
+</div>
+
+<!-- 成长卡浮层 -->
+<div id="overlay" class="hidden">
+  <div class="growth" id="growthCard"></div>
+</div>
+
+<!-- 花名册管理浮层 -->
+<div id="roster" class="hidden">
+  <div class="roster-panel">
+    <button class="close" id="rosterClose">×</button>
+    <div class="rhead">
+      <div class="rlogo">⚙️</div>
+      <div>
+        <div class="rtitle">花名册管理</div>
+        <div class="rsub" id="rosterClass">—</div>
+      </div>
+      <div class="rcount" id="rosterCount">0 位伙伴</div>
+    </div>
+
+    <div class="rsection">
+      <div class="rshead">➕ 新增学生</div>
+      <div class="raddrow">
+        <input id="addInput" class="rinput" placeholder="输入姓名后回车 / 点「添加」" />
+        <button id="addBtn" class="rbtn">添加</button>
+      </div>
+    </div>
+
+    <div class="rsection">
+      <div class="rshead">👥 当前伙伴（点名字可改名，🗑 删除会连同藤蔓数据一起移除）</div>
+      <div class="rlist" id="rosterList"></div>
+    </div>
+
+    <div class="rsection">
+      <div class="rshead">📥 批量导入（每行一个，或用逗号 / 空格 / 、分隔）</div>
+      <textarea id="importArea" class="rtext" placeholder="张三&#10;李四&#10;王五 赵六&#10;钱七,孙八"></textarea>
+      <div class="rimprow">
+        <button id="importBtn" class="rbtn big">一键导入</button>
+        <span class="rhint" id="importHint"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   数据层：多班级 + 严格隔离
+   ===================================================================== */
+const PALETTE=['#FFB3C6','#A8E6CF','#FFE5A0','#A0D2FF','#CDB4FF','#FFD6A5','#B5EAD7','#C7CEEA','#FFC9DE','#A0E7E5','#D5AAFF','#9BF6FF','#FFAFA3','#BDEBFF'];
+const GROUPS=['🌱萌芽组','🔬探秘组','💡奇思组','🛡️守护组'];
+const GROUP_COLORS=['#A8E6CF','#A0D2FF','#FFE5A0','#CDB4FF'];
+
+function mk(n,type,color,state,score,ask,vines){
+  return {n,type,color,state:state||'active',score:score||8,ask:ask||0,vines:vines||[],decor:[]};
+}
+// 班级构造：每个班伙伴主题不同
+const CLASSES={
+  c1:{
+    id:'c1', name:'三(1)班', theme:'春蚕工坊', stagePct:0.55, eco:42, tidy:82,
+    students:[
+      mk('王梓萱','worm',PALETTE[0],'active',14,2), mk('李一鸣','worm',PALETTE[1],'active',9,1,[1]),
+      mk('张可欣','worm',PALETTE[2],'active',11,0), mk('刘子涵','worm',PALETTE[3],'wilt',5,0),
+      mk('陈思源','worm',PALETTE[4],'active',13,4,[0,1]), mk('赵雨桐','worm',PALETTE[5],'active',8,1),
+      mk('黄俊熙','worm',PALETTE[6],'active',10,0), mk('周梦琪','worm',PALETTE[7],'loved',16,1),
+      mk('吴浩宇','worm',PALETTE[8],'active',7,0), mk('郑雅婷','worm',PALETTE[9],'active',12,2),
+      mk('孙悦宁','worm',PALETTE[10],'active',9,0), mk('胡天磊','worm',PALETTE[11],'injured',4,0),
+      mk('朱晨曦','worm',PALETTE[12],'active',15,3), mk('高若汐','worm',PALETTE[13],'active',8,1),
+    ]
+  },
+  c2:{
+    id:'c2', name:'四(2)班', theme:'种子方舟', stagePct:0.20, eco:18, tidy:70,
+    students:[
+      mk('林子轩','sprout',PALETTE[1],'active',6,1), mk('何雨橙','sprout',PALETTE[3],'active',9,0),
+      mk('郭明轩','sprout',PALETTE[5],'active',7,0), mk('马嘉怡','sprout',PALETTE[7],'active',11,2),
+      mk('罗梓睿','sprout',PALETTE[9],'wilt',4,0), mk('宋佳音','sprout',PALETTE[11],'active',8,1),
+      mk('韩雪儿','sprout',PALETTE[0],'active',10,0), mk('冯子墨','sprout',PALETTE[2],'active',6,0),
+      mk('邓欣然','sprout',PALETTE[4],'loved',13,1), mk('曹宇辰','sprout',PALETTE[6],'active',7,0),
+      mk('彭诗涵','sprout',PALETTE[8],'active',9,0), mk('萧浩然','sprout',PALETTE[10],'active',5,0),
+      mk('袁梦洁','sprout',PALETTE[12],'active',8,0), mk('潘乐瑶','sprout',PALETTE[13],'active',10,2),
+    ]
+  },
+  c3:{
+    id:'c3', name:'五(1)班', theme:'微观水域', stagePct:0.86, eco:71, tidy:90,
+    students:[
+      mk('叶清扬','fish',PALETTE[3],'active',18,3), mk('苏晓棠','fish',PALETTE[1],'active',15,2,[0,2]),
+      mk('陆星河','crystal',PALETTE[4],'injured',9,0), mk('江明月','fish',PALETTE[5],'active',20,4),
+      mk('顾言','crystal',PALETTE[7],'active',16,1,[0,1]), mk('沈知夏','fish',PALETTE[9],'loved',22,2,[3]),
+      mk('乔安','crystal',PALETTE[11],'active',14,0), mk('唐果','fish',PALETTE[0],'active',17,3),
+      mk('温言','crystal',PALETTE[2],'active',13,1), mk('柏川','fish',PALETTE[6],'active',19,2),
+      mk('柳青','crystal',PALETTE[8],'active',15,0), mk('梅小雨','fish',PALETTE[10],'active',21,5,[1]),
+      mk('兰舟','crystal',PALETTE[12],'active',12,0), mk('竹君','fish',PALETTE[13],'active',16,1),
+    ]
+  },
+  c4:{
+    id:'c4', name:'六(3)班', theme:'自然观察站', stagePct:0.45, eco:35, tidy:78,
+    students:[
+      mk('石小玉','snail',PALETTE[6],'active',11,1), mk('田蜜蜜','butterfly',PALETTE[0],'active',13,2),
+      mk('金豆豆','snail',PALETTE[2],'active',9,0), mk('银铃','butterfly',PALETTE[4],'wilt',5,0),
+      mk('铜锣','snail',PALETTE[8],'active',12,1,[1]), mk('铁蛋','butterfly',PALETTE[10],'active',10,0),
+      mk('木棉','snail',PALETTE[12],'active',14,2), mk('火苗','butterfly',PALETTE[3],'loved',16,1),
+      mk('水土','snail',PALETTE[1],'active',8,0), mk('风铃','butterfly',PALETTE[7],'active',15,3,[0]),
+      mk('云朵','snail',PALETTE[9],'active',9,0), mk('星河','butterfly',PALETTE[11],'active',13,1),
+      mk('露珠','snail',PALETTE[5],'active',11,0), mk('雪球','butterfly',PALETTE[13],'active',12,2),
+    ]
+  }
+};
+const CLASS_ORDER=['c1','c2','c3','c4'];
+let currentClass='c1';
+let selectedId=null;
+
+/* =====================================================================
+   科学点评标签（预置，按学科分组）
+   effect: bloom开花 / evolve进化 / glow发光 / leaf长叶 / knowleaf知识叶 /
+           love拥抱 / vine藤蔓 / wilt蔫了 / injured受伤 / tidy整洁
+   ===================================================================== */
+const TAG_GROUPS=[
+  {name:'思维', color:'#CDB4FF', tags:[
+    {label:'提出好问题/大胆猜想', v:2, effect:'bloom'},
+    {label:'完整表达探究结论', v:3, effect:'evolve'},
+  ]},
+  {name:'实验', color:'#A0D2FF', tags:[
+    {label:'规范操作实验', v:2, effect:'glow'},
+    {label:'安全提醒/保护同伴', v:2, effect:'glow'},
+  ]},
+  {name:'观察', color:'#A8E6CF', tags:[
+    {label:'认真观察并记录', v:2, effect:'leaf'},
+    {label:'科学阅读/资料打卡', v:1, effect:'knowleaf'},
+  ]},
+  {name:'生命', color:'#FFB3C6', tags:[
+    {label:'爱护实验生物/植物', v:3, effect:'love'},
+  ]},
+  {name:'合作', color:'#FFD6A5', tags:[
+    {label:'小组合作探究', v:2, effect:'vine'},
+    {label:'帮助同学/分享发现', v:2, effect:'vine'},
+  ]},
+  {name:'工程', color:'#9BF6FF', tags:[
+    {label:'创新小制作/工程挑战', v:3, effect:'evolve'},
+  ]},
+  {name:'责任', color:'#B5EAD7', tags:[
+    {label:'主动整理/归位器材', v:2, effect:'glow'},
+    {label:'坚持长期观察(达成)', v:3, effect:'evolve'},
+  ]},
+  {name:'温柔提醒', color:'#FFB3B3', neg:true, tags:[
+    {label:'不安全操作→蔫了', v:0, effect:'wilt'},
+    {label:'破坏怠慢生命→受伤', v:0, effect:'injured'},
+    {label:'未整理器材→整洁度↓', v:0, effect:'tidy'},
+  ]},
+];
+
+/* =====================================================================
+   伙伴拟物 SVG（白体 + 学科色点缀，远距可读）
+   ===================================================================== */
+function creature(type,color){
+  const E='#ECE6DF', K='#5A5566';
+  const faceW=(cx,cy)=>`<circle cx="${cx-4}" cy="${cy}" r="2.4" fill="${K}"/><circle cx="${cx+4}" cy="${cy}" r="2.4" fill="${K}"/><path d="M${cx-5} ${cy+7} q5 5 10 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="${cx+9}" cy="${cy+4}" r="3" fill="${color}" opacity=".5"/>`;
+  let s='';
+  if(type==='worm'){
+    s=`<rect x="22" y="44" width="52" height="28" rx="14" fill="#fff" stroke="${E}" stroke-width="2"/>
+       <line x1="40" y1="48" x2="40" y2="68" stroke="${E}" stroke-width="2"/>
+       <line x1="56" y1="48" x2="56" y2="68" stroke="${E}" stroke-width="2"/>
+       <circle cx="70" cy="58" r="16" fill="#fff" stroke="${E}" stroke-width="2"/>${faceW(70,55)}`;
+  }else if(type==='sprout'){
+    s=`<path d="M28 80 q22 12 44 0 l-5 -9 q-17 7 -34 0z" fill="#caa472"/>
+       <rect x="47" y="42" width="6" height="38" rx="3" fill="#8fd18f"/>
+       <path d="M50 52 q-16 -4 -20 -18 q14 2 20 14z" fill="#a7e3a7"/>
+       <path d="M50 46 q16 -6 22 -20 q-14 0 -22 14z" fill="#8fd18f"/>
+       <circle cx="50" cy="34" r="15" fill="#fff" stroke="${E}" stroke-width="2"/>${faceW(50,32)}`;
+  }else if(type==='fish'){
+    s=`<path d="M30 58 L12 45 L17 58 L12 71 Z" fill="#fff" stroke="${E}" stroke-width="2"/>
+       <ellipse cx="56" cy="58" rx="30" ry="20" fill="#fff" stroke="${E}" stroke-width="2"/>
+       <path d="M54 39 q7 -8 15 -6" stroke="${color}" stroke-width="4" fill="none" stroke-linecap="round"/>
+       <circle cx="70" cy="53" r="3" fill="${K}"/>
+       <path d="M66 63 q5 4 10 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>
+       <circle cx="80" cy="61" r="3" fill="${color}" opacity=".5"/>`;
+  }else if(type==='crystal'){
+    s=`<polygon points="50,18 67,42 50,66 33,42" fill="#fff" stroke="${color}" stroke-width="3"/>
+       <polygon points="28,40 41,57 28,74 15,57" fill="#fff" stroke="${color}" stroke-width="2.5"/>
+       <polygon points="72,40 85,57 72,74 59,57" fill="#fff" stroke="${color}" stroke-width="2.5"/>
+       <circle cx="50" cy="42" r="3" fill="${K}"/>
+       <path d="M44 50 q6 5 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>
+       <path d="M50 6 l2 7 l7 -2 l-5 6" fill="${color}"/>`;
+  }else if(type==='snail'){
+    s=`<path d="M18 74 q0 -12 16 -12 q15 0 15 13 l0 5 l-31 0z" fill="#fff" stroke="${E}" stroke-width="2"/>
+       <circle cx="64" cy="50" r="20" fill="#fff" stroke="${E}" stroke-width="2"/>
+       <circle cx="64" cy="50" r="13" fill="none" stroke="${color}" stroke-width="3"/>
+       <circle cx="64" cy="50" r="6" fill="${color}" opacity=".5"/>
+       <line x1="34" y1="62" x2="30" y2="46" stroke="${E}" stroke-width="2"/>
+       <circle cx="30" cy="44" r="3" fill="${K}"/>
+       <circle cx="40" cy="66" r="2.6" fill="${K}"/>
+       <path d="M36 72 q5 4 10 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  }else if(type==='butterfly'){
+    s=`<ellipse cx="36" cy="48" rx="18" ry="22" fill="${color}" opacity=".9"/>
+       <ellipse cx="64" cy="48" rx="18" ry="22" fill="${color}" opacity=".9"/>
+       <ellipse cx="38" cy="74" rx="13" ry="14" fill="#fff" stroke="${E}" stroke-width="1.5"/>
+       <ellipse cx="62" cy="74" rx="13" ry="14" fill="#fff" stroke="${E}" stroke-width="1.5"/>
+       <rect x="47" y="32" width="6" height="48" rx="3" fill="#fff" stroke="${E}" stroke-width="1.5"/>
+       <circle cx="50" cy="32" r="6" fill="#fff" stroke="${E}" stroke-width="1.5"/>
+       <circle cx="48" cy="31" r="1.8" fill="${K}"/><circle cx="52" cy="31" r="1.8" fill="${K}"/>
+       <path d="M50 26 q-4 -8 -10 -10 M50 26 q4 -8 10 -10" stroke="${K}" stroke-width="1.5" fill="none"/>`;
+  }
+  return `<svg viewBox="0 0 100 100">${s}</svg>`;
+}
+function decorSVG(kind){
+  if(kind==='leaf') return `<svg viewBox="0 0 24 24"><path d="M12 22 C4 16 4 6 12 2 C20 6 20 16 12 22Z" fill="#8fd18f" stroke="#5fae5f" stroke-width="1"/><line x1="12" y1="22" x2="12" y2="8" stroke="#5fae5f" stroke-width="1"/></svg>`;
+  if(kind==='know') return `<svg viewBox="0 0 24 24"><path d="M12 22 C5 16 5 7 12 3 C19 7 19 16 12 22Z" fill="#FFE5A0" stroke="#E0B84a" stroke-width="1"/><line x1="12" y1="20" x2="12" y2="7" stroke="#E0B84a" stroke-width="1"/></svg>`;
+  return `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#FFB3C6"/><g fill="#FF8FB0"><circle cx="12" cy="4" r="3"/><circle cx="12" cy="20" r="3"/><circle cx="4" cy="12" r="3"/><circle cx="20" cy="12" r="3"/></g><circle cx="12" cy="12" r="2.5" fill="#fff"/></svg>`;
+}
+
+/* =====================================================================
+   音效（Web Audio 简单"叮"）
+   ===================================================================== */
+let actx=null;
+function ding(kind){
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    let f=523.25, dur=.6, type='sine';
+    if(kind==='bloom'){f=880;dur=.7;}
+    else if(kind==='evolve'){f=660;dur=.8;type='triangle';}
+    else if(kind==='love'){f=784;dur=.7;}
+    else if(kind==='neg'){f=233;dur=.5;type='sine';}
+    o.type=type; o.frequency.value=f;
+    g.gain.setValueAtTime(.0001,actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.22,actx.currentTime+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+dur);
+    o.start(); o.stop(actx.currentTime+dur+.02);
+  }catch(e){}
+}
+
+/* =====================================================================
+   渲染：班级切换 / 顶部 / 星球 / 光荣榜 / 点评面板
+   ===================================================================== */
+const $=id=>document.getElementById(id);
+
+function ringSVG(pct,size,color){
+  const r=(size-12)/2, c=2*Math.PI*r, off=c*(1-pct);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#EFE7F2" stroke-width="9"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="9"
+      stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}"
+      transform="rotate(-90 ${size/2} ${size/2})"/>
+    <text x="${size/2}" y="${size/2+5}" text-anchor="middle" font-size="${size*0.30}" font-weight="900" fill="${color}">${Math.round(pct*100)}%</text>
+  </svg>`;
+}
+function stageInfo(pct){
+  if(pct<0.34) return {name:'荒芜星球',color:'#C9B8A8',short:'荒芜',sub:'播下第一颗种子吧'};
+  if(pct<0.70) return {name:'绿意星球',color:'#7FD1B4',short:'绿意',sub:'绿芽正在舒展～'};
+  return {name:'繁荣星球',color:'#FF9EC4',short:'繁荣',sub:'生态欣欣向荣！'};
+}
+
+function renderTopbar(){
+  const cls=CLASSES[currentClass];
+  // 班级卡片
+  $('classChips').innerHTML=CLASS_ORDER.map(id=>{
+    const c=CLASSES[id]; const st=stageInfo(c.stagePct);
+    return `<div class="chip ${id===currentClass?'active':''}" data-c="${id}">
+      <span class="dot" style="background:${st.color}"></span>
+      <div><div class="ct">${c.name}</div><div class="cs">${c.theme}·${st.short}</div></div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>switchClass(ch.dataset.c));
+
+  // 阶段 / 生态值 / 进度环
+  const st=stageInfo(cls.stagePct);
+  $('stageTxt').textContent=st.short;
+  $('ecoTxt').textContent=cls.eco;
+  $('topRing').innerHTML=ringSVG(cls.stagePct,60,st.color);
+  $('bigRing').innerHTML=ringSVG(cls.stagePct,92,st.color);
+  $('bigStage').textContent=st.name; $('bigStage').style.color=st.color;
+  $('bigSub').textContent=st.sub;
+  $('ringPct').textContent=Math.round(cls.stagePct*100)+'%';
+  const remain=Math.max(0,Math.round((1-cls.stagePct)*100));
+  $('ringSub').textContent= cls.stagePct>=1?'已达繁荣🎉':`距繁荣还差 ${remain}%`;
+}
+
+function renderPlanet(){
+  const cls=CLASSES[currentClass];
+  const cols = cls.students.length>24?6 : cls.students.length>16?5 : 4;
+  $('planetGrid').style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  $('planetGrid').innerHTML=cls.students.map((s,i)=>{
+    const stateCls = s.state==='active'?'active':s.state;
+    const badge = s.state==='loved'?'💗':s.state==='injured'?'🩹':s.state==='wilt'?'🥀':'';
+    const care = s.state==='injured'?'<div class="carepill">需照料</div>':'';
+    const decor = s.decor.map(d=>`<span>${decorSVG(d)}</span>`).join('');
+    return `<div class="partner ${stateCls} ${selectedId===i?'sel':''}" data-i="${i}" style="--c:${s.color}">
+      <div class="score">${s.score}</div>
+      <div class="blob">${creature(s.type,s.color)}
+        <div class="fx">${decor}</div>
+      </div>
+      ${badge?`<div class="badge">${badge}</div>`:''}
+      ${care}
+      <div class="name">${esc(s.n)}</div>
+      <div class="grp">${GROUPS[i%4]}</div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('.partner').forEach(el=>{
+    el.onclick=()=>selectPartner(+el.dataset.i);
+  });
+  requestAnimationFrame(()=>{measureCenters();renderVines();});
+}
+
+function renderBoard(){
+  const cls=CLASSES[currentClass]; const S=cls.students;
+  // 最繁荣小组
+  const grpScore=[0,0,0,0];
+  S.forEach((s,i)=>grpScore[i%4]+=s.score);
+  let bestG=0; grpScore.forEach((v,i)=>{if(v>grpScore[bestG])bestG=i;});
+  // 最佳搭档（藤蔓最多的一对）
+  let bestPair=null,bestN=0;
+  for(let i=0;i<S.length;i++)for(const j of S[i].vines){ if(j>i){const n=pairVines(i,j); if(n>bestN){bestN=n;bestPair=[i,j];}} }
+  function pairVines(a,b){return (S[a].vines.includes(b)?1:0)+(S[b].vines.includes(a)?1:0);}
+  // 最爱提问
+  let askBest=0; S.forEach((s,i)=>{if(s.ask>askBest)askBest=i;});
+  // 生命守护星（被爱护 / 爱护行为）
+  let loveBest=0,loveMax=-1; S.forEach((s,i)=>{const lv=(s.state==='loved'?1:0); if(lv>loveMax){loveMax=lv;loveBest=i;}});
+  const tidyColor = cls.tidy>75?'#7FD1B4':cls.tidy>50?'#FFD6A5':'#FF9E9E';
+
+  const cards=[
+    {m:'🥇',c:'#FFE5A0',t:'最繁荣小组',n:GROUPS[bestG],v:`${grpScore[bestG]} 生态值`},
+    {m:'🤝',c:'#A0D2FF',t:'最佳搭档',n:bestPair?`${esc(S[bestPair[0]].n)} & ${esc(S[bestPair[1]].n)}`:'期待第一次合作',v:`${bestN} 根藤蔓`},
+    {m:'💡',c:'#CDB4FF',t:'最爱提问',n:esc(S[askBest].n),v:`${S[askBest].ask} 次好问题`},
+    {m:'💗',c:'#FFB3C6',t:'生命守护星',n:esc(S[loveBest].n),v:loveMax>0?'温柔守护中':'一起爱护生命'},
+    {m:'🧹',c:tidyColor,t:'星球整洁度',n:cls.tidy>75?'整洁如新':cls.tidy>50?'还算整洁':'该整理啦',v:`${cls.tidy}%`},
+  ];
+  $('boardList').innerHTML=cards.map(c=>`
+    <div class="bcard">
+      <div class="medal" style="background:${c.c}33">${c.m}</div>
+      <div class="bmain"><div class="bt">${c.t}</div><div class="bn">${c.n}</div></div>
+      <div class="bv">${c.v}</div>
+    </div>`).join('');
+}
+
+function renderDock(){
+  const row=TAG_GROUPS.map(g=>`
+    <div class="group" style="--gc:${g.color}">
+      <div class="gt"><span class="gd" style="background:${g.color}"></span>${g.name}</div>
+      <div class="chips">${g.tags.map((t,ti)=>`
+        <button class="tag ${g.neg?'neg':''}" data-g="${TAG_GROUPS.indexOf(g)}" data-t="${ti}" style="--gc:${g.color}">
+          ${t.label}<span class="v">${t.v>0?'+'+t.v:''}</span>
+        </button>`).join('')}</div>
+    </div>`).join('');
+  $('tagRow').innerHTML=row;
+  document.querySelectorAll('.tag').forEach(b=>b.onclick=()=>applyTag(+b.dataset.g,+b.dataset.t));
+  updateSelPanel();
+}
+
+function updateSelPanel(){
+  const cls=CLASSES[currentClass];
+  const card=$('selCard'); const btn=$('openCard'),clr=$('clearSel');
+  if(selectedId===null){
+    card.className='selcard empty'; card.textContent='👆 先点一个伙伴';
+    btn.disabled=clr.disabled=true; btn.style.opacity=clr.style.opacity=.5;
+    return;
+  }
+  const s=cls.students[selectedId];
+  card.className='selcard';
+  card.innerHTML=`<div class="selava" style="--c:${s.color}">${creature(s.type,s.color)}</div>
+    <div class="selinfo"><div class="sn">${esc(s.n)}</div>
+    <div class="ss">${GROUPS[selectedId%4]} · ${stateText(s.state)} · ${s.score}生态值</div></div>`;
+  btn.disabled=clr.disabled=false; btn.style.opacity=clr.style.opacity=1;
+}
+
+function stateText(st){return st==='active'?'活力满满':st==='wilt'?'有点蔫了':st==='loved'?'被爱护中':'受伤待照料';}
+
+/* =====================================================================
+   交互：选择 / 点评 / 班级切换 / 计时器
+   ===================================================================== */
+function selectPartner(i){
+  selectedId=i;
+  document.querySelectorAll('.partner').forEach(el=>el.classList.toggle('sel',+el.dataset.i===i));
+  updateSelPanel();
+  ding('bloom');
+}
+
+function applyTag(gi,ti){
+  if(selectedId===null){ toast('请先点一个伙伴 👆'); return; }
+  const cls=CLASSES[currentClass]; const s=cls.students[selectedId];
+  const tag=TAG_GROUPS[gi].tags[ti]; if(!tag) return;
+  const eff=tag.effect;
+  const el=document.querySelector(`.partner[data-i="${selectedId}"]`);
+  const blob=el.querySelector('.blob');
+
+  if(eff==='bloom'){ s.decor.push('flower'); s.score+=tag.v; cls.eco+=tag.v; cls.stagePct=Math.min(1,cls.stagePct+0.01*tag.v); ding('bloom'); flash(blob,'glow'); spawnSpark(el,'🌸'); }
+  else if(eff==='evolve'){ s.score+=tag.v; cls.eco+=tag.v; cls.stagePct=Math.min(1,cls.stagePct+0.015*tag.v); el.classList.add('evolve'); setTimeout(()=>el.classList.remove('evolve'),800); ding('evolve'); spawnSpark(el,'✨'); if(ti===1||tag.label.includes('长期')) s.decor.push('leaf'); }
+  else if(eff==='glow'){ s.score+=tag.v; cls.eco+=tag.v; cls.stagePct=Math.min(1,cls.stagePct+0.01*tag.v); flash(blob,'glow'); ding('glow'); }
+  else if(eff==='leaf'){ s.decor.push('leaf'); s.score+=tag.v; cls.eco+=tag.v; cls.stagePct=Math.min(1,cls.stagePct+0.01*tag.v); ding('bloom'); spawnSpark(el,'🍃'); }
+  else if(eff==='knowleaf'){ s.decor.push('know'); s.score+=tag.v; cls.eco+=tag.v; cls.stagePct=Math.min(1,cls.stagePct+0.008*tag.v); ding('bloom'); }
+  else if(eff==='love'){ s.state='loved'; s.score+=tag.v; cls.eco+=tag.v; cls.stagePct=Math.min(1,cls.stagePct+0.012*tag.v); ding('love'); spawnSpark(el,'💗'); }
+  else if(eff==='vine'){
+    // 连接一个随机其他伙伴
+    let target; do{ target=Math.floor(Math.random()*cls.students.length);}while(target===selectedId);
+    if(!s.vines.includes(target)) s.vines.push(target);
+    if(!cls.students[target].vines.includes(selectedId)) cls.students[target].vines.push(selectedId);
+    s.score+=tag.v; cls.eco+=tag.v; flash(blob,'glow'); ding('glow'); renderVines();
+  }
+  else if(eff==='wilt'){ s.state='wilt'; ding('neg'); toast(`${s.n} 的伙伴蔫了，明天养回来就好 🌱`); }
+  else if(eff==='injured'){ s.state='injured'; ding('neg'); toast(`${s.n} 的伙伴受伤了，请用"照料"动作恢复 💗`); }
+  else if(eff==='tidy'){ cls.tidy=Math.max(0,cls.tidy-8); toast('星球整洁度下降，课后一起整理吧 🧹'); }
+
+  if(eff!=='wilt'&&eff!=='injured'&&eff!=='tidy') s.ask = (TAG_GROUPS[gi].name==='思维'&&ti===0)? s.ask+1 : s.ask;
+
+  // 局部刷新
+  saveClass(currentClass);
+  renderPlanet(); selectedId=selectedId; // 保持选中
+  document.querySelectorAll('.partner').forEach(e=>e.classList.toggle('sel',+e.dataset.i===selectedId));
+  renderTopbar(); renderBoard(); updateSelPanel();
+  toast(`${s.n} · ${tag.label} ${tag.v>0?'+'+tag.v:''} ✨`);
+}
+
+function flash(blob,clsName){blob.classList.add(clsName);setTimeout(()=>blob.classList.remove(clsName),900);}
+function spawnSpark(el,emo){const s=document.createElement('div');s.className='spark';s.textContent=emo;el.appendChild(s);setTimeout(()=>s.remove(),900);}
+
+/* 藤蔓绘制 */
+function measureCenters(){
+  const scene=$('planet'), grid=$('planetGrid');
+  const sr=scene.getBoundingClientRect();
+  CLASSES[currentClass].students.forEach((s,i)=>{
+    const el=grid.querySelector(`.partner[data-i="${i}"]`);
+    if(!el)return; const r=el.getBoundingClientRect();
+    s._cx=r.left+r.width/2-sr.left; s._cy=r.top+r.height/2-sr.top;
+  });
+}
+function renderVines(){
+  const scene=$('planet'), svg=$('vines');
+  const sr=scene.getBoundingClientRect();
+  svg.setAttribute('width',sr.width); svg.setAttribute('height',sr.height);
+  svg.setAttribute('viewBox',`0 0 ${sr.width} ${sr.height}`);
+  const S=CLASSES[currentClass].students; let paths='';
+  for(let i=0;i<S.length;i++){
+    for(const j of S[i].vines){
+      if(j<=i)continue; const a=S[i],b=S[j];
+      if(a._cx==null||b._cx==null)continue;
+      const mx=(a._cx+b._cx)/2, my=(a._cy+b._cy)/2-26;
+      paths+=`<path d="M${a._cx} ${a._cy} Q ${mx} ${my} ${b._cx} ${b._cy}" fill="none" stroke="#9BD9A8" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 7"/>`;
+      paths+=`<circle cx="${mx}" cy="${my}" r="7" fill="#A8E6CF" stroke="#fff" stroke-width="2"/>`;
+      paths+=`<path d="M${mx} ${my} q-8 -4 -10 -12 q9 1 12 11z" fill="#8fd18f"/>`;
+    }
+  }
+  svg.innerHTML=paths;
+}
+
+function switchClass(id){
+  currentClass=id; selectedId=null;
+  try{localStorage.setItem('gp_lastClass',id);}catch(e){}
+  renderTopbar(); renderPlanet(); renderBoard(); updateSelPanel();
+  if(!$('roster').classList.contains('hidden')) renderRoster();
+  const c=CLASSES[id]; toast(`已切换到 ${c.name} · ${c.theme}`);
+}
+
+/* 计时器 */
+let tSec=0,tTimer=null;
+$('tStart').onclick=()=>{
+  if(tTimer){clearInterval(tTimer);tTimer=null;$('tStart').textContent='继续';}
+  else{tTimer=setInterval(()=>{tSec++;const m=String(Math.floor(tSec/60)).padStart(2,'0');const s=String(tSec%60).padStart(2,'0');$('timerTxt').textContent=m+':'+s;},1000);$('tStart').textContent='暂停';}
+};
+$('tReset').onclick=()=>{clearInterval(tTimer);tTimer=null;tSec=0;$('timerTxt').textContent='00:00';$('tStart').textContent='开始';};
+
+/* 选择面板按钮 */
+$('clearSel').onclick=()=>{selectedId=null;document.querySelectorAll('.partner').forEach(e=>e.classList.remove('sel'));updateSelPanel();};
+$('openCard').onclick=()=>{ if(selectedId!==null) openGrowthCard(selectedId); };
+
+/* 浮层 */
+$('overlay').onclick=e=>{if(e.target===$('overlay'))closeGrowth();};
+function closeGrowth(){ $('overlay').classList.add('hidden'); growthCardId=null; }
+
+/* Toast */
+let toastT=null;
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1600);}
+
+window.addEventListener('resize',()=>{measureCenters();renderVines();});
+
+/* =====================================================================
+   成长卡浮层
+   ===================================================================== */
+function openGrowthCard(i){
+  growthCardId=i;
+  const cls=CLASSES[currentClass]; const s=cls.students[i];
+  const lvl = s.score>=20?3 : s.score>=14?2 : s.score>=8?1 : 0;
+  const NODES=['蛋','幼体','成体','进化'];
+  const tl=NODES.map((nm,k)=>{
+    const done=k<=lvl, cur=k===lvl;
+    const line = k<NODES.length-1 ? `<div class="tline ${k<lvl?'done':''}"></div>`:'';
+    return `<div class="tnode ${done?'done':''} ${cur?'cur':''}"><div class="dot">${done?'✓':k+1}</div><div class="tl">${nm}</div></div>${line}`;
+  }).join('');
+
+  const DECORS=[['🌱','嫩芽发夹',1],['🔍','放大镜',1],['🎀','蝴蝶结',1],['🧣','小围巾',2],['🎩','探险帽',2],['👓','星星眼镜',2],['👑','小皇冠',3],['🌈','彩虹披风',3]];
+  const decorHtml=DECORS.map(([em,nm,req])=>{
+    const ok = s.score>= (req===1?6:req===2?12:18);
+    return `<div class="ditem ${ok?'':'lock'}"><div class="di">${em}</div><div class="dn">${nm}</div></div>`;
+  }).join('');
+
+  // 关系藤蔓网
+  const connected=s.vines.map(j=>cls.students[j]).filter(Boolean);
+  let netSvg='';
+  if(connected.length){
+    const R=64, cx=80, cy=80;
+    let lines='', dots='';
+    connected.forEach((c,k)=>{
+      const ang=(-90 + k*360/connected.length)*Math.PI/180;
+      const x=cx+R*Math.cos(ang), y=cy+R*Math.sin(ang);
+      lines+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#9BD9A8" stroke-width="3"/>`;
+      dots+=`<circle cx="${x}" cy="${y}" r="20" fill="${c.color}"/><text x="${x}" y="${y+4}" text-anchor="middle" font-size="11" font-weight="800" fill="#5A5566">${c.n[0]}</text>`;
+    });
+    netSvg=`<svg class="netsvg" width="160" height="160" viewBox="0 0 160 160">
+      ${lines}
+      <circle cx="${cx}" cy="${cy}" r="24" fill="${s.color}"/>
+      <text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="12" font-weight="900" fill="#5A5566">${s.n[0]}</text>
+      ${dots}</svg>`;
+  }else{
+    netSvg=`<svg class="netsvg" width="160" height="160" viewBox="0 0 160 160"><circle cx="80" cy="80" r="26" fill="${s.color}"/><text x="80" y="85" text-anchor="middle" font-size="13" font-weight="900" fill="#5A5566">${s.n[0]}</text></svg>`;
+  }
+  const netNote = connected.length
+    ? `已与 <b>${connected.length}</b> 位伙伴连起藤蔓：<br>${connected.map(c=>esc(c.n)).join('、')}<br>合作越多，共生越繁荣 🌿`
+    : `还没有连接藤蔓～<br>多用「小组合作 / 帮助同学」点评，<br>就能织出专属关系网 🌿`;
+
+  const stColor={active:'#5AA0C8',wilt:'#B0A89C',loved:'#FF8FB0',injured:'#FF9E9E'}[s.state];
+  const stTxt=stateText(s.state);
+
+  $('growthCard').innerHTML=`
+    <button class="close" onclick="closeGrowth()">×</button>
+    <div class="ghead">
+      <div class="gava" style="--c:${s.color}">${creature(s.type,s.color)}</div>
+      <div><div class="gn">${esc(s.n)}</div>
+        <div class="gm">${cls.name} · ${GROUPS[i%4]} · ${cls.theme}</div>
+        <div class="gstate" style="background:${stColor}22;color:${stColor}">${stTxt} · ${s.score} 生态值</div>
+      </div>
+    </div>
+    <div class="sec"><div class="sect">🌟 进化时间轴</div><div class="timeline">${tl}</div></div>
+    <div class="sec"><div class="sect">🎀 预置装扮（收集驱动）</div><div class="decor">${decorHtml}</div></div>
+    <div class="sec"><div class="sect">🌿 关系藤蔓网</div><div class="netcard">${netSvg}<div class="netnote">${netNote}</div></div></div>
+  `;
+  $('overlay').classList.remove('hidden');
+}
+
+/* =====================================================================
+   花名册管理：新增 / 改名 / 删除 / 批量导入 + 持久化
+   ===================================================================== */
+let growthCardId=null;
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escAttr(s){return esc(s).replace(/"/g,'&quot;');}
+
+/* 持久化：按班级 id 落地，与 gp_lastClass 机制一致 */
+function saveClass(id){
+  try{
+    const c=CLASSES[id];
+    localStorage.setItem('gp_class_'+id, JSON.stringify({
+      students:c.students, eco:c.eco, stagePct:c.stagePct, tidy:c.tidy
+    }));
+  }catch(e){}
+}
+function loadClasses(){
+  CLASS_ORDER.forEach(id=>{
+    try{
+      const raw=localStorage.getItem('gp_class_'+id);
+      if(raw){
+        const d=JSON.parse(raw); const c=CLASSES[id];
+        if(Array.isArray(d.students)) c.students=d.students;
+        if(typeof d.eco==='number') c.eco=d.eco;
+        if(typeof d.stagePct==='number') c.stagePct=d.stagePct;
+        if(typeof d.tidy==='number') c.tidy=d.tidy;
+      }
+    }catch(e){}
+  });
+}
+
+/* 沿用现有伙伴生成逻辑：取当前班已有的 creature 类型循环，颜色取 PALETTE 循环 */
+function spawnPartner(name, idx){
+  const cls=CLASSES[currentClass];
+  const types=[...new Set(cls.students.map(s=>s.type))];
+  const type = types.length? types[idx % types.length] : 'worm';
+  const color = PALETTE[idx % PALETTE.length];
+  return mk(name, type, color, 'active', 8, 0, []);
+}
+
+/* 入口与面板 */
+function openRoster(){ renderRoster(); $('roster').classList.remove('hidden'); }
+function closeRoster(){ $('roster').classList.add('hidden'); }
+
+function renderRoster(){
+  const cls=CLASSES[currentClass];
+  $('rosterClass').textContent=`${cls.name} · ${cls.theme}`;
+  $('rosterCount').textContent=`${cls.students.length} 位伙伴`;
+  $('rosterList').innerHTML = cls.students.map((s,i)=>`
+    <div class="ritem" style="--c:${s.color}">
+      <div class="ravi">${creature(s.type,s.color)}</div>
+      <input value="${escAttr(s.n)}" data-i="${i}" maxlength="12" />
+      <button class="rdel" data-i="${i}">🗑 删除</button>
+    </div>`).join('');
+  $('rosterList').querySelectorAll('input').forEach(inp=>{
+    inp.onchange=()=>renameStudent(+inp.dataset.i, inp.value);
+    inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); };
+  });
+  $('rosterList').querySelectorAll('.rdel').forEach(b=>b.onclick=()=>deleteStudent(+b.dataset.i));
+}
+
+function renameStudent(i, name){
+  name=name.trim();
+  if(!name){ renderRoster(); return; }
+  const cls=CLASSES[currentClass];
+  if(cls.students[i].n===name) return;
+  cls.students[i].n=name;
+  commitRoster();
+  toast(`已改名为 ${name} ✏️`);
+}
+function addStudent(name){
+  name=name.trim();
+  if(!name) return;
+  const cls=CLASSES[currentClass];
+  if(cls.students.some(s=>s.n===name)){ toast('已存在同名伙伴'); return; }
+  cls.students.push(spawnPartner(name, cls.students.length));
+  commitRoster();
+  toast(`已添加 ${name} 🌱`);
+}
+function deleteStudent(i){
+  const cls=CLASSES[currentClass];
+  const name=cls.students[i].n;
+  if(!confirm(`确定删除「${name}」吗？\nTA 的伙伴与藤蔓、点评等数据会一起移除。`)) return;
+  cls.students.splice(i,1);
+  /* 关键：vines 用索引互指，删除后所有索引 >i 的需 -1，并移除指向 i 的连线 */
+  cls.students.forEach(s=>{ s.vines=s.vines.filter(v=>v!==i).map(v=> v>i? v-1 : v); });
+  if(selectedId===i){ selectedId=null; }
+  else if(selectedId!==null && selectedId>i){ selectedId--; }
+  if(growthCardId===i){ closeGrowth(); }
+  commitRoster();
+  toast(`已删除 ${name} 🗑`);
+}
+function importBatch(){
+  const txt=$('importArea').value||'';
+  const names=txt.split(/[\n,，、\s]+/).map(s=>s.trim()).filter(Boolean);
+  if(!names.length){ $('importHint').textContent='没有识别到名字～'; return; }
+  const cls=CLASSES[currentClass];
+  const seen=new Set(cls.students.map(s=>s.n));
+  let added=0;
+  names.forEach(nm=>{ if(!seen.has(nm)){ cls.students.push(spawnPartner(nm, cls.students.length)); seen.add(nm); added++; } });
+  const dup=names.length-added;
+  $('importHint').textContent=`已导入 ${added} 位`+(dup?`（跳过 ${dup} 个重复/空）`:'');
+  $('importArea').value='';
+  commitRoster();
+}
+
+function commitRoster(){
+  saveClass(currentClass);
+  renderTopbar(); renderPlanet(); renderBoard(); updateSelPanel();
+  renderRoster();
+}
+
+/* 绑定花名册入口与控件 */
+$('gearBtn').onclick=openRoster;
+$('rosterClose').onclick=closeRoster;
+$('roster').onclick=e=>{ if(e.target===$('roster')) closeRoster(); };
+$('addBtn').onclick=()=>{ const v=$('addInput').value; $('addInput').value=''; addStudent(v); };
+$('addInput').onkeydown=e=>{ if(e.key==='Enter'){ const v=e.target.value; e.target.value=''; addStudent(v); } };
+$('importBtn').onclick=importBatch;
+
+/* =====================================================================
+   启动
+   ===================================================================== */
+loadClasses();
+try{const last=localStorage.getItem('gp_lastClass'); if(last&&CLASSES[last])currentClass=last;}catch(e){}
+renderTopbar(); renderPlanet(); renderBoard(); renderDock();
+</script>
+</body>
+</html>
