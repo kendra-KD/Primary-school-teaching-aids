@@ -1,7 +1,9 @@
 # 成长星球·科学班生态 —— 后端架构与部署方案
 
 > 面向场景：小学科学老师，任教多个班级，需在**多台设备 / 多个教室共用同一份数据**。
-> 方案目标：**轻量、低成本、可托管到现有阿里云服务器、复用现有 Postgres、为后续学生端预留 API**。
+> 方案目标：**轻量、低成本、可托管到现有阿里云服务器、独立 Postgres 实例（不污染 umami-db / eat-what）、为后续学生端预留 API**。
+>
+> ⚠️ **重要修订（2026-08-24）**：原方案建议"复用 umami-db 容器新建库"，经核对服务器实际环境（`/opt` 下已有 umami、eat-what 等运行服务），**改为独立 Postgres 容器**。原因：umami-db 是 umami 专用镜像、且 eat-what 业务已在使用数据库；共用实例会扩大故障域、污染备份边界。独立 `postgres:14-alpine` 实例空闲仅 ~30–50MB，资源可控且隔离干净。
 > 当前阶段：**先做老师端（账号登录 + 班级/花名册/点评同步）**；学生端（扫码认领、答题饲养）预留接口，暂不实现。
 
 ---
@@ -28,21 +30,22 @@
                               │ 连接（同内网/同容器网络）
                               ▼
                     ┌─────────────────────┐
-                    │  现有 Postgres       │  umami-db 容器 (127.0.0.1:5433)
-                    │  新建库 growth_planet│  独立用户 gp_app（权限隔离）
+                    │  独立 Postgres       │  gp-db 容器 (127.0.0.1:5434)
+                    │  专库 growth_planet  │  专用用户 gp_app（与 umami-db 隔离）
                     └─────────────────────┘
 ```
 
-**内存预算（你的服务器 2GB RAM 已跑 umami+postgres，约占用 700MB）**
+**内存预算（你的服务器 2GB RAM 已跑 umami+postgres+eat-what，约占用 700–900MB）**
 | 组件 | 估算常驻内存 | 说明 |
 |---|---|---|
-| 现有 Postgres(umami) | ~60MB | 复用，不新增 |
-| 新增 growth_planet 库 | ~5–15MB | 同实例，仅数据 |
+| 独立 Postgres(gp-db) | ~30–50MB | 轻量 alpine，仅存本服务数据 |
 | growth-api 容器 | ~80–150MB | Node Alpine，单进程 |
-| Nginx 容器 | ~20MB | 或宿主机直接装 Nginx 更省 |
-| **新增总开销** | **~150–200MB** | 余量充足（剩 ~900MB） |
+| Nginx | 复用宿主机现有 | 或并入 ecs-deploy 的 nginx |
+| **新增总开销** | **~120–200MB** | 余量充足（剩 ~700MB+） |
 
-**结论**：复用现有 Postgres + 单 Node 后端 + Nginx，整体新增内存 < 200MB，你的 2GB 服务器完全够用。
+> 不复用 umami-db 的原因：umami-db 是 umami 专用镜像、eat-what 业务已在用数据库；共用实例会让 umami / eat-what / growth 三者共用同一故障域与备份边界，风险高于省下的 30MB 内存。**独立实例隔离更干净。**
+
+**结论**：独立 Postgres 实例 + 单 Node 后端 + 复用现有 Nginx，整体新增内存 < 200MB，你的 2GB 服务器完全够用，且与现有服务零耦合。
 
 ---
 
@@ -247,3 +250,69 @@ curl -X POST https://你的域名/api/auth/register -H 'Content-Type: applicatio
 - 前端 HTML、后端代码、docker-compose、SQL 都进此仓库。
 - 可选 GitHub Actions：push 到 main → 服务器 webhook / SSH 拉取 → `docker compose up -d --build` → 老师刷新即用（自动部署）。
 - MVP 阶段手动 pull + up 即可，不必上 CI。
+
+---
+
+## 九、与现有服务器服务的集成（重要 · 据实际环境修订）
+
+你的 `/opt` 下已有 `umami`（分析）、`eat-what`（已上线业务，用 pg）、`ecs-deploy`（部署脚手架，含多服务 docker + nginx 模板）。growth-planet 接入时**必须不污染现有服务**。
+
+### 9.1 数据库隔离（已采用独立实例）
+- 不复用 `umami-db`（端口 5433，umami 专用镜像，且 eat-what 业务已在用数据库）。
+- 新增 `gp-db` 容器（端口 5434，独立 postgres:14-alpine，专库 `growth_planet` + 用户 `gp_app`）。
+- 数据与 umami / eat-what **完全隔离**，故障域、备份边界各自独立。
+
+### 9.2 Nginx 接入（复用现有，不新增容器）
+- 优先用你现有的宿主机 Nginx（或 `ecs-deploy/multi-service-docker/nginx-svc.conf.example` 的套件），新增一个 server block：
+  - 域名 `你的域名` → 反代 `/api/` 到 `127.0.0.1:3100`，`/` 指向前端静态目录。
+- 不要另起 Nginx 容器，避免端口/配置冲突。可参考 `ecs-deploy` 里 eat-what / umami 的 nginx conf 写法保持一致。
+- 前端静态文件放 `/opt/growth-planet/frontend/`（或软链到 Nginx root）。
+
+### 9.3 备份（对齐 eat-what 的 backups/ 习惯）
+- gp-db 数据卷 `./data/postgres` 加入每日 `pg_dump`：
+  `docker exec gp-db pg_dump -U gp_app growth_planet > /opt/growth-planet/backups/backup_$(date +%Y%m%d_%H%M%S).sql`
+- 保留最近 N 份（参考 eat-what 的 `backups/backup_*` 命名），可写个 cron 脚本。
+
+### 9.4 部署目录约定
+```
+/opt/growth-planet/
+├── docker-compose.yml
+├── .env                  # 由 .env.example 复制，填真实密码/密钥（不入库）
+├── package.json
+├── server/               # 后端代码（server.js + 路由）
+├── ecosystem.config.cjs  # 若用 pm2 托管 api（与 eat-what 一致）
+├── frontend/             # 老师大屏 HTML（Nginx 服务）
+├── data/postgres/        # gp-db 数据卷
+└── backups/              # pg_dump 备份
+```
+
+### 9.5 端口占用核对（避免冲突）
+| 服务 | 端口 | 状态 |
+|---|---|---|
+| umami | 3001 | 已占 |
+| umami-db | 5433 | 已占 |
+| gp-api | 3100 | 新 |
+| gp-db | 5434 | 新 |
+| eat-what | 见其配置 | 已占，不冲突 |
+
+---
+
+## 十、操作清单（服务器上执行）
+
+```bash
+# 1. 解决 GitHub clone 失败（GnuTLS）：用 SSH 或镜像，见对话中的方案 A/B/C
+#    推荐：服务器生成 SSH 密钥并绑定 GitHub，再：
+git clone git@github.com:kendra-KD/Primary-school-teaching-aids.git /opt/growth-planet
+cd /opt/growth-planet/deploy
+
+# 2. 配置环境变量
+cp .env.example .env && vi .env   # 填 DB_PASSWORD / JWT_SECRET（openssl rand -hex 32）
+
+# 3. 起数据库 + 后端
+docker compose up -d
+docker exec -i gp-db psql -U gp_app -d growth_planet < growth-planet-init.sql
+
+# 4. 前端 + Nginx
+#    把 frontend/ 软链或复制到 Nginx root，新增 server block 反代 /api → 127.0.0.1:3100
+# 5. 验证：浏览器开域名 → 注册老师账号 → 建班 → 大屏点评 → 另一设备登录同一账号看同步
+```

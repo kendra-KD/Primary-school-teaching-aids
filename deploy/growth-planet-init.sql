@@ -1,6 +1,8 @@
 -- 成长星球·科学班生态 —— 初始化 SQL
--- 在已建好的 growth_planet 库、gp_app 用户下执行：
---   docker exec -i umami-db psql -U gp_app -d growth_planet < growth-planet-init.sql
+-- 数据库与用户已由 docker-compose(gp-db) 创建，这里只建表。
+-- 执行方式（gp-db 容器已起后）：
+--   docker exec -i gp-db psql -U gp_app -d growth_planet < growth-planet-init.sql
+-- 注意：不要往 umami-db 执行此文件；gp-db 是独立实例，端口 5434。
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 

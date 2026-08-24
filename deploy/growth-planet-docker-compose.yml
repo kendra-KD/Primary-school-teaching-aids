@@ -1,50 +1,54 @@
-# 成长星球·科学班生态 —— Docker Compose
-# 复用现有 umami-db (Postgres14) 容器；本 compose 只起后端 + Nginx。
-# 后端连现有 Postgres：host=umami-db（同 docker 网络）/ 或 127.0.0.1:5433（宿主网络）。
-# 若 growth-api 与 umami-db 不在同一 compose 网络，请用宿主 IP+5433 并暴露端口。
+# 成长星球·科学班生态 —— Docker Compose（独立 Postgres 实例版）
+# 不污染 umami-db / eat-what：新增 gp-db 容器，端口 5434，专用库 growth_planet。
+# 运行：在 /opt/growth-planet 下执行  docker compose up -d
+# 前置：把 .env.example 复制为 .env 并填入强密码与 JWT 密钥。
 
 services:
-  growth-api:
-    build: .
-    image: growth-planet-api:latest
-    container_name: growth-api
+  gp-db:
+    image: postgres:14-alpine
+    container_name: gp-db
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
-      - DB_HOST=umami-db        # 同网络用容器名；跨网络改宿主机内网IP
-      - DB_PORT=5432            # 容器间用5432；若走宿主映射端口则用5433
-      - DB_NAME=growth_planet
-      - DB_USER=gp_app
-      - DB_PASSWORD=${DB_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET}
-      - PORT=3100
+      POSTGRES_DB: growth_planet
+      POSTGRES_USER: gp_app
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "127.0.0.1:3100:3100"   # 仅绑本地，由 Nginx 反代
-    depends_on:
-      - umami-db
-    networks:
-      - gp-net
-
-  growth-nginx:
-    image: nginx:alpine
-    container_name: growth-nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
+      - "127.0.0.1:5434:5432"   # 仅绑本机，区别于 umami-db 的 5433
     volumes:
-      - ./growth-planet-nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./frontend:/usr/share/nginx/html:ro      # 自包含 HTML 放此目录
-      - ./certs:/etc/nginx/certs:ro               # SSL 证书
-    depends_on:
-      - growth-api
-    networks:
-      - gp-net
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gp_app -d growth_planet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-# 复用已有 Postgres（不在此定义，假设 umami-db 已运行且在同一 docker 网络 gp-net）
-# 若需独立网络桥接，请在 umami-db 启动命令加 --network gp-net 或建 external network。
-networks:
-  gp-net:
-    external: true
-    name: gp-net
+  gp-api:
+    image: node:20-alpine
+    container_name: gp-api
+    restart: unless-stopped
+    working_dir: /app
+    command: sh -c "npm install --omit=dev && node server.js"
+    environment:
+      PORT: 3100
+      DB_HOST: gp-db
+      DB_PORT: 5432
+      DB_NAME: growth_planet
+      DB_USER: gp_app
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: "2h"
+      REFRESH_EXPIRES_IN: "30d"
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - ./server:/app/server:ro
+      - ./package.json:/app/package.json:ro
+      - ./pm2-or-ecosystem:/app/ecosystem.config.cjs:ro
+    depends_on:
+      gp-db:
+        condition: service_healthy
+
+# 说明：
+# 1. 前端静态文件由宿主机现有 Nginx 托管（或 ecs-deploy 的 nginx 服务），反代 /api 到 127.0.0.1:3100。
+# 2. 数据库文件落在 ./data/postgres（请加入备份脚本，参考 eat-what 的 backups/ 机制）。
+# 3. 不挂载 umami-db 任何 volume，数据与 umami / eat-what 完全隔离。
