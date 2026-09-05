@@ -1,7 +1,18 @@
 # 成长星球·科学班生态 —— Docker Compose（独立 Postgres 实例版）
 # 不污染 umami-db / eat-what：新增 gp-db 容器，端口 5434，专用库 growth_planet。
-# 运行：在 /opt/growth-planet 下执行  docker compose up -d
-# 前置：把 .env.example 复制为 .env 并填入强密码与 JWT 密钥。
+#
+# 运行（在仓库根目录执行）：
+#   cp deploy/.env.example deploy/.env  &&  vi deploy/.env
+#   docker compose -f deploy/growth-planet-docker-compose.yml up -d --build
+#
+# 首次初始化表结构（gp-db 健康检查通过后）：
+#   docker exec -i gp-db psql -U gp_app -d growth_planet < deploy/growth-planet-init.sql
+#
+# 创建老师账号：
+#   docker exec -it gp-api sh -c "set -a; . /dev/null; node scripts/create-teacher.js a@b.com 密码 姓名"
+#   （需先 docker cp .env gp-api:/app/.env 或用 docker run --env-file）
+#
+# 前端静态文件由宿主机 Nginx 托管，反代 /api 到 127.0.0.1:3100（见 nginx.conf）。
 
 services:
   gp-db:
@@ -23,32 +34,23 @@ services:
       retries: 5
 
   gp-api:
-    image: node:20-alpine
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    image: growth-planet-api:latest
     container_name: gp-api
     restart: unless-stopped
-    working_dir: /app
-    command: sh -c "npm install --omit=dev && node server.js"
+    env_file:
+      - .env
     environment:
       PORT: 3100
+      NODE_ENV: production
       DB_HOST: gp-db
       DB_PORT: 5432
       DB_NAME: growth_planet
       DB_USER: gp_app
-      DB_PASSWORD: ${DB_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRES_IN: "2h"
-      REFRESH_EXPIRES_IN: "30d"
     ports:
       - "127.0.0.1:3100:3100"
-    volumes:
-      - ./server:/app/server:ro
-      - ./package.json:/app/package.json:ro
-      - ./pm2-or-ecosystem:/app/ecosystem.config.cjs:ro
     depends_on:
       gp-db:
         condition: service_healthy
-
-# 说明：
-# 1. 前端静态文件由宿主机现有 Nginx 托管（或 ecs-deploy 的 nginx 服务），反代 /api 到 127.0.0.1:3100。
-# 2. 数据库文件落在 ./data/postgres（请加入备份脚本，参考 eat-what 的 backups/ 机制）。
-# 3. 不挂载 umami-db 任何 volume，数据与 umami / eat-what 完全隔离。

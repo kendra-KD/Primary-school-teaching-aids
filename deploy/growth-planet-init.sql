@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS classes (
   name        TEXT NOT NULL,
   grade       INT,
   theme       TEXT,
+  theme_pack  TEXT,                     -- cute_nature / life_obs / anime_original
   stage       TEXT DEFAULT 'wild',
   eco_value   INT DEFAULT 0,
   created_at  TIMESTAMPTZ DEFAULT now()
@@ -29,6 +30,8 @@ CREATE TABLE IF NOT EXISTS students (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id     UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   name         TEXT NOT NULL,
+  group_name   TEXT,                    -- 小组名，用于"最繁荣小组"榜
+  sort_order   INT,                     -- 花名册顺序
   partner_kind TEXT,
   partner_stage INT DEFAULT 0,
   vitality     INT DEFAULT 50,
@@ -48,10 +51,13 @@ CREATE TABLE IF NOT EXISTS events (
 );
 
 CREATE TABLE IF NOT EXISTS vines (
-  id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
-  a_id     UUID REFERENCES students(id),
-  b_id     UUID REFERENCES students(id)
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id   UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  a_id       UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  b_id       UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  label_key  TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (class_id, a_id, b_id)          -- 同一对同学之间只长一条藤蔓
 );
 
 CREATE TABLE IF NOT EXISTS partner_claims (
