@@ -12,7 +12,7 @@
 #   docker exec -it gp-api sh -c "set -a; . /dev/null; node scripts/create-teacher.js a@b.com 密码 姓名"
 #   （需先 docker cp .env gp-api:/app/.env 或用 docker run --env-file）
 #
-# 前端静态文件由宿主机 Nginx 托管，反代 /api 到 127.0.0.1:3100（见 nginx.conf）。
+# 前端静态文件由宿主机 Nginx 托管，反代 /api 到 127.0.0.1:3100（见 nginx/host-gateway.example.conf）。
 
 services:
   gp-db:
@@ -55,18 +55,6 @@ services:
       gp-db:
         condition: service_healthy
 
-  # 前端静态托管 + /api 反代 + HTTPS（首次用自签证书，建议换 Let's Encrypt）
-  gp-web:
-    image: nginx:1.27-alpine
-    container_name: gp-web
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./frontend-built:/usr/share/nginx/html:ro
-      - ./nginx/growth-planet.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./certs:/etc/nginx/certs:ro
-      - ./certbot:/var/www/certbot:ro
-    depends_on:
-      - gp-api
+  # 前端静态托管 + /api 反代 + HTTPS 由【宿主机已有的 Nginx】负责
+  # （本机 80/443 已被其它站点占用，故不再单独起 gp-web 抢端口）
+  # 参见 deploy/nginx/host-gateway.example.conf，复制到宿主 /etc/nginx/conf.d/ 后 reload

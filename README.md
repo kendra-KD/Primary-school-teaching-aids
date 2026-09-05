@@ -80,18 +80,29 @@ bash deploy/build-frontend.sh https://gp.example.com   # 或显式跨域地址
 
 ## 部署到服务器（Docker 一键）
 
-前置：服务器装好 Docker + compose 插件；域名 A 记录指向本机公网 IP；80/443 端口空闲。
+前置：服务器装好 Docker + compose 插件；**本机的 80/443 由宿主 Nginx 占用也没关系**——
+前端静态托管与 `/api` 反代交给宿主 Nginx，不会再有端口冲突。
 
 ```bash
-# 在仓库根目录执行，自动完成：生成随机密钥 .env → 构建前端 → 自签证书 → 起 gp-db+gp-api+gp-web
+# 在仓库根目录执行：生成随机密钥 .env → 构建前端 → 起 gp-db + gp-api
 bash deploy/deploy.sh
 
 # 创建首位老师账号（生产 ALLOW_REGISTER=false，只能这样建号）
 docker exec -it gp-api node scripts/create-teacher.js 老师邮箱 密码 姓名
 ```
 
-部署后访问 `https://<你的域名>`。首次用自签证书浏览器会提示“不安全”，属正常；
-按 `deploy/deploy.sh` 末尾指引用 certbot 换 Let's Encrypt 正式证书即可消除。
+部署后**还需一步**配置宿主 Nginx（示例见 `deploy/nginx/host-gateway.example.conf`）：
+
+```bash
+sudo cp deploy/nginx/host-gateway.example.conf /etc/nginx/conf.d/growth-planet.conf
+# 编辑该文件，把 __DOMAIN__ 改成你的真实域名（先用 IP/默认可写 _ ）
+sudo nginx -t && sudo nginx -s reload
+```
+
+- 临时用 HTTP 即可访问 `http://<域名或IP>/`（内部试用够用）。
+- 正式 HTTPS（去掉浏览器“不安全”提示）：按 `host-gateway.example.conf` 末尾注释的 443
+  server 块 + `certbot --webroot` 申请证书，再 reload。
+
 常用命令：
 
 ```bash
@@ -102,7 +113,7 @@ docker compose -f deploy/growth-planet-docker-compose.yml down       # 停止
 ## 安全与合规红线（上线前必读）
 
 - **密钥绝不进 Git**：`.env`、`deploy/certs/`、`deploy/frontend-built/` 已在 `.gitignore`。
-- **数据最小化**：当前只存学生姓名 + 课堂行为，不采集手机号等隐私；涉及未成年，正式面向学校使用前建议补一份《隐私政策》并在 `deploy/growth-planet-nginx.conf` 加 Cookie/隐私提示。
+- **数据最小化**：当前只存学生姓名 + 课堂行为，不采集手机号等隐私；涉及未成年，正式面向学校使用前建议补一份《隐私政策》并在宿主 Nginx 的 growth-planet server 块加隐私提示。
 - **登录鉴权**：所有写接口需 JWT；公开注册默认关闭，账号只经 `create-teacher.js` 创建。
 - **生产操作先备份**：`deploy/data/postgres` 是数据库卷，定期备份；误删容器数据不回滚。
 - 详细架构与备份/监控/扩容见 `deploy/growth-planet-backend-架构与部署方案.md`。
