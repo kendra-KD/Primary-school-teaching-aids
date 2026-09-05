@@ -479,7 +479,7 @@
        ''            → 同源模式：前端与后端同一域名（Nginx 反代 /api）
        'https://域名' → 前后端分离部署
      ============================================================ -->
-<script>window.GP_API_BASE = null;</script>
+<script>window.GP_API_BASE = '__GP_API_BASE__';</script>
 
 <script>
 /* =====================================================================
@@ -1100,7 +1100,8 @@ $('importBtn').onclick=importBatch;
    未设置或登录失败 → 自动退回纯本地 localStorage，原型行为完全不变
    ===================================================================== */
 const GP_API=(typeof window.GP_API_BASE==='string')?window.GP_API_BASE.replace(/\/+$/,''):null;
-const GP_CLOUD=GP_API!==null;              // null = 纯本地模式（默认）
+if(GP_API==='__GP_API_BASE__') GP_API=null;   // 未构建的源文件：退回纯本地模式
+const GP_CLOUD=GP_API!==null;              // null = 纯本地模式（默认）；'' = 同域HTTPS；'https://...' = 跨域
 const KIND2TYPE={tuan_tuan:'worm',cloud_sheep:'worm',ant_worker:'worm',can_bao:'worm',ke_dou:'fish',
   ya_ya:'sprout',seed_sprite:'sprout',grass_sprite:'sprout',water_sprite:'fish',
   crystal:'crystal',star_kid:'crystal',thunder_sprite:'crystal',mech_eco:'crystal',

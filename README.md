@@ -50,12 +50,14 @@ node scripts/create-teacher.js teacher@school.edu 初始密码 科学老师
 
 ## 前端接后端
 
-在 `frontend/growth-planet-老师大屏原型.html` 的主 `<script>` **之前**加一行：
+源码用占位符 `__GP_API_BASE__` 标记 API 地址，**部署时用构建脚本注入**，不要手改源码：
 
-```html
-<script>window.GP_API_BASE='https://你的域名'</script>
+```bash
+bash deploy/build-frontend.sh            # 同域模式（Nginx 反代 /api，推荐，免跨域）
+bash deploy/build-frontend.sh https://gp.example.com   # 或显式跨域地址
 ```
 
+构建产物在 `deploy/frontend-built/`。未构建的源文件双击仍走纯本地 localStorage。
 刷新后右下角出现「☁ 登录同步」，登录后班级数据从服务端加载、点评实时写库，多设备一致；
 不登录或服务端不可达时自动退回本地 localStorage，课堂弱网也能继续用。
 
@@ -76,6 +78,31 @@ node scripts/create-teacher.js teacher@school.edu 初始密码 科学老师
 | GET | `/api/classes/:id/state` | 全班实时状态：伙伴墙 + 光荣榜 + 进度环 |
 | GET | `/api/health` | 健康检查 |
 
-## 部署
+## 部署到服务器（Docker 一键）
 
-见 `deploy/growth-planet-backend-架构与部署方案.md`。安全红线：`.env` 与 `deploy/data/` 绝不进 Git。
+前置：服务器装好 Docker + compose 插件；域名 A 记录指向本机公网 IP；80/443 端口空闲。
+
+```bash
+# 在仓库根目录执行，自动完成：生成随机密钥 .env → 构建前端 → 自签证书 → 起 gp-db+gp-api+gp-web
+bash deploy/deploy.sh
+
+# 创建首位老师账号（生产 ALLOW_REGISTER=false，只能这样建号）
+docker exec -it gp-api node scripts/create-teacher.js 老师邮箱 密码 姓名
+```
+
+部署后访问 `https://<你的域名>`。首次用自签证书浏览器会提示“不安全”，属正常；
+按 `deploy/deploy.sh` 末尾指引用 certbot 换 Let's Encrypt 正式证书即可消除。
+常用命令：
+
+```bash
+docker compose -f deploy/growth-planet-docker-compose.yml logs -f   # 看日志
+docker compose -f deploy/growth-planet-docker-compose.yml down       # 停止
+```
+
+## 安全与合规红线（上线前必读）
+
+- **密钥绝不进 Git**：`.env`、`deploy/certs/`、`deploy/frontend-built/` 已在 `.gitignore`。
+- **数据最小化**：当前只存学生姓名 + 课堂行为，不采集手机号等隐私；涉及未成年，正式面向学校使用前建议补一份《隐私政策》并在 `deploy/growth-planet-nginx.conf` 加 Cookie/隐私提示。
+- **登录鉴权**：所有写接口需 JWT；公开注册默认关闭，账号只经 `create-teacher.js` 创建。
+- **生产操作先备份**：`deploy/data/postgres` 是数据库卷，定期备份；误删容器数据不回滚。
+- 详细架构与备份/监控/扩容见 `deploy/growth-planet-backend-架构与部署方案.md`。

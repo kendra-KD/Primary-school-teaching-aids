@@ -3,5 +3,12 @@ node_modules/
 # 真实环境变量（含密码，绝不入库）
 .env
 **/.env
+# 数据库数据卷（含真实班级数据，绝不入库）
+deploy/data/
+# 构建产物与证书（含私钥，绝不入库）
+deploy/frontend-built/
+deploy/certs/
+deploy/letsencrypt/
+deploy/certbot/
 # 系统文件
 .DS_Store
