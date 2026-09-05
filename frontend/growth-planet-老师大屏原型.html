@@ -473,6 +473,14 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- ============================================================
+     云同步开关（部署时只改这一行）
+       null            → 纯本地运行，数据只存浏览器（双击打开默认此模式）
+       ''            → 同源模式：前端与后端同一域名（Nginx 反代 /api）
+       'https://域名' → 前后端分离部署
+     ============================================================ -->
+<script>window.GP_API_BASE = null;</script>
+
 <script>
 /* =====================================================================
    数据层：多班级 + 严格隔离
@@ -544,37 +552,38 @@ let selectedId=null;
    effect: bloom开花 / evolve进化 / glow发光 / leaf长叶 / knowleaf知识叶 /
            love拥抱 / vine藤蔓 / wilt蔫了 / injured受伤 / tidy整洁
    ===================================================================== */
+// key 与后端 server/src/labels.js 的 LABEL_KEYS 一一对应，云同步时用它传值
 const TAG_GROUPS=[
   {name:'思维', color:'#CDB4FF', tags:[
-    {label:'提出好问题/大胆猜想', v:2, effect:'bloom'},
-    {label:'完整表达探究结论', v:3, effect:'evolve'},
+    {label:'提出好问题/大胆猜想', v:2, effect:'bloom', key:'ask_question'},
+    {label:'完整表达探究结论', v:3, effect:'evolve', key:'conclude'},
   ]},
   {name:'实验', color:'#A0D2FF', tags:[
-    {label:'规范操作实验', v:2, effect:'glow'},
-    {label:'安全提醒/保护同伴', v:2, effect:'glow'},
+    {label:'规范操作实验', v:2, effect:'glow', key:'safe_op'},
+    {label:'安全提醒/保护同伴', v:2, effect:'glow', key:'safety_remind'},
   ]},
   {name:'观察', color:'#A8E6CF', tags:[
-    {label:'认真观察并记录', v:2, effect:'leaf'},
-    {label:'科学阅读/资料打卡', v:1, effect:'knowleaf'},
+    {label:'认真观察并记录', v:2, effect:'leaf', key:'observe'},
+    {label:'科学阅读/资料打卡', v:1, effect:'knowleaf', key:'reading'},
   ]},
   {name:'生命', color:'#FFB3C6', tags:[
-    {label:'爱护实验生物/植物', v:3, effect:'love'},
+    {label:'爱护实验生物/植物', v:3, effect:'love', key:'love_life'},
   ]},
   {name:'合作', color:'#FFD6A5', tags:[
-    {label:'小组合作探究', v:2, effect:'vine'},
-    {label:'帮助同学/分享发现', v:2, effect:'vine'},
+    {label:'小组合作探究', v:2, effect:'vine', key:'cooperate'},
+    {label:'帮助同学/分享发现', v:2, effect:'vine', key:'help_mate'},
   ]},
   {name:'工程', color:'#9BF6FF', tags:[
-    {label:'创新小制作/工程挑战', v:3, effect:'evolve'},
+    {label:'创新小制作/工程挑战', v:3, effect:'evolve', key:'engineering'},
   ]},
   {name:'责任', color:'#B5EAD7', tags:[
-    {label:'主动整理/归位器材', v:2, effect:'glow'},
-    {label:'坚持长期观察(达成)', v:3, effect:'evolve'},
+    {label:'主动整理/归位器材', v:2, effect:'glow', key:'tidy_up'},
+    {label:'坚持长期观察(达成)', v:3, effect:'evolve', key:'persist_observe'},
   ]},
   {name:'温柔提醒', color:'#FFB3B3', neg:true, tags:[
-    {label:'不安全操作→蔫了', v:0, effect:'wilt'},
-    {label:'破坏怠慢生命→受伤', v:0, effect:'injured'},
-    {label:'未整理器材→整洁度↓', v:0, effect:'tidy'},
+    {label:'不安全操作→蔫了', v:0, effect:'wilt', key:'unsafe_act'},
+    {label:'破坏怠慢生命→受伤', v:0, effect:'injured', key:'hurt_life'},
+    {label:'未整理器材→整洁度↓', v:0, effect:'tidy', key:'untidy'},
   ]},
 ];
 
@@ -1085,9 +1094,172 @@ $('addInput').onkeydown=e=>{ if(e.key==='Enter'){ const v=e.target.value; e.targ
 $('importBtn').onclick=importBatch;
 
 /* =====================================================================
+   云同步层（可选）
+   开启方式：在本文件 <script> 之前加一行
+       <script>window.GP_API_BASE='https://你的域名'</script>
+   未设置或登录失败 → 自动退回纯本地 localStorage，原型行为完全不变
+   ===================================================================== */
+const GP_API=(typeof window.GP_API_BASE==='string')?window.GP_API_BASE.replace(/\/+$/,''):null;
+const GP_CLOUD=GP_API!==null;              // null = 纯本地模式（默认）
+const KIND2TYPE={tuan_tuan:'worm',cloud_sheep:'worm',ant_worker:'worm',can_bao:'worm',ke_dou:'fish',
+  ya_ya:'sprout',seed_sprite:'sprout',grass_sprite:'sprout',water_sprite:'fish',
+  crystal:'crystal',star_kid:'crystal',thunder_sprite:'crystal',mech_eco:'crystal',
+  fire_sprite:'butterfly'};
+const PACK2TYPE={cute_nature:'worm',life_obs:'sprout',anime_original:'crystal'};
+
+const GP={
+  token:'',
+  teacher:null,
+  clsMap:{},                                   // 本地班级id -> {remoteId, ids:[]}
+  ready:false,
+  enabled(){ return GP_CLOUD && !!this.token; },
+
+  async api(path,opt={}){
+    const headers={'Content-Type':'application/json'};
+    if(this.token) headers.Authorization='Bearer '+this.token;
+    const res=await fetch(GP_API+path,{...opt,headers:{...headers,...(opt.headers||{})}});
+    if(res.status===401){ this.logout(); throw new Error('登录已失效，请重新登录'); }
+    if(res.status===204) return null;
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error||('请求失败 '+res.status));
+    return data;
+  },
+
+  async login(email,password){
+    const data=await this.api('/api/auth/login',{method:'POST',body:JSON.stringify({email,password})});
+    this.token=data.token; this.teacher=data.teacher;
+    localStorage.setItem('gp_token',data.token);
+    await this.pullAll();
+  },
+
+  logout(){
+    this.token=''; this.teacher=null; this.ready=false;
+    localStorage.removeItem('gp_token');
+    renderGPBtn();
+  },
+
+  // 拉取全部班级并重建本地数据（远端为准）
+  async pullAll(){
+    const data=await this.api('/api/classes');
+    if(!data.classes.length){ toast('账号下还没有班级，请先在后台建班'); return; }
+    const order=[], map={};
+    for(const rc of data.classes){
+      const lid='r'+rc.id.replace(/-/g,'').slice(0,8);
+      order.push(lid);
+      map[lid]={remoteId:rc.id,ids:[]};
+      CLASSES[lid]={id:lid,name:rc.name,theme:rc.theme||'科学班生态',stagePct:0,eco:0,tidy:80,students:[]};
+    }
+    CLASS_ORDER.length=0; order.forEach(id=>CLASS_ORDER.push(id));
+    Object.keys(CLASSES).forEach(k=>{ if(!map[k]) delete CLASSES[k]; });
+    this.clsMap=map;
+    for(const lid of order) await this.pullState(lid);
+    this.ready=true;
+    if(!CLASSES[currentClass]) currentClass=order[0];
+    renderTopbar(); renderPlanet(); renderBoard(); renderDock(); updateSelPanel();
+  },
+
+  async pullState(localId){
+    const m=this.clsMap[localId]; if(!m) return;
+    const data=await this.api('/api/classes/'+m.remoteId+'/state');
+    const c=CLASSES[localId];
+    c.name=data.class.name; c.theme=data.class.theme||c.theme;
+    c.eco=data.class.eco_value; c.stagePct=data.class.stage.progress; c.tidy=data.board.tidiness;
+    const idx={}; data.students.forEach((s,i)=>{ idx[s.id]=i; });
+    m.ids=data.students.map(s=>s.id);
+    c.students=data.students.map((s,i)=>({
+      n:s.name,
+      type:KIND2TYPE[s.partner_kind]||PACK2TYPE[data.class.theme_pack]||'worm',
+      color:PALETTE[i%PALETTE.length],
+      state:s.hurt?'injured':(s.loved?'loved':(s.status==='droop'?'wilt':'active')),
+      score:s.growth, ask:s.ask,
+      vines:(data.vines||[]).filter(v=>v.a_id===s.id||v.b_id===s.id)
+              .map(v=>idx[v.a_id===s.id?v.b_id:v.a_id]).filter(x=>x!==undefined),
+      decor:[]
+    }));
+  },
+
+  // 点评后同步：写远端 → 拉最新状态覆盖本地（保证多设备一致）
+  pushEvent(gi,ti){
+    const m=this.clsMap[currentClass];
+    const tag=TAG_GROUPS[gi].tags[ti];
+    if(!this.enabled()||!m||!tag||!tag.key||selectedId===null) return;
+    const sid=m.ids[selectedId]; if(!sid) return;
+    this.api('/api/events',{method:'POST',
+      body:JSON.stringify({class_id:m.remoteId,student_id:sid,label_key:tag.key})})
+      .then(()=>setTimeout(async()=>{
+        await this.pullState(currentClass);
+        renderPlanet(); renderTopbar(); renderBoard(); updateSelPanel();
+        if(typeof measureCenters==='function') measureCenters();
+        if(typeof renderVines==='function') renderVines();
+        document.querySelectorAll('.partner').forEach(e=>e.classList.toggle('sel',+e.dataset.i===selectedId));
+      },320))
+      .catch(err=>{ toast('☁ 同步失败，已暂存在本机：'+err.message); renderGPBtn(); });
+  }
+};
+
+/* 登录入口：右下角固定按钮，不干扰大屏布局 */
+function renderGPBtn(){
+  let btn=$('gpBtn');
+  if(!btn){
+    btn=document.createElement('div'); btn.id='gpBtn';
+    btn.style.cssText='position:fixed;right:16px;bottom:14px;z-index:90;padding:8px 14px;border-radius:999px;'+
+      'background:rgba(255,255,255,.9);box-shadow:0 4px 14px rgba(90,85,102,.18);cursor:pointer;'+
+      'font-size:13px;font-weight:800;color:#5A5566;user-select:none';
+    document.body.appendChild(btn);
+  }
+  if(!GP_CLOUD){ btn.style.display='none'; return; }
+  btn.textContent = GP.token ? ('☁ '+((GP.teacher&&GP.teacher.display_name)||'已同步')+' · 退出') : '☁ 登录同步';
+  btn.onclick=()=>{ if(GP.token){ if(confirm('退出后将回到本机数据，确定？')) GP.logout(); } else openLogin(); };
+}
+
+function openLogin(){
+  let box=$('gpLogin');
+  if(!box){
+    box=document.createElement('div'); box.id='gpLogin';
+    box.style.cssText='position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;'+
+      'background:rgba(60,55,70,.35);backdrop-filter:blur(3px)';
+    box.innerHTML=`<div style="background:#fff;border-radius:20px;padding:26px 28px;width:320px;box-shadow:0 18px 50px rgba(0,0,0,.2)">
+      <div style="font-size:17px;font-weight:900;color:#5A5566;margin-bottom:4px">☁ 老师登录</div>
+      <div style="font-size:12px;color:#9A94A6;margin-bottom:16px">登录后班级数据跨设备同步；不登录也能用（只存本机）</div>
+      <input id="gpEmail" placeholder="邮箱" style="width:100%;padding:10px 12px;border:2px solid #EFE9E1;border-radius:12px;margin-bottom:10px;font-size:14px;outline:none">
+      <input id="gpPwd" type="password" placeholder="密码" style="width:100%;padding:10px 12px;border:2px solid #EFE9E1;border-radius:12px;font-size:14px;outline:none">
+      <div id="gpErr" style="color:#E4798A;font-size:12px;min-height:18px;margin-top:8px"></div>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <button id="gpCancel" style="flex:1;padding:10px;border-radius:12px;border:2px solid #EFE9E1;background:#fff;color:#7A7484;font-weight:800;cursor:pointer">稍后</button>
+        <button id="gpOk" style="flex:1;padding:10px;border-radius:12px;border:0;background:#A8E6CF;color:#3E6B52;font-weight:800;cursor:pointer">登录</button>
+      </div></div>`;
+    document.body.appendChild(box);
+  }
+  box.classList.remove('hidden'); box.style.display='flex';
+  const emailEl=$('gpEmail'), pwdEl=$('gpPwd'), errEl=$('gpErr');
+  errEl.textContent=''; emailEl.value=''; pwdEl.value=''; emailEl.focus();
+  $('gpCancel').onclick=()=>{ box.style.display='none'; };
+  box.onclick=e=>{ if(e.target===box) box.style.display='none'; };
+  const submit=async()=>{
+    errEl.textContent='登录中…';
+    try{ await GP.login(emailEl.value.trim(), pwdEl.value); box.style.display='none'; renderGPBtn(); toast('☁ 已同步云端数据'); }
+    catch(err){ errEl.textContent=err.message||'登录失败'; }
+  };
+  $('gpOk').onclick=submit;
+  pwdEl.onkeydown=e=>{ if(e.key==='Enter') submit(); };
+}
+
+// 包装原点评逻辑：先跑本地动效（弱网也不卡手），再异步写云端
+if(GP_CLOUD){
+  const _applyTag=applyTag;
+  window.applyTag=function(gi,ti){ _applyTag(gi,ti); GP.pushEvent(gi,ti); };
+}
+
+/* =====================================================================
    启动
    ===================================================================== */
 loadClasses();
+try{
+  const t=localStorage.getItem('gp_token');
+  if(GP_CLOUD&&t){ GP.token=t; }
+}catch(e){}
+renderGPBtn();
+if(GP_CLOUD&&GP.token){ GP.pullAll().catch(err=>{ toast('☁ 云端连接失败，先用本机数据'); renderGPBtn(); }); }
 try{const last=localStorage.getItem('gp_lastClass'); if(last&&CLASSES[last])currentClass=last;}catch(e){}
 renderTopbar(); renderPlanet(); renderBoard(); renderDock();
 </script>
