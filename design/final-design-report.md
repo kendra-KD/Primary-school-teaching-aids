@@ -107,8 +107,8 @@
 | 阶段 | 内容 | 产出 |
 |---|---|---|
 | Phase 0 ✅ | 需求对齐+方案+参考拆解 | 原文档 |
-| 调研 ✅ | 科学+多班级深化 | growth-planet-需求调研.md |
-| Phase 1 ✅ | **老师大屏高保真原型** | growth-planet-老师大屏原型.html |
+| 调研 ✅ | 科学+多班级深化 | design/requirements-research.md |
+| Phase 1 ✅ | **老师大屏高保真原型** | frontend/teacher-dashboard.html |
 | Phase 2 | 学生端养成（小程序/网页） | 互动原型 |
 | Phase 3 | 家校同步模块 | 家长轻量视图 |
 | Phase 4 | 公益延伸（真实种树） | 闭环 |
@@ -117,11 +117,11 @@
 
 ## 七、下一步行动建议
 
-1. **确认原型**：双击 `growth-planet-老师大屏原型.html` 全屏预览，把配色/伙伴造型/标签反馈给我，我让 UI 设计师微调。
+1. **确认原型**：双击 `frontend/teacher-dashboard.html` 全屏预览，把配色/伙伴造型/标签反馈给我，我让 UI 设计师微调。
 2. **补齐 Open Questions**（需科学老师提供）：各班级实际人数与命名、首批想强化的 2–3 个行为、是否要"长期观察"打卡（养蚕/种豆）。
 3. **MVP 开发评估**：确认后由前端/后端成员出技术方案与工时估算，建议先以纯前端 + IndexedDB 跑通可演示版，再谈账号体系。
 4. **变现路径**（副业视角）：B 端按班级/学校年费、或免费老师端 + 增值装扮/公益，待原型验证后再定。
 
 ---
 
-*配套文件：growth-planet-需求调研.md（调研）、growth-planet-老师大屏原型.html（原型）、growth-planet-设计说明.md（说明）。*
+*配套文件：design/requirements-research.md（调研）、frontend/teacher-dashboard.html（原型）、design/design-spec.md（说明）。*

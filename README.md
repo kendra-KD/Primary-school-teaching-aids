@@ -8,8 +8,8 @@
 ## 目录结构
 
 ```
-design/    产品设计文档（需求调研、最终报告、访谈提纲、试用验证包、伙伴自选设计、年级偏好调研）
-frontend/  老师大屏驾驶舱高保真原型 HTML（自包含，双击即用）+ 伙伴自选演示 HTML
+design/    产品设计文档（requirements-research / final-design-report / teacher-interview-outline / teacher-trial-validation-kit / partner-selection-design / grade-preference-survey / design-spec）
+frontend/  老师大屏驾驶舱高保真原型 HTML（teacher-dashboard.html，自包含，双击即用）+ 伙伴自选演示 HTML（partner-demo.html）
 server/    后端 API（Node 22 + Fastify 5 + Postgres）
 deploy/    docker-compose、初始化 SQL、Nginx 配置、.env 样例
 ```
@@ -21,11 +21,11 @@ deploy/    docker-compose、初始化 SQL、Nginx 配置、.env 样例
 - ✅ 后端 API：老师账号 / 班级 / 花名册 / 科学点评 / 全班实时状态 / 撤销点评
 - ✅ 前端云同步层：配置 `GP_API_BASE` 后跨设备同步，未配置则纯本地运行
 - ⏳ 学生端轻网页（入班码认领伙伴）待开发
-- ⏳ 真实老师试用验证（见 `design/growth-planet-老师试用验证包.md`）
+- ⏳ 真实老师试用验证（见 `design/teacher-trial-validation-kit.md`）
 
 ## 本地预览（不装任何东西）
 
-直接双击 `frontend/growth-planet-老师大屏原型.html`，F11 全屏。
+直接双击 `frontend/teacher-dashboard.html`，F11 全屏。
 此时数据只存浏览器 localStorage，换电脑不同步——适合演示与验证。
 
 ## 后端本地启动

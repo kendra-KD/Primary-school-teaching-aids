@@ -11,9 +11,11 @@ OUT="deploy/frontend-built"
 API_BASE="${1:-}"   # 默认空串 = 同域
 
 mkdir -p "$OUT"
-for f in "growth-planet-老师大屏原型.html" "index.html"; do
+for f in "teacher-dashboard.html" "index.html" "partner-demo.html"; do
   if [ -f "$SRC/$f" ]; then
-    sed "s/__GP_API_BASE__/${API_BASE}/g" "$SRC/$f" > "$OUT/$f"
+    # 只替换赋值语句 window.GP_API_BASE='__GP_API_BASE__' → window.GP_API_BASE=''
+    # 不用全局替换，否则检查语句 if(GP_API==='__GP_API_BASE__') 也会被替换导致 GP_CLOUD 恒为 false
+    sed "s/window\.GP_API_BASE *= *'__GP_API_BASE__'/window.GP_API_BASE = '${API_BASE}'/g" "$SRC/$f" > "$OUT/$f"
   fi
 done
 echo "✓ 前端已构建到 $OUT （GP_API_BASE='${API_BASE:-同域}'）"
