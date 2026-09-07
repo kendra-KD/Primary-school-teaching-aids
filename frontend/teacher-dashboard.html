@@ -913,7 +913,7 @@ function commitRoster(){
 /* =====================================================================
    云同步层（可选）
    开启方式：在本文件 <script> 之前加一行
-       <script>window.GP_API_BASE='https://你的域名'</script>
+       <script>window.GP_API_BASE='https://你的域名'<\/script>
    未设置或登录失败 → 自动退回纯本地 localStorage，原型行为完全不变
    ===================================================================== */
 const GP_API=(typeof window.GP_API_BASE==='string')?window.GP_API_BASE.replace(/\/+$/,''):null;
