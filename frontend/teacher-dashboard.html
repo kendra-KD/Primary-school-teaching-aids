@@ -1264,5 +1264,8 @@ if(GP_CLOUD&&GP.token){ GP.pullAll().catch(err=>{ toast('☁ 云端连接失败�
 try{const last=localStorage.getItem('gp_lastClass'); if(last&&CLASSES[last])currentClass=last;}catch(e){}
 renderTopbar(); renderPlanet(); renderBoard(); renderDock();
 </script>
+
+<!-- Umami 访问统计（growth-planet 站点） -->
+<script defer src="https://analytics.mealpick.me/script.js" data-website-id="ae23edc6-0fcd-4f4b-8bd6-caf509cb0ef6"></script>
 </body>
 </html>
