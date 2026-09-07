@@ -1,10 +1,20 @@
 import { query, queryOne, withTx } from '../db.js';
 import { assertOwnsClass, assertOwnsStudent, assertText, assertUuid, badRequest } from '../util.js';
 
+// 伙伴种类（原创形象，无 IP 风险）。与前端自选页图鉴保持一致。
 const PARTNER_KINDS = [
+  // 萌系自然 1-2 年级
   'tuan_tuan', 'ya_ya', 'cloud_sheep', 'star_kid',
-  'can_bao', 'ke_dou', 'crystal', 'seed_sprite', 'ant_worker',
-  'fire_sprite', 'water_sprite', 'grass_sprite', 'thunder_sprite', 'mech_eco'
+  'bunny', 'duckling', 'piggy', 'kitty', 'puppy', 'hug_bear',
+  'bub_fish', 'slow_turtle', 'blue_whale', 'little_crab',
+  // 生命观察 3-4 年级
+  'can_bao', 'ke_dou', 'seed_sprite', 'ant_worker', 'snail',
+  'butterfly', 'shy_plant', 'sun_flower', 'mushroom', 'bamboo',
+  'crystal', 'minnow',
+  // 动漫原创 5-6 年级
+  'fire_sprite', 'water_sprite', 'grass_sprite', 'thunder_sprite', 'star2',
+  'mech_eco', 'light_spirit', 'ice_spirit', 'wind_spirit', 'rock_spirit',
+  'dragon_spirit', 'dark_spirit'
 ];
 
 export default async function studentRoutes(fastify) {
@@ -54,7 +64,7 @@ export default async function studentRoutes(fastify) {
     return reply.code(201).send({ students: rows });
   });
 
-  // 改名 / 换伙伴 / 调整顺序 / 照料恢复
+  // 改名 / 换伙伴 / 调整顺序 / 昵称主色 / 照料恢复
   fastify.put('/api/students/:id', auth, async (req) => {
     const student = await assertOwnsStudent(req.user.sub, assertUuid(req.params.id, 'id'));
 
@@ -63,6 +73,14 @@ export default async function studentRoutes(fastify) {
     if (partnerKind !== null && partnerKind !== undefined && !PARTNER_KINDS.includes(partnerKind)) {
       throw badRequest('partner_kind 非法');
     }
+    const nickname = req.body?.nickname === undefined ? student.nickname
+      : (req.body.nickname === null ? null : assertText(req.body.nickname, '昵称', { max: 20 }));
+    const color = req.body?.color === undefined ? student.color
+      : (req.body.color === null ? null : (() => {
+          const c = String(req.body.color);
+          if (!/^#[0-9a-fA-F]{6}$/.test(c)) throw badRequest('color 必须是 #RRGGBB');
+          return c;
+        })());
     const sortOrder = req.body?.sort_order === undefined
       ? student.sort_order
       : Number(req.body.sort_order);
@@ -77,10 +95,34 @@ export default async function studentRoutes(fastify) {
     const vitality = care ? Math.max(student.vitality, 50) : student.vitality;
 
     const row = await queryOne(
-      `UPDATE students SET name=$1, partner_kind=$2, sort_order=$3, group_name=$4, hurt=$5, vitality=$6
-        WHERE id=$7 RETURNING *`,
-      [name, partnerKind, sortOrder, groupName, hurt, vitality, student.id]
+      `UPDATE students SET name=$1, partner_kind=$2, nickname=$3, color=$4, sort_order=$5, group_name=$6, hurt=$7, vitality=$8
+        WHERE id=$9 RETURNING *`,
+      [name, partnerKind, nickname, color, sortOrder, groupName, hurt, vitality, student.id]
     );
+    return { student: row };
+  });
+
+  // 学生端自主认领伙伴（免登录，凭学生 id 写入，可重复认领由老师端覆盖）
+  fastify.post('/api/students/:id/claim', async (req, reply) => {
+    const studentId = assertUuid(req.params.id, 'id');
+    const kind = req.body?.partner_kind;
+    if (!kind || !PARTNER_KINDS.includes(kind)) throw badRequest('partner_kind 非法');
+    const nickname = req.body?.nickname ? assertText(req.body.nickname, '昵称', { max: 20 }) : null;
+    const color = req.body?.color
+      ? (() => {
+          const c = String(req.body.color);
+          if (!/^#[0-9a-fA-F]{6}$/.test(c)) throw badRequest('color 必须是 #RRGGBB');
+          return c;
+        })()
+      : null;
+
+    const row = await queryOne(
+      `UPDATE students SET partner_kind=$1, nickname=COALESCE($2, nickname), color=COALESCE($3, color)
+        WHERE id=$4 RETURNING *`,
+      [kind, nickname, color, studentId]
+    );
+    if (!row) throw notFound('学生不存在');
+    await query('INSERT INTO partner_claims (student_id, kind) VALUES ($1, $2)', [studentId, kind]);
     return { student: row };
   });
 

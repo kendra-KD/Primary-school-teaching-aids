@@ -1,5 +1,5 @@
 import { query, queryOne } from '../db.js';
-import { assertOwnsClass, assertText, assertInt, assertUuid, badRequest } from '../util.js';
+import { assertOwnsClass, assertText, assertInt, assertUuid, badRequest, notFound } from '../util.js';
 
 const THEME_PACKS = ['cute_nature', 'life_obs', 'anime_original'];
 
@@ -19,6 +19,21 @@ function rowToClass(row, extra = {}) {
 
 export default async function classRoutes(fastify) {
   const auth = { onRequest: [fastify.authenticate] };
+
+  // 学生端入班：凭班级码获取班级信息与名单（免登录，仅返回必要字段）
+  fastify.get('/api/join/:code', async (req, reply) => {
+    const code = String(req.params.code || '').trim().toLowerCase();
+    if (!code) throw badRequest('请提供班级码');
+    const cls = await queryOne('SELECT * FROM classes WHERE class_code = $1', [code]);
+    if (!cls) throw notFound('班级码无效，请向老师确认');
+    const { rows } = await query(
+      `SELECT id, name, nickname, partner_kind, color
+         FROM students WHERE class_id = $1
+        ORDER BY sort_order NULLS LAST, name`,
+      [cls.id]
+    );
+    return { class: rowToClass(cls), students: rows };
+  });
 
   // 班级列表：卡片墙，带学生数
   fastify.get('/api/classes', auth, async (req) => {
@@ -53,7 +68,10 @@ export default async function classRoutes(fastify) {
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [req.user.sub, name, grade, theme, themePack]
     );
-    return reply.code(201).send({ class: rowToClass(row, { student_count: 0 }) });
+    // 班级码：取 id 前 6 位十六进制，唯一且无需额外随机源
+    await query(`UPDATE classes SET class_code = LEFT(REPLACE(id::text, '-', ''), 6) WHERE id = $1`, [row.id]);
+    const full = await queryOne('SELECT * FROM classes WHERE id = $1', [row.id]);
+    return reply.code(201).send({ class: rowToClass(full, { student_count: 0 }) });
   });
 
   fastify.put('/api/classes/:id', auth, async (req) => {

@@ -919,10 +919,20 @@ function commitRoster(){
 const GP_API=(typeof window.GP_API_BASE==='string')?window.GP_API_BASE.replace(/\/+$/,''):null;
 if(GP_API==='__GP_API_BASE__') GP_API=null;
 const GP_CLOUD=GP_API!==null;
-const KIND2TYPE={tuan_tuan:'worm',cloud_sheep:'worm',ant_worker:'worm',can_bao:'worm',ke_dou:'fish',
-  ya_ya:'sprout',seed_sprite:'sprout',grass_sprite:'sprout',water_sprite:'fish',
-  crystal:'crystal',star_kid:'crystal',thunder_sprite:'crystal',mech_eco:'crystal',
-  fire_sprite:'butterfly'};
+const KIND2TYPE={
+  // 萌系自然 1-2
+  tuan_tuan:'worm', ya_ya:'sprout', cloud_sheep:'worm', star_kid:'crystal',
+  bunny:'worm', duckling:'fish', piggy:'worm', kitty:'worm', puppy:'worm', hug_bear:'worm',
+  bub_fish:'fish', slow_turtle:'fish', blue_whale:'fish', little_crab:'fish',
+  // 生命观察 3-4
+  can_bao:'worm', ke_dou:'fish', seed_sprite:'sprout', ant_worker:'worm', snail:'worm',
+  butterfly:'butterfly', shy_plant:'sprout', sun_flower:'sprout', mushroom:'sprout', bamboo:'sprout',
+  crystal:'crystal', minnow:'fish',
+  // 动漫原创 5-6
+  fire_sprite:'crystal', water_sprite:'fish', grass_sprite:'sprout', thunder_sprite:'crystal', star2:'crystal',
+  mech_eco:'crystal', light_spirit:'crystal', ice_spirit:'crystal', wind_spirit:'crystal',
+  rock_spirit:'crystal', dragon_spirit:'crystal', dark_spirit:'crystal'
+};
 const PACK2TYPE={cute_nature:'worm',life_obs:'sprout',anime_original:'crystal'};
 
 const GP={
@@ -984,9 +994,9 @@ const GP={
     const idx={}; data.students.forEach((s,i)=>{ idx[s.id]=i; });
     m.ids=data.students.map(s=>s.id);
     c.students=data.students.map((s,i)=>({
-      n:s.name,
+      n:s.nickname||s.name,
       type:KIND2TYPE[s.partner_kind]||PACK2TYPE[data.class.theme_pack]||'worm',
-      color:PALETTE[i%PALETTE.length],
+      color:s.color||PALETTE[i%PALETTE.length],
       state:s.hurt?'injured':(s.loved?'loved':(s.status==='droop'?'wilt':'active')),
       score:s.growth, ask:s.ask,
       vines:(data.vines||[]).filter(v=>v.a_id===s.id||v.b_id===s.id)

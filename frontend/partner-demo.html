@@ -2,148 +2,368 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>成长星球 · 伙伴自选演示（1–6 年级分层）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>🌟 成长星球 · 选我的科学伙伴</title>
 <style>
   :root{
-    --pink:#FFB3C6; --mint:#A8E6CF; --yellow:#FFE5A0; --blue:#A0D2FF;
-    --lav:#CDB4FF; --peach:#FFD6A5; --bg1:#FFF6EC; --bg2:#FDEFF6; --bg3:#EAF7F2;
-    --ink:#5A5566; --ink2:#8A8499; --card:#fff; --line:#F0E9F2; --shadow:0 10px 30px rgba(150,130,170,.16);
+    --pink:#FF9EC9; --mint:#7FE3C0; --yellow:#FFD86B; --blue:#8FC7FF;
+    --lav:#C4A7FF; --peach:#FFB38A; --bg1:#FFF3FB; --bg2:#EAF6FF; --bg3:#FFF7E8;
+    --ink:#4A4466; --ink2:#8A84A8; --card:#fff; --shadow:0 14px 34px rgba(170,140,200,.22);
+    --rare:#7FE3C0; --epic:#FFB38A;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  body{margin:0;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);
-    background:linear-gradient(135deg,var(--bg1),var(--bg2) 55%,var(--bg3));padding:26px;}
-  h1{font-size:26px;margin:0 0 6px;}
-  .sub{color:var(--ink2);margin-bottom:20px;font-size:14px;}
-  .bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center;}
-  .bar label{font-size:14px;color:var(--ink2);}
-  select,button{font-family:inherit;font-weight:600;border:none;border-radius:14px;padding:10px 16px;font-size:14px;cursor:pointer;}
-  select{background:var(--card);box-shadow:var(--shadow);color:var(--ink);}
-  button{background:linear-gradient(135deg,var(--lav),var(--blue));color:#fff;box-shadow:var(--shadow);}
-  button.ghost{background:var(--card);color:var(--ink);box-shadow:var(--shadowS,0 4px 14px rgba(150,130,170,.18));}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;}
-  .card{background:var(--card);border-radius:22px;padding:16px;box-shadow:var(--shadow);text-align:center;transition:transform .18s,box-shadow .18s;cursor:pointer;border:3px solid transparent;}
-  .card:hover{transform:translateY(-4px);}
-  .card.sel{border-color:var(--lav);box-shadow:0 10px 30px rgba(205,180,255,.5);}
-  .card .emoji{font-size:46px;line-height:1.1;}
-  .card .nm{font-size:15px;margin-top:8px;font-weight:700;}
-  .card .tag{display:inline-block;font-size:11px;margin-top:6px;padding:3px 9px;border-radius:20px;background:var(--mint);color:#3a7a64;}
-  .card .tag.rare{background:var(--lav);color:#5b4a8a;}
-  .card .tag.epic{background:var(--peach);color:#a8632a;}
-  .stage{font-size:11px;color:var(--ink2);margin-top:6px;}
-  .preview{background:var(--card);border-radius:22px;box-shadow:var(--shadow);padding:20px;margin-top:20px;text-align:center;}
-  .preview .big{font-size:90px;}
-  .preview .nm{font-size:20px;font-weight:800;margin-top:6px;}
-  .nick{margin-top:12px;display:flex;gap:8px;justify-content:center;align-items:center;}
-  .nick input{border:2px solid var(--line);border-radius:12px;padding:8px 12px;font-family:inherit;font-size:14px;width:160px;outline:none;}
-  .code{margin-top:18px;background:var(--card);border-radius:22px;box-shadow:var(--shadow);padding:20px;text-align:center;}
-  .code .qr{width:140px;height:140px;margin:10px auto;border-radius:16px;background:
-    repeating-linear-gradient(45deg,#5A5566 0 8px,#fff 8px 16px);}
-  .note{font-size:12px;color:var(--ink2);margin-top:8px;line-height:1.6;}
-  .hint{background:#fff8e8;border-radius:16px;padding:14px 18px;margin-top:20px;font-size:13px;color:#a8632a;line-height:1.7;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(900px 600px at 10% -5%, rgba(255,158,201,.20), transparent 60%),
+      radial-gradient(800px 600px at 100% 0%, rgba(143,199,255,.22), transparent 55%),
+      radial-gradient(800px 800px at 50% 120%, rgba(127,227,192,.18), transparent 60%),
+      linear-gradient(160deg,var(--bg1),var(--bg2) 50%,var(--bg3));
+    background-attachment:fixed;min-height:100vh;padding:24px 16px 60px;
+  }
+  .wrap{max-width:880px;margin:0 auto;}
+  header{text-align:center;margin-bottom:18px;}
+  header h1{font-size:26px;margin:0 0 4px;letter-spacing:1px;}
+  header .sub{color:var(--ink2);font-size:13px;}
+  .hero{display:flex;justify-content:center;margin:6px 0 18px;}
+  .hero svg{width:120px;height:120px;animation:floaty 4s ease-in-out infinite;}
+  @keyframes floaty{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-10px) rotate(2deg);}}
+  .panel{background:var(--card);border-radius:26px;box-shadow:var(--shadow);padding:22px;margin-bottom:18px;}
+  .step-h{font-size:17px;font-weight:800;margin:0 0 14px;display:flex;align-items:center;gap:8px;}
+  .step-h .n{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--lav),var(--blue));color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:14px;}
+  /* 班级码 */
+  .code-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .code-row input{flex:1;min-width:160px;border:2px solid #EFE6F5;border-radius:16px;padding:13px 16px;font-size:16px;font-family:inherit;outline:none;transition:.2s;}
+  .code-row input:focus{border-color:var(--lav);box-shadow:0 0 0 4px rgba(196,167,255,.18);}
+  button{font-family:inherit;font-weight:700;border:none;border-radius:16px;padding:13px 22px;font-size:15px;cursor:pointer;color:#fff;
+    background:linear-gradient(135deg,var(--lav),var(--blue));box-shadow:var(--shadow);transition:transform .15s,filter .15s;}
+  button:hover{transform:translateY(-2px);filter:brightness(1.05);}
+  button:active{transform:translateY(0);}
+  button.ghost{background:#fff;color:var(--ink);box-shadow:0 4px 14px rgba(170,140,200,.18);}
+  button.big{width:100%;font-size:17px;padding:16px;margin-top:6px;}
+  /* 学生选择 */
+  .chips{display:flex;flex-wrap:wrap;gap:10px;}
+  .chip{padding:10px 16px;border-radius:999px;background:#F4EEFB;color:var(--ink);font-weight:700;cursor:pointer;border:2px solid transparent;transition:.15s;}
+  .chip:hover{background:#ECE2F8;}
+  .chip.sel{background:linear-gradient(135deg,var(--lav),var(--blue));color:#fff;border-color:#fff;box-shadow:0 6px 16px rgba(143,199,255,.5);}
+  .chip .done{font-size:12px;opacity:.8;margin-left:4px;}
+  /* 图鉴 */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;}
+  .pcard{background:#fff;border:3px solid transparent;border-radius:22px;padding:16px 12px;box-shadow:var(--shadow);text-align:center;cursor:pointer;transition:transform .18s,box-shadow .18s;position:relative;overflow:hidden;}
+  .pcard:hover{transform:translateY(-5px);}
+  .pcard .emoji{font-size:50px;line-height:1.1;display:inline-block;animation:breathe 3.2s ease-in-out infinite;}
+  @keyframes breathe{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+  .pcard .nm{font-size:15px;margin-top:8px;font-weight:800;}
+  .pcard .tag{display:inline-block;font-size:11px;margin-top:6px;padding:2px 10px;border-radius:20px;font-weight:700;}
+  .pcard .tag.common{background:#F0ECFA;color:#7A7196;}
+  .pcard .tag.rare{background:rgba(127,227,192,.25);color:#2f8f6f;}
+  .pcard .tag.epic{background:rgba(255,179,138,.28);color:#b9652c;}
+  .pcard.sel{border-color:var(--lav);box-shadow:0 12px 30px rgba(196,167,255,.55);transform:translateY(-5px);}
+  .pcard.sel::after{content:"✓";position:absolute;top:8px;right:10px;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--lav),var(--blue));color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;}
+  .pcard.sel .emoji{animation:pop .5s ease;}
+  @keyframes pop{0%{transform:scale(.6);}60%{transform:scale(1.3);}100%{transform:scale(1.12);}}
+  /* 昵称 + 颜色 */
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;color:var(--ink2);margin-bottom:6px;font-weight:700;}
+  .field input{border:2px solid #EFE6F5;border-radius:14px;padding:12px 14px;font-size:15px;font-family:inherit;width:100%;outline:none;}
+  .field input:focus{border-color:var(--lav);}
+  .swatches{display:flex;gap:10px;flex-wrap:wrap;}
+  .sw{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.12);transition:transform .15s;}
+  .sw.sel{transform:scale(1.18);box-shadow:0 0 0 3px var(--ink);}
+  /* 预览 */
+  .preview{text-align:center;padding:8px 0 4px;}
+  .preview .big{font-size:84px;display:inline-block;animation:floaty 3.5s ease-in-out infinite;}
+  .preview .nm{font-size:22px;font-weight:800;margin-top:4px;}
+  /* 提示 */
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 22px;border-radius:14px;font-size:14px;opacity:0;pointer-events:none;transition:.3s;z-index:50;max-width:90vw;text-align:center;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .err{color:#d8506a;font-size:13px;margin-top:8px;}
+  .muted{color:var(--ink2);font-size:12px;line-height:1.7;}
+  .hidden{display:none!important;}
+  /* 成功彩屑 */
+  .confetti{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden;}
+  .confetti i{position:absolute;top:-12px;width:10px;height:14px;border-radius:2px;opacity:.9;animation:fall linear forwards;}
+  @keyframes fall{to{transform:translateY(105vh) rotate(540deg);opacity:.2;}}
+  .success{text-align:center;padding:14px 0;}
+  .success .big{font-size:90px;animation:pop .6s ease;}
 </style>
 </head>
 <body>
-  <h1>🌱 伙伴自选 · 生命库（演示）</h1>
-  <div class="sub">按年级分层主题包 · 原创形象无版权风险 · 学生端上线后扫码认领即同步老师大屏</div>
+<div class="wrap">
+  <header>
+    <h1>🌟 成长星球</h1>
+    <div class="sub">选一个属于你的科学伙伴，它会住进班级的星球里～</div>
+  </header>
 
-  <div class="bar">
-    <label>选择班级年级：</label>
-    <select id="grade">
-      <option value="1">一年级（萌系自然包）</option>
-      <option value="2">二年级（萌系自然包）</option>
-      <option value="3" selected>三年级（生命观察包）</option>
-      <option value="4">四年级（生命观察包）</option>
-      <option value="5">五年级（动漫原创包）</option>
-      <option value="6">六年级（动漫原创包）</option>
-    </select>
-    <button class="ghost" onclick="resetSel()">清除选择</button>
+  <div class="hero">
+    <!-- 核心原创 SVG 吉祥物：星球上的小生命 -->
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+      <defs>
+        <radialGradient id="pg" cx="40%" cy="35%" r="70%">
+          <stop offset="0%" stop-color="#C4A7FF"/><stop offset="100%" stop-color="#8FC7FF"/>
+        </radialGradient>
+      </defs>
+      <circle cx="60" cy="64" r="40" fill="url(#pg)"/>
+      <ellipse cx="60" cy="64" rx="58" ry="14" fill="none" stroke="#fff" stroke-width="2" opacity=".5"/>
+      <circle cx="44" cy="58" r="7" fill="#fff" opacity=".85"/>
+      <circle cx="74" cy="70" r="5" fill="#fff" opacity=".7"/>
+      <circle cx="64" cy="50" r="4" fill="#fff" opacity=".6"/>
+      <g>
+        <circle cx="60" cy="52" r="13" fill="#FFE9A8"/>
+        <circle cx="55" cy="50" r="2.4" fill="#4A4466"/>
+        <circle cx="65" cy="50" r="2.4" fill="#4A4466"/>
+        <path d="M55 56 Q60 60 65 56" stroke="#4A4466" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </g>
+    </svg>
   </div>
 
-  <div class="grid" id="lib"></div>
-
-  <div class="preview" id="preview" style="display:none">
-    <div class="big" id="pvEmoji">🥚</div>
-    <div class="nm" id="pvName">待认领</div>
-    <div class="nick">
-      <span>昵称：</span>
-      <input id="nick" placeholder="给学生起个昵称" oninput="updNick()">
+  <!-- 步骤1：班级码 -->
+  <div class="panel" id="stepCode">
+    <div class="step-h"><span class="n">1</span> 输入班级码</div>
+    <div class="code-row">
+      <input id="codeInput" placeholder="老师给的 6 位班级码" maxlength="8" autocapitalize="off" spellcheck="false">
+      <button onclick="loadClass()">进入班级</button>
     </div>
-    <div class="note" id="pvNote"></div>
+    <div class="err" id="codeErr"></div>
+    <p class="muted" style="margin-top:10px">没有班级码？问问你的科学老师～ 也可以直接在网址后面加 <b>?code=班级码</b> 直接打开。</p>
   </div>
 
-  <div class="code">
-    <div style="font-weight:700;font-size:15px;">📱 入班码（学生端上线后生效）</div>
-    <div class="qr"></div>
-    <div class="note">老师大屏点「生成入班码」→ 学生扫码进本班 → 选伙伴认领 → 老师大屏实时变更。<br>
-    当前为演示占位；MVP 阶段老师可在「⚙ 伙伴库」里代学生预选。</div>
+  <!-- 步骤2：选自己 -->
+  <div class="panel hidden" id="stepWho">
+    <div class="step-h"><span class="n">2</span> 你是哪位同学？</div>
+    <div class="chips" id="stuChips"></div>
   </div>
 
-  <div class="hint">
-    💡 版权说明：库中均为<b>原创抽象形象</b>（元素精灵 / 星灵 / 小生命），不含任何受保护 IP。
-    学生可自定义<b>昵称与主色</b>满足情怀。高年级（5–6）用「元素系 + 稀有进化」提供收集成就感，
-    低龄（1–2）用圆润萌系提供即时可爱反馈——避免全年级一套图导致高年级嫌幼稚。
+  <!-- 步骤3：选伙伴 -->
+  <div class="panel hidden" id="stepPick">
+    <div class="step-h"><span class="n">3</span> 选一个你的科学伙伴 <span class="muted" id="packName" style="font-weight:600"></span></div>
+    <div class="grid" id="lib"></div>
   </div>
+
+  <!-- 步骤4：昵称 + 主色 -->
+  <div class="panel hidden" id="stepInfo">
+    <div class="step-h"><span class="n">4</span> 给它起个名字、选个颜色</div>
+    <div class="preview">
+      <div class="big" id="pvEmoji">🥚</div>
+      <div class="nm" id="pvName">待认领</div>
+    </div>
+    <div class="field" style="margin-top:12px">
+      <label>伙伴昵称</label>
+      <input id="nick" placeholder="例如：闪闪 / 团团 / 小火苗" maxlength="20">
+    </div>
+    <div class="field">
+      <label>主色（你的星球专属色）</label>
+      <div class="swatches" id="swatches"></div>
+    </div>
+    <button class="big" onclick="claim()">🎉 认领我的伙伴</button>
+    <div class="err" id="claimErr"></div>
+  </div>
+
+  <!-- 成功 -->
+  <div class="panel hidden success" id="stepDone">
+    <div class="big" id="doneEmoji">🌟</div>
+    <div style="font-size:20px;font-weight:800;margin-top:6px" id="doneTxt">认领成功！</div>
+    <p class="muted" id="doneSub" style="margin-top:8px"></p>
+    <button class="ghost" style="margin-top:12px" onclick="resetAll()">换一台设备 / 重新认领</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="confetti" id="confetti"></div>
 
 <script>
-// 伙伴库（原创，非IP）。pack: cute=萌系自然 / life=生命观察 / anime=动漫原创
+// ===== 伙伴图鉴（原创形象，无 IP 风险；kind 与后端 PARTNER_KINDS 一一对应）=====
 const LIB = [
-  // 萌系自然包 1-2
-  {kind:"tuan", name:"团团熊", pack:"cute", emoji:"🐻", rarity:"common", stage:0},
-  {kind:"ya",   name:"芽芽",   pack:"cute", emoji:"🌱", rarity:"common", stage:0},
-  {kind:"yun",  name:"云朵羊", pack:"cute", emoji:"🐑", rarity:"common", stage:0},
-  {kind:"star", name:"星仔",   pack:"cute", emoji:"⭐", rarity:"rare",   stage:0},
-  {kind:"bub",  name:"泡泡鱼", pack:"cute", emoji:"🐠", rarity:"common", stage:0},
-  // 生命观察包 3-4
-  {kind:"can",  name:"蚕宝",   pack:"life", emoji:"🐛", rarity:"common", stage:0},
-  {kind:"tad",  name:"蝌蚪",   pack:"life", emoji:"🐸", rarity:"common", stage:0},
-  {kind:"cry",  name:"晶簇",   pack:"life", emoji:"💎", rarity:"rare",   stage:0},
-  {kind:"seed", name:"种子精", pack:"life", emoji:"🌰", rarity:"common", stage:0},
-  {kind:"ant",  name:"蚁工",   pack:"life", emoji:"🐜", rarity:"common", stage:0},
-  {kind:"snail",name:"蜗牛",   pack:"life", emoji:"🐌", rarity:"common", stage:0},
-  // 动漫原创包 5-6（元素精灵，非任何IP）
-  {kind:"fire", name:"火灵",   pack:"anime",emoji:"🔥", rarity:"rare",   stage:0},
-  {kind:"water",name:"水灵",   pack:"anime",emoji:"💧", rarity:"rare",   stage:0},
-  {kind:"grass",name:"草灵",   pack:"anime",emoji:"🍃", rarity:"rare",   stage:0},
-  {kind:"thun", name:"电灵",   pack:"anime",emoji:"⚡", rarity:"epic",   stage:0},
-  {kind:"star2",name:"星灵",   pack:"anime",emoji:"🌟", rarity:"epic",   stage:0},
-  {kind:"mech", name:"机械生态",pack:"anime",emoji:"🤖", rarity:"epic",   stage:0},
+  // 萌系自然 1-2 年级
+  {kind:"tuan_tuan",name:"团团熊",emoji:"🐻",pack:"cute_nature",rarity:"common"},
+  {kind:"ya_ya",name:"芽芽",emoji:"🌱",pack:"cute_nature",rarity:"common"},
+  {kind:"cloud_sheep",name:"云朵羊",emoji:"🐑",pack:"cute_nature",rarity:"common"},
+  {kind:"star_kid",name:"星仔",emoji:"⭐",pack:"cute_nature",rarity:"rare"},
+  {kind:"bunny",name:"跳跳兔",emoji:"🐰",pack:"cute_nature",rarity:"common"},
+  {kind:"duckling",name:"黄小鸭",emoji:"🐤",pack:"cute_nature",rarity:"common"},
+  {kind:"piggy",name:"粉粉猪",emoji:"🐷",pack:"cute_nature",rarity:"common"},
+  {kind:"kitty",name:"喵喵猫",emoji:"🐱",pack:"cute_nature",rarity:"common"},
+  {kind:"puppy",name:"旺财狗",emoji:"🐶",pack:"cute_nature",rarity:"common"},
+  {kind:"hug_bear",name:"抱抱熊",emoji:"🧸",pack:"cute_nature",rarity:"rare"},
+  {kind:"bub_fish",name:"泡泡鱼",emoji:"🐠",pack:"cute_nature",rarity:"common"},
+  {kind:"slow_turtle",name:"慢慢龟",emoji:"🐢",pack:"cute_nature",rarity:"common"},
+  {kind:"blue_whale",name:"蓝蓝鲸",emoji:"🐳",pack:"cute_nature",rarity:"epic"},
+  {kind:"little_crab",name:"小螃蟹",emoji:"🦀",pack:"cute_nature",rarity:"rare"},
+  // 生命观察 3-4 年级
+  {kind:"can_bao",name:"蚕宝",emoji:"🐛",pack:"life_obs",rarity:"common"},
+  {kind:"ke_dou",name:"蝌蚪",emoji:"🐸",pack:"life_obs",rarity:"common"},
+  {kind:"seed_sprite",name:"种子精",emoji:"🌰",pack:"life_obs",rarity:"common"},
+  {kind:"ant_worker",name:"蚁工",emoji:"🐜",pack:"life_obs",rarity:"common"},
+  {kind:"snail",name:"蜗牛",emoji:"🐌",pack:"life_obs",rarity:"common"},
+  {kind:"butterfly",name:"蝴蝶精灵",emoji:"🦋",pack:"life_obs",rarity:"rare"},
+  {kind:"shy_plant",name:"含羞草",emoji:"🌿",pack:"life_obs",rarity:"common"},
+  {kind:"sun_flower",name:"向日葵",emoji:"🌻",pack:"life_obs",rarity:"common"},
+  {kind:"mushroom",name:"小蘑菇",emoji:"🍄",pack:"life_obs",rarity:"common"},
+  {kind:"bamboo",name:"竹精灵",emoji:"🎋",pack:"life_obs",rarity:"rare"},
+  {kind:"crystal",name:"晶簇",emoji:"💎",pack:"life_obs",rarity:"epic"},
+  {kind:"minnow",name:"小鱼苗",emoji:"🐟",pack:"life_obs",rarity:"common"},
+  // 动漫原创 5-6 年级
+  {kind:"fire_sprite",name:"火灵",emoji:"🔥",pack:"anime_original",rarity:"rare"},
+  {kind:"water_sprite",name:"水灵",emoji:"💧",pack:"anime_original",rarity:"rare"},
+  {kind:"grass_sprite",name:"草灵",emoji:"🍃",pack:"anime_original",rarity:"rare"},
+  {kind:"thunder_sprite",name:"电灵",emoji:"⚡",pack:"anime_original",rarity:"epic"},
+  {kind:"star2",name:"星灵",emoji:"🌟",pack:"anime_original",rarity:"epic"},
+  {kind:"mech_eco",name:"机械生态",emoji:"🤖",pack:"anime_original",rarity:"epic"},
+  {kind:"light_spirit",name:"光灵",emoji:"✨",pack:"anime_original",rarity:"rare"},
+  {kind:"ice_spirit",name:"冰灵",emoji:"❄️",pack:"anime_original",rarity:"rare"},
+  {kind:"wind_spirit",name:"风灵",emoji:"🌪️",pack:"anime_original",rarity:"epic"},
+  {kind:"rock_spirit",name:"岩灵",emoji:"🪨",pack:"anime_original",rarity:"common"},
+  {kind:"dragon_spirit",name:"龙灵",emoji:"🐲",pack:"anime_original",rarity:"epic"},
+  {kind:"dark_spirit",name:"暗灵",emoji:"🌑",pack:"anime_original",rarity:"rare"}
 ];
-const PACK_OF = {1:"cute",2:"cute",3:"life",4:"life",5:"anime",6:"anime"};
-const STAGE_NAMES = ["蛋","幼体","成体","进化体"];
-const RARITY_NAME = {common:"普通",rare:"稀有",epic:"史诗"};
+const PACK_LABEL = {cute_nature:"萌系自然包 · 圆润可爱小动物", life_obs:"生命观察包 · 真实生命与植物", anime_original:"动漫原创包 · 元素精灵收集"};
+const PACK_OF = {1:"cute_nature",2:"cute_nature",3:"life_obs",4:"life_obs",5:"anime_original",6:"anime_original"};
+const RARITY_LABEL = {common:"普通",rare:"稀有",epic:"史诗"};
+const SWATCHES = ["#FF9EC9","#7FE3C0","#FFD86B","#8FC7FF","#C4A7FF","#FFB38A","#A0E7E5","#FFAFA3","#B5EAD7","#FFC9DE"];
 
-let sel = null;
-function render(){
-  const g = +document.getElementById('grade').value;
-  const pack = PACK_OF[g];
-  const list = LIB.filter(x=>x.pack===pack);
-  const box = document.getElementById('lib');
-  box.innerHTML = list.map(x=>`
-    <div class="card ${sel&&sel.kind===x.kind?'sel':''}" onclick="pick('${x.kind}')">
-      <div class="emoji">${x.emoji}</div>
-      <div class="nm">${x.name}</div>
-      <span class="tag ${x.rarity}">${RARITY_NAME[x.rarity]}</span>
-      <div class="stage">进化：${STAGE_NAMES[x.stage]} → 可成长</div>
-    </div>`).join('');
+const $ = id => document.getElementById(id);
+let CLASS = null;          // {id,name,grade,theme_pack}
+let STUDENTS = [];         // [{id,name,nickname,partner_kind,color}]
+let me = null;             // 当前选中的学生
+let selKind = null;        // 选中的伙伴 kind
+let selColor = SWATCHES[0];
+
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600); }
+
+// URL 带 ?code= 直接进
+(function init(){ const m=location.search.match(/[?&]code=([^&]+)/); if(m) $('codeInput').value=m[1].trim(); })();
+
+async function loadClass(){
+  const code=$('codeInput').value.trim().toLowerCase();
+  $('codeErr').textContent='';
+  if(!code){ $('codeErr').textContent='请输入班级码'; return; }
+  try{
+    const res=await fetch('/api/join/'+encodeURIComponent(code));
+    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'班级码无效'); }
+    const data=await res.json();
+    CLASS=data.class; STUDENTS=data.students||[];
+    if(!STUDENTS.length) throw new Error('这个班级还没有学生，请老师先在花名册导入');
+    renderStudents();
+    $('stepCode').classList.add('hidden');
+    $('stepWho').classList.remove('hidden');
+  }catch(err){ $('codeErr').textContent=err.message; }
 }
-function pick(kind){
-  sel = LIB.find(x=>x.kind===kind);
-  render();
-  const pv = document.getElementById('preview');
-  pv.style.display='block';
-  document.getElementById('pvEmoji').textContent = sel.emoji;
-  document.getElementById('pvName').textContent = sel.name;
-  document.getElementById('nick').value = sel.name;
-  document.getElementById('pvNote').innerHTML =
-    `主题包：${sel.pack==='cute'?'萌系自然':sel.pack==='life'?'生命观察':'动漫原创'} · `+
-    `稀有度：${RARITY_NAME[sel.rarity]}<br>进化靠科学行为/作业/长期观察触发，答错不退化不羞辱。`;
-  pv.scrollIntoView({behavior:'smooth'});
+
+function renderStudents(){
+  const box=$('stuChips'); box.innerHTML='';
+  STUDENTS.forEach(s=>{
+    const c=document.createElement('div');
+    c.className='chip';
+    c.textContent=s.name;
+    if(s.partner_kind){ const k=LIB.find(x=>x.kind===s.partner_kind); c.innerHTML=s.name+'<span class="done">已认领 '+(k?k.emoji:'')+'</span>'; }
+    c.onclick=(e)=>pickStudent(s, e.currentTarget);
+    box.appendChild(c);
+  });
 }
-function updNick(){ document.getElementById('pvName').textContent = document.getElementById('nick').value || sel.name; }
-function resetSel(){ sel=null; document.getElementById('preview').style.display='none'; render(); }
-document.getElementById('grade').addEventListener('change', ()=>{sel=null;document.getElementById('preview').style.display='none';render();});
-render();
+
+function pickStudent(s, el){
+  document.querySelectorAll('#stuChips .chip').forEach(c=>c.classList.remove('sel'));
+  if(el) el.classList.add('sel');
+  me=s; selKind=null; selColor=s.color||SWATCHES[0];
+  renderLib();
+  $('stepWho').classList.add('hidden');
+  $('stepPick').classList.remove('hidden');
+  $('stepPick').scrollIntoView({behavior:'smooth'});
+}
+
+function renderLib(){
+  const pack = PACK_OF[CLASS.grade] || CLASS.theme_pack || 'cute_nature';
+  $('packName').textContent='· '+PACK_LABEL[pack];
+  const list=LIB.filter(x=>x.pack===pack);
+  const box=$('lib'); box.innerHTML='';
+  list.forEach(x=>{
+    const d=document.createElement('div');
+    d.className='pcard'+(selKind===x.kind?' sel':'');
+    d.dataset.kind=x.kind;
+    d.innerHTML=`<div class="emoji">${x.emoji}</div><div class="nm">${x.name}</div><span class="tag ${x.rarity}">${RARITY_LABEL[x.rarity]}</span>`;
+    d.onclick=()=>choosePartner(x);
+    box.appendChild(d);
+  });
+  if(me.partner_kind){ // 已认领则预选
+    const cur=list.find(x=>x.kind===me.partner_kind);
+    if(cur) choosePartner(cur,true);
+  }
+}
+
+function choosePartner(x,silent){
+  selKind=x.kind;
+  document.querySelectorAll('#lib .pcard').forEach(c=>c.classList.toggle('sel', c.dataset.kind===x.kind));
+  $('pvEmoji').textContent=x.emoji;
+  $('pvName').textContent=x.name;
+  $('nick').value = me.nickname || x.name;
+  renderSwatches();
+  if(!silent){
+    $('stepInfo').classList.remove('hidden');
+    $('stepInfo').scrollIntoView({behavior:'smooth'});
+  }
+}
+
+function renderSwatches(){
+  const box=$('swatches'); box.innerHTML='';
+  SWATCHES.forEach(c=>{
+    const s=document.createElement('div');
+    s.className='sw'+(selColor===c?' sel':'');
+    s.style.background=c; s.title=c;
+    s.onclick=()=>{ selColor=c; renderSwatches(); };
+    box.appendChild(s);
+  });
+}
+
+async function claim(){
+  $('claimErr').textContent='';
+  if(!selKind){ $('claimErr').textContent='请先选一个伙伴'; return; }
+  const nick=$('nick').value.trim();
+  try{
+    const res=await fetch('/api/students/'+me.id+'/claim',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({partner_kind:selKind, nickname:nick||null, color:selColor})
+    });
+    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'认领失败'); }
+    done(nick);
+  }catch(err){ $('claimErr').textContent=err.message; }
+}
+
+function done(nick){
+  const k=LIB.find(x=>x.kind===selKind);
+  $('doneEmoji').textContent=k.emoji;
+  $('doneTxt').textContent='认领成功！';
+  $('doneSub').textContent=(nick||k.name)+' 已经住进「'+CLASS.name+'」的星球啦～ 打开老师的大屏就能看到它成长。';
+  $('stepInfo').classList.add('hidden');
+  $('stepDone').classList.remove('hidden');
+  $('stepDone').scrollIntoView({behavior:'smooth'});
+  confetti();
+  toast('🎉 你的伙伴入住星球！');
+}
+
+function confetti(){
+  const box=$('confetti'); box.innerHTML='';
+  const colors=['#FF9EC9','#7FE3C0','#FFD86B','#8FC7FF','#C4A7FF'];
+  for(let i=0;i<80;i++){
+    const c=document.createElement('i');
+    c.style.left=Math.random()*100+'vw';
+    c.style.background=colors[i%colors.length];
+    c.style.animationDuration=(2+Math.random()*1.8)+'s';
+    c.style.animationDelay=(Math.random()*0.6)+'s';
+    c.style.transform='rotate('+(Math.random()*360)+'deg)';
+    box.appendChild(c);
+  }
+  setTimeout(()=>box.innerHTML='',3600);
+}
+
+function resetAll(){
+  CLASS=null; STUDENTS=[]; me=null; selKind=null;
+  ['stepWho','stepPick','stepInfo','stepDone'].forEach(id=>$(id).classList.add('hidden'));
+  $('stepCode').classList.remove('hidden');
+  $('codeInput').value='';
+}
 </script>
 
 <!-- Umami 访问统计（growth-planet 站点） -->
