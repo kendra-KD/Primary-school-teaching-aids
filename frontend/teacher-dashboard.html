@@ -1372,11 +1372,13 @@ function init(){
     loadClasses();
     try{ const t=localStorage.getItem('gp_token'); if(GP_CLOUD&&t){ GP.token=t; } }catch(e){}
     renderGPBtn();
+    setLoading('正在加载星球…',true);
     if(GP_CLOUD&&GP.token){
-      setLoading('正在同步云端班级…',true);
       GP.pullAll()
-        .then(()=>setLoading('',false))
+        .then(()=>{ setLoading('',false); startPolling(); })
         .catch(err=>{ setLoading('',false); toast('☁ 云端连接失败，先用本机数据：'+err.message); renderGPBtn(); });
+    }else{
+      setLoading('',false);
     }
     try{ const last=localStorage.getItem('gp_lastClass'); if(last&&CLASSES[last]) currentClass=last; }catch(e){}
     renderTopbar(); renderPlanet(); renderBoard(); renderDock(); renderJoinBox();
@@ -1386,6 +1388,35 @@ function init(){
     console.error('[growth-planet] 初始化失败：', e);
     const t=$('toast'); if(t){ t.textContent='页面初始化出错，请刷新或查看控制台'; t.classList.add('show'); }
   }
+}
+
+// 轻量轮询：让学生自主互动（签到/答题/观察）实时反映到老师大屏
+let _pollTimer=null, _polling=false;
+function startPolling(){
+  if(_pollTimer) return;            // 只启一个
+  _pollTimer=setInterval(pollState, 15000);
+  // 切到后台标签页时暂停，回到前台立即拉一次
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden) return;
+    if(GP&&GP.ready) pollState();
+  });
+}
+async function pollState(){
+  if(_polling||!GP||!GP.ready||!CLASSES[currentClass]) return;
+  _polling=true;
+  try{
+    const before=CLASSES[currentClass].students.map(s=>s.score);
+    await GP.pullState(currentClass);
+    renderPlanet(); renderBoard(); renderTopbar(); updateSelPanel();
+    const after=CLASSES[currentClass].students.map(s=>s.score);
+    before.forEach((b,i)=>{
+      if(after[i]!==b){                 // 生态值增加 → 伙伴快乐跳一跳
+        const el=document.querySelector('.partner[data-i="'+i+'"] .crt');
+        if(el){ el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop'); }
+      }
+    });
+  }catch(e){ /* 网络抖动忽略，下次再试 */ }
+  finally{ _polling=false; }
 }
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init);
 else init();

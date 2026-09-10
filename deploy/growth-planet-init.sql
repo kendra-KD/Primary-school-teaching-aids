@@ -75,7 +75,20 @@ CREATE TABLE IF NOT EXISTS submissions (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS student_activities (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id   UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  kind       TEXT NOT NULL,            -- checkin | quiz | observe | homework
+  detail     TEXT,
+  correct    BOOLEAN DEFAULT NULL,
+  points     INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_students_class ON students(class_id);
 CREATE INDEX IF NOT EXISTS idx_events_class ON events(class_id);
 CREATE INDEX IF NOT EXISTS idx_events_student ON events(student_id);
 CREATE INDEX IF NOT EXISTS idx_vines_class ON vines(class_id);
+CREATE INDEX IF NOT EXISTS idx_activities_class ON student_activities(class_id);
+CREATE INDEX IF NOT EXISTS idx_activities_student ON student_activities(student_id);

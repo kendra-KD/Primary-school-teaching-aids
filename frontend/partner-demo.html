@@ -105,6 +105,29 @@
   .pcard.sel .crt{filter:drop-shadow(0 0 6px rgba(196,167,255,.7));}
   .crt.hop{animation:hop .55s cubic-bezier(.3,1.6,.5,1);}
   @keyframes hop{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-10px) scale(1.12)}60%{transform:translateY(0) scale(.96)}100%{transform:translateY(0) scale(1)}}
+  /* 我的伙伴主页 */
+  .home{text-align:center;padding:6px 0;}
+  .home-head{display:flex;align-items:center;gap:18px;justify-content:center;margin:6px 0 4px;}
+  .ava-home{width:128px;height:128px;animation:floaty 3.6s ease-in-out infinite;}
+  .home-name{font-size:24px;font-weight:900;margin-top:6px;}
+  .home-sub{font-size:13px;color:#9a90bb;margin-top:2px;}
+  .eco{max-width:420px;margin:14px auto 6px;}
+  .eco-bar{height:16px;border-radius:10px;background:#EFE8FA;overflow:hidden;box-shadow:inset 0 1px 3px rgba(120,90,160,.18);}
+  .eco-bar i{display:block;height:100%;width:0;border-radius:10px;background:linear-gradient(90deg,var(--lav),var(--blue));transition:width .6s cubic-bezier(.3,1.2,.5,1);}
+  .eco-txt{font-size:13px;color:#6f6691;margin-top:6px;}
+  .eco-txt b{color:#5A4E86;font-size:15px;}
+  .acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:14px 0 8px;}
+  .acts button{font-size:15px;padding:12px 16px;border-radius:16px;border:none;cursor:pointer;background:linear-gradient(135deg,#C4A7FF,#8FC7FF);color:#fff;font-weight:800;box-shadow:0 6px 16px rgba(143,199,255,.45);transition:transform .12s;}
+  .acts button:hover{transform:translateY(-2px);}
+  .acts button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;background:#ddd;}
+  .act-msg{min-height:20px;font-size:14px;font-weight:700;color:#2f8f6f;margin:4px 0;}
+  .log{text-align:left;max-width:440px;margin:8px auto 4px;display:flex;flex-direction:column;gap:7px;}
+  .log .row{display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:9px 13px;box-shadow:var(--shadow);font-size:13px;}
+  .log .row .ic{font-size:20px;}
+  .log .row .tx{flex:1;color:#4a4466;}
+  .log .row .pt{font-weight:900;color:#5A4E86;}
+  .log .empty{color:#a99ec8;text-align:center;font-size:13px;padding:8px;}
+  .hop-fx{animation:hop .6s cubic-bezier(.3,1.6,.5,1);}
 </style>
 </head>
 <body>
@@ -185,6 +208,29 @@
     <div style="font-size:20px;font-weight:800;margin-top:6px" id="doneTxt">认领成功！</div>
     <p class="muted" id="doneSub" style="margin-top:8px"></p>
     <button class="ghost" style="margin-top:12px" onclick="resetAll()">换一台设备 / 重新认领</button>
+  </div>
+
+  <!-- 我的伙伴主页 -->
+  <div class="panel hidden home" id="stepHome">
+    <div class="home-head">
+      <div class="ava-home" id="homeAva"></div>
+      <div style="text-align:left">
+        <div class="home-name" id="homeName"></div>
+        <div class="home-sub" id="homeSub"></div>
+      </div>
+    </div>
+    <div class="eco">
+      <div class="eco-bar"><i id="ecoFill"></i></div>
+      <div class="eco-txt">生态值 <b id="ecoVal">0</b> · 今日获得 <b id="ecoToday">0</b></div>
+    </div>
+    <div class="acts">
+      <button id="btnCheckin" onclick="doActivity('checkin')">🌞 每日签到</button>
+      <button onclick="doActivity('quiz')">📚 课间答题</button>
+      <button onclick="doActivity('observe')">🔍 观察记录</button>
+    </div>
+    <div class="act-msg" id="actMsg"></div>
+    <div class="log" id="actLog"></div>
+    <button class="ghost" style="margin-top:14px" onclick="resetAll()">切换账号 / 重新认领</button>
   </div>
 </div>
 
@@ -327,8 +373,26 @@ let currentPack = null;    // null 表示按年级推荐，'all' 表示全部
 
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600); }
 
-// URL 带 ?code= 直接进
-(function init(){ const m=location.search.match(/[?&]code=([^&]+)/); if(m) $('codeInput').value=m[1].trim(); })();
+// URL 带 ?code= 直接进；若已认领则尝试直接进入主页
+(function init(){
+  const m=location.search.match(/[?&]code=([^&]+)/); if(m) $('codeInput').value=m[1].trim();
+  let saved=null;
+  try{ saved=JSON.parse(localStorage.getItem('gp_me')||'null'); }catch(e){}
+  if(saved && saved.classCode && saved.studentId){
+    restoreHome(saved.classCode, saved.studentId);
+  }
+})();
+
+async function restoreHome(code, studentId){
+  try{
+    const res=await fetch('/api/join/'+encodeURIComponent(code));
+    if(!res.ok) return;
+    const data=await res.json();
+    CLASS=data.class; STUDENTS=data.students||[];
+    const st=STUDENTS.find(s=>s.id===studentId);
+    if(st && st.partner_kind){ me=st; await loadHome(); }
+  }catch(e){}
+}
 
 async function loadClass(){
   const code=$('codeInput').value.trim().toLowerCase();
@@ -362,6 +426,11 @@ function pickStudent(s, el){
   document.querySelectorAll('#stuChips .chip').forEach(c=>c.classList.remove('sel'));
   if(el) el.classList.add('sel');
   me=s; selKind=null; selColor=s.color||SWATCHES[0];
+  // 已认领过 → 直接进入「我的伙伴」主页
+  if(s.partner_kind){
+    loadHome();
+    return;
+  }
   renderLib();
   $('stepWho').classList.add('hidden');
   $('stepPick').classList.remove('hidden');
@@ -451,6 +520,85 @@ function done(nick){
   $('stepDone').scrollIntoView({behavior:'smooth'});
   confetti();
   toast('🎉 你的伙伴入住星球！');
+  // 记住已认领，刷新后直接进主页
+  try{ localStorage.setItem('gp_me', JSON.stringify({classCode:CLASS.class_code||CLASS.id, studentId:me.id})); }catch(e){}
+  setTimeout(loadHome, 1800);
+}
+
+// 进入「我的伙伴」主页：拉取活动与生态值
+async function loadHome(){
+  if(!me || !me.partner_kind){ return; }
+  document.querySelectorAll('.panel').forEach(p=>p.classList.add('hidden'));
+  $('stepHome').classList.remove('hidden');
+  $('stepHome').scrollIntoView({behavior:'smooth'});
+  await renderHome();
+}
+
+async function renderHome(){
+  try{
+    const res=await fetch('/api/students/'+me.id+'/activities');
+    if(!res.ok) return;
+    const v=await res.json();
+    me.partner_kind=v.student.partner_kind;
+    me.color=v.student.color||me.color;
+    me.nickname=v.student.nickname||me.nickname;
+    drawHome(v);
+  }catch(e){}
+}
+
+function drawHome(v){
+  const k=LIB.find(x=>x.kind===v.student.partner_kind)||{name:'伙伴'};
+  const color=v.student.color||SWATCHES[0];
+  const total=v.totalPoints||0, today=v.todayPoints||0;
+  const stage=Math.floor(total/5)+1;
+  $('homeAva').innerHTML=creature(v.student.partner_kind, color);
+  $('homeName').textContent=(v.student.nickname||k.name)+' · Lv'+stage;
+  $('homeSub').textContent=k.name+' · 已完成 '+(v.activities||[]).length+' 次互动';
+  const pct=Math.min(100, (total%5)*20);
+  $('ecoFill').style.width=(total%5===0&&total>0?100:pct)+'%';
+  $('ecoVal').textContent=total;
+  $('ecoToday').textContent=today;
+  // 签到按钮今日禁用
+  const checked=(v.activities||[]).some(a=>a.kind==='checkin' && new Date(a.created_at).toDateString()===new Date().toDateString());
+  $('btnCheckin').disabled=checked;
+  $('btnCheckin').textContent=checked?'✅ 今日已签到':'🌞 每日签到';
+  // 活动记录
+  const box=$('actLog'); box.innerHTML='';
+  const list=(v.activities||[]).slice(0,12);
+  const ICON={checkin:'🌞',quiz:'📚',observe:'🔍',homework:'📝'};
+  const TXT={checkin:'每日签到',quiz:'课间答题',observe:'观察记录',homework:'提交作业'};
+  if(!list.length){ box.innerHTML='<div class="empty">还没有互动记录，点上面的按钮和伙伴玩起来吧～</div>'; }
+  list.forEach(a=>{
+    const r=document.createElement('div'); r.className='row';
+    r.innerHTML=`<span class="ic">${ICON[a.kind]||'⭐'}</span><span class="tx">${TXT[a.kind]||a.kind}${a.detail?('：'+a.detail):''}${a.kind==='quiz'?(a.correct?'（答对 +2）':'（答错）'):''}</span><span class="pt">+${a.points}</span>`;
+    box.appendChild(r);
+  });
+}
+
+async function doActivity(kind){
+  $('actMsg').textContent='';
+  let body={kind};
+  if(kind==='quiz'){
+    const ok=confirm('你答对这道题了吗？\n确定=答对(生态值+2)，取消=答错(不加分)');
+    body.correct=ok;
+  }else if(kind==='observe'){
+    const t=prompt('记录一条你的观察（例如：今天蚕宝宝又蜕皮了，白白的～）：','');
+    if(t===null) return;
+    body.detail=(t||'').slice(0,200);
+  }
+  try{
+    const res=await fetch('/api/students/'+me.id+'/activity',{
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+    });
+    const v=await res.json();
+    if(!res.ok){ throw new Error(v.error||'提交失败'); }
+    if(v.already){ $('actMsg').textContent=v.message||'今天已经签到啦'; }
+    else { $('actMsg').textContent='✨ 伙伴好开心！生态值 +'+(v.totalPoints||''); }
+    // 跳动反馈
+    const av=$('homeAva').querySelector('.crt'); if(av){ av.classList.remove('hop'); void av.offsetWidth; av.classList.add('hop'); }
+    toast('🎉 互动成功！');
+    await renderHome();
+  }catch(err){ $('actMsg').textContent=err.message; }
 }
 
 function confetti(){
@@ -470,7 +618,8 @@ function confetti(){
 
 function resetAll(){
   CLASS=null; STUDENTS=[]; me=null; selKind=null;
-  ['stepWho','stepPick','stepInfo','stepDone'].forEach(id=>$(id).classList.add('hidden'));
+  try{ localStorage.removeItem('gp_me'); }catch(e){}
+  ['stepWho','stepPick','stepInfo','stepDone','stepHome'].forEach(id=>$(id).classList.add('hidden'));
   $('stepCode').classList.remove('hidden');
   $('codeInput').value='';
 }

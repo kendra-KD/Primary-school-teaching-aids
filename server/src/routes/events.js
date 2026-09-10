@@ -127,7 +127,7 @@ export default async function eventRoutes(fastify) {
 
     const { rows: studentRows } = await query(
       `SELECT s.*,
-              COALESCE(g.growth, 0)::INT      AS growth,
+              (COALESCE(g.growth, 0) + COALESCE(a.act_points, 0))::INT AS growth,
               COALESCE(g.today_score, 0)::INT AS today_score,
               COALESCE(g.ask_count, 0)::INT   AS ask_count,
               COALESCE(g.love_count, 0)::INT  AS love_count
@@ -141,6 +141,10 @@ export default async function eventRoutes(fastify) {
              FROM events WHERE class_id = $1
             GROUP BY student_id
          ) g ON g.student_id = s.id
+         LEFT JOIN (
+           SELECT student_id, SUM(points)::INT AS act_points
+             FROM student_activities WHERE class_id = $1 GROUP BY student_id
+         ) a ON a.student_id = s.id
         WHERE s.class_id = $1
         ORDER BY s.sort_order NULLS LAST, s.name`,
       [classId]
@@ -148,12 +152,16 @@ export default async function eventRoutes(fastify) {
 
     const { rows: boardRows } = await query(
       `SELECT s.id, s.name,
-              SUM(e.delta)::INT AS growth,
+              (COALESCE(SUM(e.delta), 0) + COALESCE(a.act_points, 0))::INT AS growth,
               COUNT(*) FILTER (WHERE e.label_key = 'ask_question')::INT AS ask_count,
               COUNT(*) FILTER (WHERE e.label_key = 'love_life')::INT    AS love_count
-         FROM events e
-         JOIN students s ON s.id = e.student_id
-        WHERE e.class_id = $1
+         FROM students s
+         LEFT JOIN events e ON e.student_id = s.id AND e.class_id = $1
+         LEFT JOIN (
+           SELECT student_id, SUM(points)::INT AS act_points
+             FROM student_activities WHERE class_id = $1 GROUP BY student_id
+         ) a ON a.student_id = s.id
+        WHERE s.class_id = $1
         GROUP BY s.id, s.name`,
       [classId]
     );

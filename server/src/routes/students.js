@@ -131,4 +131,80 @@ export default async function studentRoutes(fastify) {
     await query('DELETE FROM students WHERE id=$1', [student.id]);
     return reply.code(204).send();
   });
+
+  // 学生自主活动：签到 / 课间答题 / 观察记录 / 作业（免登录，凭学生 id 写入）
+  fastify.post('/api/students/:id/activity', async (req, reply) => {
+    const studentId = assertUuid(req.params.id, 'id');
+    const student = await queryOne('SELECT * FROM students WHERE id=$1', [studentId]);
+    if (!student) throw notFound('学生不存在');
+
+    const kind = req.body?.kind;
+    const ALLOWED = ['checkin', 'quiz', 'observe', 'homework'];
+    if (!ALLOWED.includes(kind)) throw badRequest('kind 非法');
+
+    const detail = req.body?.detail ? assertText(req.body.detail, '内容', { max: 200 }) : null;
+    const correct = kind === 'quiz' ? (req.body?.correct === true) : null;
+
+    // 服务端定分（防前端作弊）
+    let points = 0;
+    if (kind === 'checkin') points = 1;
+    else if (kind === 'quiz') points = correct ? 2 : 0;
+    else if (kind === 'observe') points = 1;
+    else if (kind === 'homework') points = 3;
+
+    // 每日签到限一次
+    if (kind === 'checkin') {
+      const { rows } = await query(
+        `SELECT 1 FROM student_activities WHERE student_id=$1 AND kind='checkin' AND created_at >= date_trunc('day', now()) LIMIT 1`,
+        [studentId]
+      );
+      if (rows.length) return { ...(await studentActivityView(student)), already: true, message: '今天已经签到啦' };
+    }
+
+    if (points > 0) {
+      await query(
+        `INSERT INTO student_activities (class_id, student_id, kind, detail, correct, points)
+         VALUES ($1,$2,$3,$4,$5,$6)`,
+        [student.class_id, studentId, kind, detail, correct, points]
+      );
+    }
+    return reply.code(201).send(await studentActivityView(student));
+  });
+
+  // 查询某学生的活动与成长值（免登录）
+  fastify.get('/api/students/:id/activities', async (req) => {
+    const studentId = assertUuid(req.params.id, 'id');
+    const student = await queryOne('SELECT * FROM students WHERE id=$1', [studentId]);
+    if (!student) throw notFound('学生不存在');
+    return studentActivityView(student);
+  });
+}
+
+async function studentActivityView(student) {
+  const { rows } = await query(
+    `SELECT kind, detail, correct, points, created_at
+       FROM student_activities WHERE student_id=$1 ORDER BY created_at DESC LIMIT 50`,
+    [student.id]
+  );
+  const { rows: sum } = await query(
+    'SELECT COALESCE(SUM(points),0)::INT AS total FROM student_activities WHERE student_id=$1',
+    [student.id]
+  );
+  const { rows: today } = await query(
+    `SELECT COALESCE(SUM(points),0)::INT AS t FROM student_activities
+       WHERE student_id=$1 AND created_at >= date_trunc('day', now())`,
+    [student.id]
+  );
+  return {
+    student: {
+      id: student.id,
+      name: student.name,
+      nickname: student.nickname,
+      partner_kind: student.partner_kind,
+      color: student.color
+    },
+    totalPoints: Number(sum[0].total),
+    todayPoints: Number(today[0].t),
+    activities: rows.map((r) => ({ kind: r.kind, detail: r.detail, correct: r.correct, points: r.points, created_at: r.created_at }))
+  };
 }

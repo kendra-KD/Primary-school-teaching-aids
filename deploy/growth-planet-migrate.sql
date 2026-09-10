@@ -23,3 +23,17 @@ ALTER TABLE partner_claims ADD CONSTRAINT partner_claims_student_id_fkey
 ALTER TABLE submissions DROP CONSTRAINT IF EXISTS submissions_student_id_fkey;
 ALTER TABLE submissions ADD CONSTRAINT submissions_student_id_fkey
   FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE;
+
+-- 5) 学生自主活动（签到 / 课间答题 / 观察记录 / 作业），驱动伙伴成长
+CREATE TABLE IF NOT EXISTS student_activities (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id   UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  kind       TEXT NOT NULL,            -- checkin | quiz | observe | homework
+  detail     TEXT,                     -- 题目/观察内容摘要（可选）
+  correct    BOOLEAN DEFAULT NULL,     -- 答题是否正确（仅 quiz 用）
+  points     INT NOT NULL DEFAULT 0,   -- 本次获得生态值（服务端定分）
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_activities_class ON student_activities(class_id);
+CREATE INDEX IF NOT EXISTS idx_activities_student ON student_activities(student_id);
