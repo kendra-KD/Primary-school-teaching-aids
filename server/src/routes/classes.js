@@ -7,6 +7,7 @@ function rowToClass(row, extra = {}) {
   return {
     id: row.id,
     name: row.name,
+    class_code: row.class_code || null,
     grade: row.grade,
     theme: row.theme,
     theme_pack: row.theme_pack,
@@ -94,6 +95,19 @@ export default async function classRoutes(fastify) {
       [name, grade, theme, themePack, id, req.user.sub]
     );
     return { class: rowToClass(row) };
+  });
+
+  // 重生成班级码（老师端一键换码，原码立即失效）
+  fastify.post('/api/classes/:id/code', auth, async (req) => {
+    const id = assertUuid(req.params.id, 'id');
+    await assertOwnsClass(req.user.sub, id);
+    const row = await queryOne(
+      `UPDATE classes SET class_code = LEFT(REPLACE(gen_random_uuid()::text, '-', ''), 6)
+        WHERE id=$1 AND teacher_id=$2 RETURNING class_code`,
+      [id, req.user.sub]
+    );
+    if (!row) throw notFound('班级不存在');
+    return { class_code: row.class_code };
   });
 
   fastify.delete('/api/classes/:id', auth, async (req, reply) => {

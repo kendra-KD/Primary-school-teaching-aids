@@ -1,5 +1,5 @@
 import { query, queryOne, withTx } from '../db.js';
-import { assertOwnsClass, assertOwnsStudent, assertText, assertUuid, badRequest } from '../util.js';
+import { assertOwnsClass, assertOwnsStudent, assertText, assertUuid, badRequest, notFound } from '../util.js';
 
 // 伙伴种类（原创形象，无 IP 风险）。与前端自选页图鉴保持一致。
 const PARTNER_KINDS = [

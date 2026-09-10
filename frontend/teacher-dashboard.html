@@ -236,6 +236,28 @@ body::before{
 
 /* 登录按钮（动态创建） */
 hidden{display:none!important;}
+
+/* 学生入班：班级码卡片 */
+.joinbox{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:12px 14px;margin-bottom:14px;border-radius:16px;
+  background:linear-gradient(135deg,rgba(126,209,180,.16),rgba(255,158,196,.14));
+  border:1px dashed rgba(255,255,255,.28);}
+.join-code{display:flex;flex-direction:column;gap:3px;}
+.jc-label{font-size:11px;color:var(--txt2);letter-spacing:.5px;}
+.jc-val{font-size:26px;font-weight:900;letter-spacing:5px;line-height:1.1;
+  font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;color:var(--txt);}
+.join-acts{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;}
+.join-hint{width:100%;font-size:11px;color:var(--txt2);line-height:1.5;}
+
+/* 新建班级浮层 */
+.nc-field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.nc-field label{font-size:12px;color:var(--txt2);}
+.nc-field input,.nc-field select{font:inherit;font-size:14px;padding:10px 12px;border-radius:12px;
+  border:1px solid var(--line);background:var(--glass);color:var(--txt);outline:none;width:100%;}
+.nc-field input:focus,.nc-field select:focus{border-color:rgba(126,209,180,.6);}
+.nc-field select option{background:#241f38;color:#fff;}
+.nc-ok{width:100%;padding:11px;font-size:14px;}
+.nc-tip{font-size:11px;color:var(--txt2);margin-top:10px;line-height:1.6;}
 </style>
 </head>
 <body>
@@ -251,6 +273,7 @@ hidden{display:none!important;}
       <button id="tReset">重置</button>
     </div>
     <button class="btn" id="gearBtn">⚙ 花名册</button>
+    <button class="btn" id="newClassBtn">➕ 建班</button>
   </header>
 
   <!-- 主区 -->
@@ -305,6 +328,20 @@ hidden{display:none!important;}
     <button class="close" id="rosterClose">×</button>
     <h2>📒 花名册 · <span id="rosterClass"></span></h2>
     <div style="font-size:12px;color:var(--txt2);margin-bottom:10px" id="rosterCount"></div>
+
+    <!-- 学生入班：班级码 + 入班链接 -->
+    <div class="joinbox">
+      <div class="join-code">
+        <div class="jc-label">📱 学生入班码</div>
+        <div class="jc-val" id="joinCode">—</div>
+      </div>
+      <div class="join-acts">
+        <button class="btn primary" id="copyLinkBtn">🔗 复制入班链接</button>
+        <button class="btn" id="openStuBtn">🎒 打开学生自选页</button>
+      </div>
+      <div class="join-hint" id="joinHint">登录并建班后自动生成入班码</div>
+    </div>
+
     <div class="roster-tools">
       <input id="addInput" placeholder="输入学生姓名，回车添加">
       <button class="btn primary" id="addBtn">＋ 添加</button>
@@ -316,6 +353,33 @@ hidden{display:none!important;}
     </div>
     <div class="import-note" id="importHint"></div>
     <div id="rosterList" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- 新建班级浮层 -->
+<div class="overlay" id="newClass">
+  <div class="modal" style="position:relative;max-width:390px">
+    <button class="close" id="ncClose">×</button>
+    <h2>➕ 新建班级</h2>
+    <div style="font-size:12px;color:var(--txt2);margin-bottom:12px">建班后自动生成 6 位入班码，学生凭码自选科学伙伴</div>
+    <div class="nc-field">
+      <label for="ncName">班级名称</label>
+      <input id="ncName" placeholder="例如：三(1)班" maxlength="20">
+    </div>
+    <div class="nc-field">
+      <label for="ncGrade">年级（决定伙伴图鉴风格）</label>
+      <select id="ncGrade">
+        <option value="1">一年级 · 萌系自然</option>
+        <option value="2">二年级 · 萌系自然</option>
+        <option value="3" selected>三年级 · 生命观察</option>
+        <option value="4">四年级 · 生命观察</option>
+        <option value="5">五年级 · 动漫原创</option>
+        <option value="6">六年级 · 动漫原创</option>
+      </select>
+    </div>
+    <div class="import-note" id="ncHint"></div>
+    <button class="btn primary nc-ok" id="ncOk">创建班级</button>
+    <div class="nc-tip">未登录时建班只存在本机；登录后建班会自动同步到云端并生成入班码</div>
   </div>
 </div>
 
@@ -714,7 +778,7 @@ function renderVines(){
 function switchClass(id){
   currentClass=id; selectedId=null;
   try{localStorage.setItem('gp_lastClass',id);}catch(e){}
-  renderTopbar(); renderPlanet(); renderBoard(); updateSelPanel();
+  renderTopbar(); renderPlanet(); renderBoard(); updateSelPanel(); renderJoinBox();
   if($('roster')&&!$('roster').classList.contains('hidden')) renderRoster();
   const c=CLASSES[id]; toast(`已切换到 ${c.name} · ${c.theme}`);
 }
@@ -840,6 +904,88 @@ function spawnPartner(name, idx){
   return mk(name, type, color, 'active', 8, 0, []);
 }
 
+/* =====================================================================
+   云端花名册同步 + 学生入班码
+   登录且当前班有远端 id 时，增删改都走 API，再拉回最新名单渲染；
+   否则退回纯本地 localStorage，行为与原型一致。
+   ===================================================================== */
+function remoteClassId(){ const m=GP.clsMap&&GP.clsMap[currentClass]; return m?m.remoteId:null; }
+function remoteStudentId(i){ const m=GP.clsMap&&GP.clsMap[currentClass]; return (m&&m.ids)?m.ids[i]:null; }
+function cloudSync(){ return GP.enabled() && !!remoteClassId(); }
+async function refreshFromCloud(){
+  await GP.pullState(currentClass);
+  renderTopbar(); renderPlanet(); renderBoard(); updateSelPanel(); renderRoster();
+  if(typeof measureCenters==='function') measureCenters();
+  if(typeof renderVines==='function') renderVines();
+}
+function cloudFail(err, what){
+  toast((what||'同步失败')+'，数据仍在本机：'+((err&&err.message)||'未知错误'));
+}
+
+function joinURL(){
+  const c=CLASSES[currentClass]||{};
+  const dir=location.pathname.replace(/teacher-dashboard\.html$/,'');
+  const base=location.origin+dir+'partner-demo.html';
+  return c.code ? base+'?code='+String(c.code).toUpperCase() : base;
+}
+function renderJoinBox(){
+  const c=CLASSES[currentClass]||{};
+  const codeEl=$('joinCode'), hintEl=$('joinHint');
+  if(!codeEl) return;
+  if(c.code){
+    codeEl.textContent=String(c.code).toUpperCase(); codeEl.style.opacity='1';
+    if(hintEl) hintEl.textContent='学生打开链接即自动带入班级码；也可手动输入 '+String(c.code).toUpperCase()+' → 选自己名字 → 领养伙伴';
+  }else{
+    codeEl.textContent='——'; codeEl.style.opacity='.45';
+    if(hintEl) hintEl.textContent='当前是纯本机班级：登录后再点「➕ 建班」才会生成入班码';
+  }
+}
+function copyJoinLink(){
+  const url=joinURL();
+  const ok=()=>toast('已复制入班链接 🔗');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(ok).catch(()=>legacyCopy(url,ok));
+  } else legacyCopy(url,ok);
+}
+function legacyCopy(txt,done){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=txt; ta.style.cssText='position:fixed;top:-9999px;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta); done();
+  }catch(e){ toast('复制失败，请手动复制：'+txt); }
+}
+function openStudentPage(){ window.open(joinURL(),'_blank'); }
+
+/* 新建班级 */
+function openNewClass(){ const h=$('ncHint'); if(h) h.textContent=''; $('newClass').classList.add('show'); setTimeout(()=>{const n=$('ncName'); if(n) n.focus();},80); }
+function closeNewClass(){ $('newClass').classList.remove('show'); }
+async function createClass(){
+  const name=($('ncName').value||'').trim();
+  const grade=parseInt($('ncGrade').value,10)||null;
+  const hint=$('ncHint');
+  if(!name){ hint.textContent='请填写班级名称'; return; }
+  hint.textContent='创建中…';
+  try{
+    if(GP.enabled()){
+      const data=await GP.api('/api/classes',{method:'POST',body:JSON.stringify({name,grade})});
+      hint.textContent=''; $('ncName').value=''; closeNewClass();
+      await GP.pullAll();
+      const lid=Object.keys(GP.clsMap||{}).find(k=>GP.clsMap[k].remoteId===data.class.id);
+      if(lid) switchClass(lid);
+      else { renderTopbar(); renderPlanet(); renderBoard(); renderDock(); updateSelPanel(); }
+      toast('已建班：'+name+' 🎉');
+    }else{
+      const lid='c'+Date.now().toString(36);
+      CLASSES[lid]={id:lid,name,theme:'科学班生态',stagePct:0,eco:0,tidy:80,students:[],code:'',remoteId:null};
+      CLASS_ORDER.push(lid);
+      hint.textContent=''; $('ncName').value=''; closeNewClass();
+      switchClass(lid);
+      toast('已在本机建班（登录后可同步到云端）');
+    }
+  }catch(err){ hint.textContent='建班失败：'+((err&&err.message)||'未知错误'); }
+}
+
 function openRoster(){ renderRoster(); $('roster').classList.add('show'); }
 function closeRoster(){ $('roster').classList.remove('show'); }
 
@@ -858,13 +1004,25 @@ function renderRoster(){
     inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); };
   });
   $('rosterList').querySelectorAll('.rdel').forEach(b=>b.onclick=()=>deleteStudent(+b.dataset.i));
+  renderJoinBox();
 }
 
 function renameStudent(i, name){
   name=name.trim();
   if(!name){ renderRoster(); return; }
   const cls=CLASSES[currentClass];
+  if(!cls.students[i]) return;
   if(cls.students[i].n===name) return;
+  if(cloudSync()){
+    const sid=remoteStudentId(i);
+    if(sid){
+      GP.api('/api/students/'+sid,{method:'PUT',body:JSON.stringify({name})})
+        .then(()=>refreshFromCloud())
+        .then(()=>toast('已改名为 '+name+' ✏️'))
+        .catch(err=>cloudFail(err,'改名未同步'));
+      return;
+    }
+  }
   cls.students[i].n=name;
   commitRoster();
   toast(`已改名为 ${name} ✏️`);
@@ -874,14 +1032,32 @@ function addStudent(name){
   if(!name) return;
   const cls=CLASSES[currentClass];
   if(cls.students.some(s=>s.n===name)){ toast('已存在同名伙伴'); return; }
+  if(cloudSync()){
+    GP.api('/api/classes/'+remoteClassId()+'/students',{method:'POST',body:JSON.stringify({names:[name]})})
+      .then(()=>refreshFromCloud())
+      .then(()=>toast('已添加 '+name+' 🌱'))
+      .catch(err=>cloudFail(err,'添加未同步'));
+    return;
+  }
   cls.students.push(spawnPartner(name, cls.students.length));
   commitRoster();
   toast(`已添加 ${name} 🌱`);
 }
 function deleteStudent(i){
   const cls=CLASSES[currentClass];
+  if(!cls.students[i]) return;
   const name=cls.students[i].n;
   if(!confirm(`确定删除「${name}」吗？\nTA 的伙伴与藤蔓、点评等数据会一起移除。`)) return;
+  if(cloudSync()){
+    const sid=remoteStudentId(i);
+    if(sid){
+      GP.api('/api/students/'+sid,{method:'DELETE'})
+        .then(()=>refreshFromCloud())
+        .then(()=>toast('已删除 '+name+' 🗑'))
+        .catch(err=>cloudFail(err,'删除未同步'));
+      return;
+    }
+  }
   cls.students.splice(i,1);
   cls.students.forEach(s=>{ s.vines=s.vines.filter(v=>v!==i).map(v=> v>i? v-1 : v); });
   if(selectedId===i){ selectedId=null; }
@@ -894,10 +1070,21 @@ function importBatch(){
   const txt=$('importArea').value||'';
   const names=txt.split(/[\n,，、\s]+/).map(s=>s.trim()).filter(Boolean);
   if(!names.length){ $('importHint').textContent='没有识别到名字～'; return; }
+  if(cloudSync()){
+    const seen=new Set(CLASSES[currentClass].students.map(s=>s.n));
+    const fresh=names.filter(n=>!seen.has(n));
+    if(!fresh.length){ $('importHint').textContent='这些名字都已在本班，无需重复导入'; return; }
+    $('importHint').textContent='正在导入 '+fresh.length+' 位…';
+    GP.api('/api/classes/'+remoteClassId()+'/students',{method:'POST',body:JSON.stringify({names:fresh})})
+      .then(()=>refreshFromCloud())
+      .then(()=>{ $('importHint').textContent='已导入 '+fresh.length+' 位（已同步云端）'; $('importArea').value=''; })
+      .catch(err=>{ $('importHint').textContent='导入失败：'+((err&&err.message)||'未知错误'); });
+    return;
+  }
   const cls=CLASSES[currentClass];
-  const seen=new Set(cls.students.map(s=>s.n));
+  const seen2=new Set(cls.students.map(s=>s.n));
   let added=0;
-  names.forEach(nm=>{ if(!seen.has(nm)){ cls.students.push(spawnPartner(nm, cls.students.length)); seen.add(nm); added++; } });
+  names.forEach(nm=>{ if(!seen2.has(nm)){ cls.students.push(spawnPartner(nm, cls.students.length)); seen2.add(nm); added++; } });
   const dup=names.length-added;
   $('importHint').textContent=`已导入 ${added} 位`+(dup?`（跳过 ${dup} 个重复/空）`:'');
   $('importArea').value='';
@@ -974,7 +1161,8 @@ const GP={
       const lid='r'+rc.id.replace(/-/g,'').slice(0,8);
       order.push(lid);
       map[lid]={remoteId:rc.id,ids:[]};
-      CLASSES[lid]={id:lid,name:rc.name,theme:rc.theme||'科学班生态',stagePct:0,eco:0,tidy:80,students:[]};
+      CLASSES[lid]={id:lid,name:rc.name,theme:rc.theme||'科学班生态',stagePct:0,eco:0,tidy:80,students:[],
+        remoteId:rc.id, code:rc.class_code||''};
     }
     CLASS_ORDER.length=0; order.forEach(id=>CLASS_ORDER.push(id));
     Object.keys(CLASSES).forEach(k=>{ if(!map[k]) delete CLASSES[k]; });
@@ -1092,6 +1280,14 @@ function bindControls(){
   const addInput=$('addInput');
   if(addInput) addInput.onkeydown=e=>{ if(e.key==='Enter'){ const v=e.target.value; e.target.value=''; addStudent(v); } };
   bind('importBtn', importBatch);
+  bind('newClassBtn', openNewClass);
+  bind('ncClose', closeNewClass);
+  bind('ncOk', createClass);
+  bind('newClass', e=>{ if(e.target===$('newClass')) closeNewClass(); });
+  bind('copyLinkBtn', copyJoinLink);
+  bind('openStuBtn', openStudentPage);
+  const ncName=$('ncName');
+  if(ncName) ncName.onkeydown=e=>{ if(e.key==='Enter') createClass(); };
 }
 
 function init(){
@@ -1101,7 +1297,7 @@ function init(){
     renderGPBtn();
     if(GP_CLOUD&&GP.token){ GP.pullAll().catch(err=>{ toast('☁ 云端连接失败，先用本机数据'); renderGPBtn(); }); }
     try{ const last=localStorage.getItem('gp_lastClass'); if(last&&CLASSES[last]) currentClass=last; }catch(e){}
-    renderTopbar(); renderPlanet(); renderBoard(); renderDock();
+    renderTopbar(); renderPlanet(); renderBoard(); renderDock(); renderJoinBox();
     bindControls();
   }catch(e){
     console.error('[growth-planet] 初始化失败：', e);

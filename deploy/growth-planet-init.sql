@@ -62,14 +62,14 @@ CREATE TABLE IF NOT EXISTS vines (
 
 CREATE TABLE IF NOT EXISTS partner_claims (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  student_id UUID NOT NULL REFERENCES students(id),
+  student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
   kind       TEXT NOT NULL,
   claimed_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS submissions (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  student_id UUID NOT NULL REFERENCES students(id),
+  student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
   type       TEXT,
   score      INT,
   created_at TIMESTAMPTZ DEFAULT now()

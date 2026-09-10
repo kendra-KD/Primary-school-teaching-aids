@@ -13,3 +13,13 @@ ALTER TABLE students ADD COLUMN IF NOT EXISTS color TEXT;
 -- 3) 为已存在的班级补上 class_code
 UPDATE classes SET class_code = LEFT(REPLACE(id::text, '-', ''), 6)
  WHERE class_code IS NULL;
+
+-- 4) 修复删除学生/班级被外键阻塞（删学生返回 500）
+--    partner_claims / submissions 引用 students 时漏了 ON DELETE CASCADE
+ALTER TABLE partner_claims DROP CONSTRAINT IF EXISTS partner_claims_student_id_fkey;
+ALTER TABLE partner_claims ADD CONSTRAINT partner_claims_student_id_fkey
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE;
+
+ALTER TABLE submissions DROP CONSTRAINT IF EXISTS submissions_student_id_fkey;
+ALTER TABLE submissions ADD CONSTRAINT submissions_student_id_fkey
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE;
