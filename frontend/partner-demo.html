@@ -51,6 +51,10 @@
   .chip .done{font-size:12px;opacity:.8;margin-left:4px;}
   /* 图鉴 */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;}
+  .pack-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px;}
+  .pack-tabs button{flex:1;min-width:92px;padding:9px 12px;border-radius:999px;border:2px solid #E6DBF5;background:#fff;color:#6B6280;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap;}
+  .pack-tabs button.sel{background:linear-gradient(135deg,var(--lav),var(--blue));color:#fff;border-color:transparent;box-shadow:0 4px 12px rgba(143,199,255,.4);}
+  .pack-tabs button:hover:not(.sel){background:#F8F3FC;}
   .pcard{background:#fff;border:3px solid transparent;border-radius:22px;padding:16px 12px;box-shadow:var(--shadow);text-align:center;cursor:pointer;transition:transform .18s,box-shadow .18s;position:relative;overflow:hidden;}
   .pcard:hover{transform:translateY(-5px);}
   .pcard .emoji{font-size:50px;line-height:1.1;display:inline-block;animation:breathe 3.2s ease-in-out infinite;}
@@ -152,6 +156,7 @@
   <!-- 步骤3：选伙伴 -->
   <div class="panel hidden" id="stepPick">
     <div class="step-h"><span class="n">3</span> 选一个你的科学伙伴 <span class="muted" id="packName" style="font-weight:600"></span></div>
+    <div class="pack-tabs" id="packTabs"></div>
     <div class="grid" id="lib"></div>
   </div>
 
@@ -231,7 +236,8 @@ const LIB = [
   {kind:"dragon_spirit",name:"龙灵",emoji:"🐲",pack:"anime_original",rarity:"epic"},
   {kind:"dark_spirit",name:"暗灵",emoji:"🌑",pack:"anime_original",rarity:"rare"}
 ];
-const PACK_LABEL = {cute_nature:"萌系自然包 · 圆润可爱小动物", life_obs:"生命观察包 · 真实生命与植物", anime_original:"动漫原创包 · 元素精灵收集"};
+const PACK_LABEL = {all:"全部图鉴",cute_nature:"萌系自然包 · 圆润可爱小动物", life_obs:"生命观察包 · 真实生命与植物", anime_original:"动漫原创包 · 元素精灵收集"};
+const PACK_SHORT = {all:"全部",cute_nature:"萌系自然",life_obs:"生命观察",anime_original:"动漫原创"};
 const PACK_OF = {1:"cute_nature",2:"cute_nature",3:"life_obs",4:"life_obs",5:"anime_original",6:"anime_original"};
 const RARITY_LABEL = {common:"普通",rare:"稀有",epic:"史诗"};
 const RARITY_COLOR = {common:"#8FC7FF",rare:"#7FE3C0",epic:"#FFB38A"};
@@ -317,6 +323,7 @@ let STUDENTS = [];         // [{id,name,nickname,partner_kind,color}]
 let me = null;             // 当前选中的学生
 let selKind = null;        // 选中的伙伴 kind
 let selColor = SWATCHES[0];
+let currentPack = null;    // null 表示按年级推荐，'all' 表示全部
 
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600); }
 
@@ -362,9 +369,12 @@ function pickStudent(s, el){
 }
 
 function renderLib(){
-  const pack = PACK_OF[CLASS.grade] || CLASS.theme_pack || 'cute_nature';
+  // 默认按年级推荐；学生可手动切全部或其他包
+  const defaultPack = PACK_OF[CLASS.grade] || CLASS.theme_pack || 'cute_nature';
+  const pack = currentPack || defaultPack;
   $('packName').textContent='· '+PACK_LABEL[pack];
-  const list=LIB.filter(x=>x.pack===pack);
+  renderPackTabs(defaultPack, pack);
+  const list = pack==='all' ? LIB : LIB.filter(x=>x.pack===pack);
   const box=$('lib'); box.innerHTML='';
   list.forEach(x=>{
     const d=document.createElement('div');
@@ -374,10 +384,22 @@ function renderLib(){
     d.onclick=()=>choosePartner(x);
     box.appendChild(d);
   });
-  if(me.partner_kind){ // 已认领则预选
-    const cur=list.find(x=>x.kind===me.partner_kind);
-    if(cur) choosePartner(cur,true);
+  if(me.partner_kind){ // 已认领则预选（在所有图鉴里找）
+    const cur=LIB.find(x=>x.kind===me.partner_kind);
+    if(cur && (pack==='all' || cur.pack===pack)) choosePartner(cur,true);
   }
+}
+function renderPackTabs(defaultPack, activePack){
+  const tabs=$('packTabs'); tabs.innerHTML='';
+  const order=['all',defaultPack==='all'?null:defaultPack].filter(Boolean);
+  const others=Object.keys(PACK_LABEL).filter(k=>k!=='all' && !order.includes(k));
+  [...order,...others].forEach(key=>{
+    const b=document.createElement('button');
+    b.textContent=PACK_SHORT[key]+(key===defaultPack?'（推荐）':'');
+    b.className=(activePack===key?'sel':'');
+    b.onclick=()=>{ currentPack=key; renderLib(); };
+    tabs.appendChild(b);
+  });
 }
 
 function choosePartner(x,silent){

@@ -146,6 +146,7 @@ body::before{
 @keyframes blink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.08)}}
 .c-wig{transform-box:fill-box;transform-origin:center;animation:wig 3.2s ease-in-out infinite;}
 @keyframes wig{0%,100%{transform:rotate(-3.5deg)}50%{transform:rotate(3.5deg)}}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
 /* hover 唤醒：生物放大、眼睛睁大、停止打盹 */
 .partner:hover .crt{animation-duration:1.1s;transform:scale(1.07);}
 .partner:hover .blob{transform:translateY(-3px) scale(1.05);}
@@ -1188,12 +1189,17 @@ const GP={
   async api(path,opt={}){
     const headers={'Content-Type':'application/json'};
     if(this.token) headers.Authorization='Bearer '+this.token;
-    const res=await fetch(GP_API+path,{...opt,headers:{...headers,...(opt.headers||{})}});
-    if(res.status===401){ this.logout(); throw new Error('登录已失效，请重新登录'); }
-    if(res.status===204) return null;
-    const data=await res.json().catch(()=>({}));
-    if(!res.ok) throw new Error(data.error||('请求失败 '+res.status));
-    return data;
+    const controller=new AbortController();
+    const to=setTimeout(()=>controller.abort(),opt.timeout||12000);
+    try{
+      const res=await fetch(GP_API+path,{...opt,signal:controller.signal,headers:{...headers,...(opt.headers||{})}});
+      clearTimeout(to);
+      if(res.status===401){ this.logout(); throw new Error('登录已失效，请重新登录'); }
+      if(res.status===204) return null;
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(data.error||('请求失败 '+res.status));
+      return data;
+    }catch(e){ clearTimeout(to); if(e.name==='AbortError') throw new Error('请求超时，请检查网络'); throw e; }
   },
 
   async login(email,password){
@@ -1346,16 +1352,37 @@ function bindControls(){
   if(ncName) ncName.onkeydown=e=>{ if(e.key==='Enter') createClass(); };
 }
 
+function setLoading(txt,show){
+  let el=$('gpLoading');
+  if(!el){
+    el=document.createElement('div'); el.id='gpLoading';
+    el.style.cssText='position:fixed;left:50%;top:46%;transform:translate(-50%,-50%);z-index:200;'+
+      'background:rgba(255,255,255,.92);padding:18px 26px;border-radius:20px;'+
+      'box-shadow:0 14px 40px rgba(90,85,102,.2);font-size:14px;font-weight:800;color:#5A5566;'+
+      'display:none;align-items:center;gap:10px';
+    el.innerHTML='<span style="width:18px;height:18px;border:3px solid #ECE6DF;border-top-color:#A8E6CF;border-radius:50%;animation:spin 1s linear infinite;display:inline-block"></span><span id="gpLoadingTxt">加载中…</span>';
+    document.body.appendChild(el);
+  }
+  $('gpLoadingTxt').textContent=txt||'加载中…';
+  el.style.display=show?'flex':'none';
+}
+
 function init(){
   try{
     loadClasses();
     try{ const t=localStorage.getItem('gp_token'); if(GP_CLOUD&&t){ GP.token=t; } }catch(e){}
     renderGPBtn();
-    if(GP_CLOUD&&GP.token){ GP.pullAll().catch(err=>{ toast('☁ 云端连接失败，先用本机数据'); renderGPBtn(); }); }
+    if(GP_CLOUD&&GP.token){
+      setLoading('正在同步云端班级…',true);
+      GP.pullAll()
+        .then(()=>setLoading('',false))
+        .catch(err=>{ setLoading('',false); toast('☁ 云端连接失败，先用本机数据：'+err.message); renderGPBtn(); });
+    }
     try{ const last=localStorage.getItem('gp_lastClass'); if(last&&CLASSES[last]) currentClass=last; }catch(e){}
     renderTopbar(); renderPlanet(); renderBoard(); renderDock(); renderJoinBox();
     bindControls();
   }catch(e){
+    setLoading('',false);
     console.error('[growth-planet] 初始化失败：', e);
     const t=$('toast'); if(t){ t.textContent='页面初始化出错，请刷新或查看控制台'; t.classList.add('show'); }
   }
@@ -1364,7 +1391,20 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
 else init();
 </script>
 
-<!-- Umami 访问统计（growth-planet 站点） -->
-<script defer src="https://analytics.mealpick.me/script.js" data-website-id="ae23edc6-0fcd-4f4b-8bd6-caf509cb0ef6"></script>
+<!-- Umami 访问统计：延迟异步加载，避免拖慢页面 load 完成、导致标签页一直转圈 -->
+<script>
+(function(){
+  function loadUmami(){
+    var s=document.createElement('script');
+    s.src='https://analytics.mealpick.me/script.js';
+    s.setAttribute('data-website-id','ae23edc6-0fcd-4f4b-8bd6-caf509cb0ef6');
+    s.async=true; s.defer=true;
+    s.onerror=function(){}; // 统计脚本失败不影响业务
+    document.body.appendChild(s);
+  }
+  if(document.readyState==='complete') loadUmami();
+  else window.addEventListener('load',loadUmami);
+})();
+</script>
 </body>
 </html>
