@@ -193,10 +193,15 @@ body::before{
 /* ===== 点评 Dock ===== */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:10px 16px 14px;
   background:linear-gradient(0deg,rgba(20,15,40,.92),rgba(20,15,40,.55) 70%,transparent);
-  backdrop-filter:blur(6px);}
+  backdrop-filter:blur(6px);transition:.25s;}
 .dock-inner{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:8px;}
-.group{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.gt{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--txt2);min-width:64px;}
+.dock .dock-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.dock .dock-toggle{font:inherit;font-weight:800;font-size:12px;cursor:pointer;border-radius:12px;padding:7px 11px;
+  color:var(--txt);background:var(--glass-strong);border:1px solid var(--line);transition:.15s;white-space:nowrap;}
+.dock .dock-toggle:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.25);}
+.dock .dock-toggle.active{background:var(--accent);color:#1b1636;border-color:var(--accent);}
+.group{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;animation:rise .25s ease;}
+.gt{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--txt2);min-width:64px;margin-top:6px;}
 .gt .gd{width:9px;height:9px;border-radius:50%;background:var(--gc);box-shadow:0 0 8px var(--gc);}
 .chips-tags{display:flex;gap:7px;flex-wrap:wrap;}
 .tag{font:inherit;font-weight:800;font-size:12px;cursor:pointer;border-radius:12px;padding:7px 11px;
@@ -205,6 +210,7 @@ body::before{
 .tag:hover{transform:translateY(-2px);box-shadow:0 6px 16px color-mix(in srgb,var(--gc) 40%,transparent);}
 .tag .v{opacity:.8;margin-left:3px;font-size:11px;}
 .tag.neg{background:rgba(255,158,158,.16);border-color:rgba(255,158,158,.5);color:#ffc9c9;}
+.dock .hint{font-size:11px;color:var(--txt2);opacity:.8;}
 
 /* ===== 浮层通用 ===== */
 .overlay{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;
@@ -393,14 +399,14 @@ hidden{display:none!important;}
       <input id="ncName" placeholder="例如：三(1)班" maxlength="20">
     </div>
     <div class="nc-field">
-      <label for="ncGrade">年级（决定伙伴图鉴风格）</label>
+      <label for="ncGrade">年级（1-6）</label>
       <select id="ncGrade">
-        <option value="1">一年级 · 萌系自然</option>
-        <option value="2">二年级 · 萌系自然</option>
-        <option value="3" selected>三年级 · 生命观察</option>
-        <option value="4">四年级 · 生命观察</option>
-        <option value="5">五年级 · 动漫原创</option>
-        <option value="6">六年级 · 动漫原创</option>
+        <option value="1">一年级</option>
+        <option value="2">二年级</option>
+        <option value="3" selected>三年级</option>
+        <option value="4">四年级</option>
+        <option value="5">五年级</option>
+        <option value="6">六年级</option>
       </select>
     </div>
     <div class="import-note" id="ncHint"></div>
@@ -723,17 +729,40 @@ function renderBoard(){
     </div>`).join('');
 }
 
+let expandedGroup='all'; // 'all' 展开全部，null 仅显示分组栏
 function renderDock(){
-  const row=TAG_GROUPS.map(g=>`
-    <div class="group" style="--gc:${g.color}">
+  const bar=`<div class="dock-bar">
+    <button class="dock-toggle ${expandedGroup==='all'?'active':''}" data-g="all">🏷️ 全部标签</button>
+    ${TAG_GROUPS.map((g,i)=>`<button class="dock-toggle ${expandedGroup===String(i)?'active':''}" data-g="${i}" style="--gc:${g.color}"><span class="gd" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gc);box-shadow:0 0 6px var(--gc);margin-right:5px"></span>${g.name} · ${g.tags.length}</button>`).join('')}
+    <span class="hint" style="margin-left:auto">先点学生 → 再选标签加分</span>
+  </div>`;
+  let rows='';
+  if(expandedGroup==='all'){
+    rows=TAG_GROUPS.map((g,i)=>`
+      <div class="group" style="--gc:${g.color}">
+        <div class="gt"><span class="gd"></span>${g.name}</div>
+        <div class="chips-tags">${g.tags.map((t,ti)=>`
+          <button class="tag ${g.neg?'neg':''}" data-g="${i}" data-t="${ti}" style="--gc:${g.color}">
+            ${t.label}<span class="v">${t.v>0?'+'+t.v:''}</span>
+          </button>`).join('')}</div>
+      </div>`).join('');
+  }else if(expandedGroup!==null){
+    const gi=+expandedGroup; const g=TAG_GROUPS[gi];
+    rows=`<div class="group" style="--gc:${g.color}">
       <div class="gt"><span class="gd"></span>${g.name}</div>
       <div class="chips-tags">${g.tags.map((t,ti)=>`
-        <button class="tag ${g.neg?'neg':''}" data-g="${TAG_GROUPS.indexOf(g)}" data-t="${ti}" style="--gc:${g.color}">
+        <button class="tag ${g.neg?'neg':''}" data-g="${gi}" data-t="${ti}" style="--gc:${g.color}">
           ${t.label}<span class="v">${t.v>0?'+'+t.v:''}</span>
         </button>`).join('')}</div>
-    </div>`).join('');
-  $('tagRow').innerHTML=row;
-  document.querySelectorAll('.tag').forEach(b=>b.onclick=()=>applyTag(+b.dataset.g,+b.dataset.t));
+    </div>`;
+  }
+  $('tagRow').innerHTML=bar+rows;
+  document.querySelectorAll('#tagRow .dock-toggle').forEach(b=>b.onclick=()=>{
+    const g=b.dataset.g;
+    expandedGroup = expandedGroup===g ? null : g;
+    renderDock();
+  });
+  document.querySelectorAll('#tagRow .tag').forEach(b=>b.onclick=()=>applyTag(+b.dataset.g,+b.dataset.t));
   updateSelPanel();
 }
 
@@ -1298,7 +1327,10 @@ function openLogin(){
       <div style="font-size:17px;font-weight:900;color:#5A5566;margin-bottom:4px">☁ 老师登录</div>
       <div style="font-size:12px;color:#9A94A6;margin-bottom:16px">登录后班级数据跨设备同步；不登录也能用（只存本机）</div>
       <input id="gpEmail" placeholder="邮箱" style="width:100%;padding:10px 12px;border:2px solid #EFE9E1;border-radius:12px;margin-bottom:10px;font-size:14px;outline:none">
-      <input id="gpPwd" type="password" placeholder="密码" style="width:100%;padding:10px 12px;border:2px solid #EFE9E1;border-radius:12px;font-size:14px;outline:none">
+      <div style="position:relative;margin-top:10px">
+        <input id="gpPwd" type="password" placeholder="密码" style="width:100%;padding:10px 38px 10px 12px;border:2px solid #EFE9E1;border-radius:12px;font-size:14px;outline:none">
+        <button id="gpEye" type="button" title="显示/隐藏密码" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:26px;height:26px;border:0;background:transparent;cursor:pointer;font-size:16px;color:#9A94A6;display:flex;align-items:center;justify-content:center">👁️</button>
+      </div>
       <div id="gpErr" style="color:#E4798A;font-size:12px;min-height:18px;margin-top:8px"></div>
       <div style="display:flex;gap:10px;margin-top:6px">
         <button id="gpCancel" style="flex:1;padding:10px;border-radius:12px;border:2px solid #EFE9E1;background:#fff;color:#7A7484;font-weight:800;cursor:pointer">稍后</button>
@@ -1307,8 +1339,9 @@ function openLogin(){
     document.body.appendChild(box);
   }
   box.classList.remove('hidden'); box.style.display='flex';
-  const emailEl=$('gpEmail'), pwdEl=$('gpPwd'), errEl=$('gpErr');
+  const emailEl=$('gpEmail'), pwdEl=$('gpPwd'), errEl=$('gpErr'), eyeBtn=$('gpEye');
   errEl.textContent=''; emailEl.value=''; pwdEl.value=''; emailEl.focus();
+  eyeBtn.onclick=()=>{ const show=pwdEl.type==='password'; pwdEl.type=show?'text':'password'; eyeBtn.textContent=show?'🙈':'👁️'; };
   $('gpCancel').onclick=()=>{ box.style.display='none'; };
   box.onclick=e=>{ if(e.target===box) box.style.display='none'; };
   const submit=async()=>{
