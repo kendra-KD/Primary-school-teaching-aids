@@ -1340,7 +1340,7 @@ const GP={
     }
   },
 
-  async api(path,opt={}):
+  async api(path,opt={}){
     // 只在确实有 body 时才声明 Content-Type：Fastify 对「声明 application/json 却空 body」
     // 会直接 400（FST_ERR_CTP_EMPTY_JSON_BODY）——这正是「删除学生」报 Bad Request 的根因。
     const headers={};
