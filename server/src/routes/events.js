@@ -184,6 +184,29 @@ export default async function eventRoutes(fastify) {
       [classId]
     );
 
+    // 每个学生最近的自主互动（签到/答题/观察/作业），供老师端「互动明细」展示（R34）
+    const { rows: actRows } = await query(
+      `SELECT student_id, kind, detail, correct, points, created_at
+         FROM student_activities
+        WHERE class_id = $1
+        ORDER BY created_at DESC
+        LIMIT 800`,
+      [classId]
+    );
+    const actMap = {};
+    for (const a of actRows) {
+      const bucket = actMap[a.student_id] || (actMap[a.student_id] = []);
+      if (bucket.length < 8) {
+        bucket.push({
+          kind: a.kind,
+          detail: a.detail,
+          correct: a.correct,
+          points: a.points,
+          created_at: a.created_at
+        });
+      }
+    }
+
     const byGrowth = [...boardRows].sort((a, b) => b.growth - a.growth);
     const byAsk = [...boardRows].sort((a, b) => b.ask_count - a.ask_count);
     const byLove = [...boardRows].sort((a, b) => b.love_count - a.love_count);
@@ -199,7 +222,7 @@ export default async function eventRoutes(fastify) {
         eco_value: ecoValue,
         stage: classStageOf(ecoValue)
       },
-      students: studentRows.map(shapeStudent),
+      students: studentRows.map((row) => ({ ...shapeStudent(row), activities: actMap[row.id] || [] })),
       board: {
         top_growth: byGrowth.slice(0, 5).map((r) => ({ id: r.id, name: r.name, growth: r.growth })),
         top_ask: byAsk.filter((r) => r.ask_count > 0).slice(0, 3)

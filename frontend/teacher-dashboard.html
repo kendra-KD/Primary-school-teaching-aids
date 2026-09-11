@@ -259,6 +259,16 @@ body::before{
 .netsvg{flex:none;}
 .netnote{font-size:12px;color:var(--txt2);line-height:1.6;}
 
+/* R34 互动明细 */
+.actlist{max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding-right:2px;}
+.actrow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt2);
+  background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:6px 10px;}
+.actrow .ai{flex:none;font-size:14px;}
+.actrow .at{flex:1;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.actrow .ap{flex:none;font-weight:900;color:var(--accent);}
+.actrow .ad{flex:none;opacity:.6;font-size:11px;}
+.actlist .empty{font-size:12px;color:var(--txt2);opacity:.7;padding:6px 2px;}
+
 /* Toast */
 #toast{position:fixed;left:50%;top:18px;transform:translateX(-50%) translateY(-20px);z-index:120;
   background:rgba(20,15,40,.92);border:1px solid var(--line);color:var(--txt);font-weight:800;font-size:13px;
@@ -938,6 +948,16 @@ function openGrowthCard(i){
   const stColor={active:'#5AA0C8',wilt:'#B0A89C',loved:'#FF8FB0',injured:'#FF9E9E'}[s.state];
   const stTxt=stateText(s.state);
 
+  // R34：学生自助互动明细（签到/答题/观察/作业），让老师的点评与成长值有依据
+  const ACT_ICON={checkin:'🌞',quiz:'📚',observe:'🔍',homework:'📝'};
+  const ACT_TXT={checkin:'每日签到',quiz:'课间答题',observe:'观察记录',homework:'提交作业'};
+  const acts=(s.acts||[]);
+  const actsHtml = acts.length ? acts.map(a=>{
+    const t=a.created_at?new Date(a.created_at).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+    const ex=a.kind==='quiz'?(a.correct?'（答对）':'（答错）'):'';
+    return `<div class="actrow"><span class="ai">${ACT_ICON[a.kind]||'⭐'}</span><span class="at">${ACT_TXT[a.kind]||esc(a.kind)}${ex}${a.detail?('：'+esc(a.detail)):''}</span><span class="ap">+${a.points}</span><span class="ad">${t}</span></div>`;
+  }).join('') : '<div class="empty">暂无自主互动记录（学生在学生端签到 / 答题 / 观察 / 提交作业后出现）</div>';
+
   $('growthCard').innerHTML=`
     <div class="ghead">
       <div class="gava" style="--c:${s.color}">${creature(s.type,s.color)}</div>
@@ -949,6 +969,7 @@ function openGrowthCard(i){
     <div class="sec"><div class="sect">🌟 进化时间轴</div><div class="timeline">${tl}</div></div>
     <div class="sec"><div class="sect">🎀 预置装扮（收集驱动）</div><div class="decor">${decorHtml}</div></div>
     <div class="sec"><div class="sect">🌿 关系藤蔓网</div><div class="netcard">${netSvg}<div class="netnote">${netNote}</div></div></div>
+    <div class="sec"><div class="sect">📋 互动明细（学生自助）</div><div class="actlist">${actsHtml}</div></div>
   `;
   $('overlay').classList.add('show');
 }
@@ -1218,7 +1239,10 @@ const GP={
   enabled(){ return GP_CLOUD && !!this.token; },
 
   async api(path,opt={}){
-    const headers={'Content-Type':'application/json'};
+    // 只在确实有 body 时才声明 Content-Type：Fastify 对「声明 application/json 却空 body」
+    // 会直接 400（FST_ERR_CTP_EMPTY_JSON_BODY）——这正是「删除学生」报 Bad Request 的根因。
+    const headers={};
+    if(opt.body!==undefined && opt.body!==null) headers['Content-Type']='application/json';
     if(this.token) headers.Authorization='Bearer '+this.token;
     const controller=new AbortController();
     const to=setTimeout(()=>controller.abort(),opt.timeout||12000);
@@ -1281,7 +1305,7 @@ const GP={
       type:s.partner_kind||'worm',
       color:s.color||PALETTE[i%PALETTE.length],
       state:s.hurt?'injured':(s.loved?'loved':(s.status==='droop'?'wilt':'active')),
-      score:s.growth, ask:s.ask,
+      score:s.growth, ask:s.ask, acts:s.activities||[],
       vines:(data.vines||[]).filter(v=>v.a_id===s.id||v.b_id===s.id)
               .map(v=>idx[v.a_id===s.id?v.b_id:v.a_id]).filter(x=>x!==undefined),
       decor:[]

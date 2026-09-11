@@ -26,6 +26,19 @@ const app = Fastify({
 await app.register(cors, { origin: true, credentials: true });
 await app.register(jwt, { secret: JWT_SECRET, sign: { expiresIn: process.env.JWT_EXPIRES_IN || '30d' } });
 
+// 容忍「声明 application/json 但空 body」的请求（例如没有 body 的 DELETE）。
+// Fastify 默认会对此抛 400（FST_ERR_CTP_EMPTY_JSON_BODY），导致「删除学生」等无 body 请求失败。
+app.removeContentTypeParser('application/json');
+app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+  if (body === undefined || body === null || body === '') return done(null, undefined);
+  try {
+    done(null, JSON.parse(body));
+  } catch (err) {
+    err.statusCode = 400; // 真正的非法 JSON 仍返回 400
+    done(err);
+  }
+});
+
 app.decorate('authenticate', async (req, reply) => {
   try {
     await req.jwtVerify();

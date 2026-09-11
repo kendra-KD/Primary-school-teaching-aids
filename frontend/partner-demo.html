@@ -227,6 +227,7 @@
       <button id="btnCheckin" onclick="doActivity('checkin')">🌞 每日签到</button>
       <button onclick="doActivity('quiz')">📚 课间答题</button>
       <button onclick="doActivity('observe')">🔍 观察记录</button>
+      <button onclick="doActivity('homework')">📝 提交作业</button>
     </div>
     <div class="act-msg" id="actMsg"></div>
     <div class="log" id="actLog"></div>
@@ -583,6 +584,10 @@ async function doActivity(kind){
     body.correct=ok;
   }else if(kind==='observe'){
     const t=prompt('记录一条你的观察（例如：今天蚕宝宝又蜕皮了，白白的～）：','');
+    if(t===null) return;
+    body.detail=(t||'').slice(0,200);
+  }else if(kind==='homework'){
+    const t=prompt('提交今天的科学作业（写一句你完成了什么，例如：完成了「水的三态」观察实验）：','');
     if(t===null) return;
     body.detail=(t||'').slice(0,200);
   }
