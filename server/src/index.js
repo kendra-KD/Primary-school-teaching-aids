@@ -7,6 +7,8 @@ import authRoutes from './routes/auth.js';
 import classRoutes from './routes/classes.js';
 import studentRoutes from './routes/students.js';
 import eventRoutes from './routes/events.js';
+import lessonRoutes from './routes/lessons.js';
+import quizRoutes from './routes/quiz.js';
 
 const PORT = Number(process.env.PORT || 3100);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -57,6 +59,8 @@ await app.register(authRoutes);
 await app.register(classRoutes);
 await app.register(studentRoutes);
 await app.register(eventRoutes);
+await app.register(lessonRoutes);
+await app.register(quizRoutes);
 
 app.setNotFoundHandler((req, reply) => reply.code(404).send({ error: `接口不存在: ${req.method} ${req.url}` }));
 app.setErrorHandler((err, req, reply) => {

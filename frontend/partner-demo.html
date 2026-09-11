@@ -225,13 +225,23 @@
     </div>
     <div class="acts">
       <button id="btnCheckin" onclick="doActivity('checkin')">🌞 每日签到</button>
-      <button onclick="doActivity('quiz')">📚 课间答题</button>
-      <button onclick="doActivity('observe')">🔍 观察记录</button>
-      <button onclick="doActivity('homework')">📝 提交作业</button>
+      <button id="btnQuiz" onclick="startQuiz()">📚 课间答题</button>
+      <button id="btnObserve" onclick="doActivity('observe')">🔍 观察记录</button>
+      <button id="btnHomework" onclick="doActivity('homework')">📝 提交作业</button>
+      <button id="btnSwitch" onclick="requestSwitch()" style="background:linear-gradient(135deg,#FFB38A,#FF9EC9);">🔄 换伙伴</button>
     </div>
     <div class="act-msg" id="actMsg"></div>
     <div class="log" id="actLog"></div>
     <button class="ghost" style="margin-top:14px" onclick="resetAll()">切换账号 / 重新认领</button>
+  </div>
+</div>
+
+<!-- 隐私政策首次提示 -->
+<div id="privacyBanner" class="panel" style="background:rgba(255,255,255,.85);border:2px solid #E6DBF5;font-size:13px;text-align:center;display:none;">
+  <p style="margin:0 0 10px;color:#6f6691;">我们重视你的隐私，本工具只采集必要的课堂互动数据，不采集个人隐私信息。</p>
+  <div style="display:flex;gap:10px;justify-content:center;">
+    <button class="ghost" style="padding:8px 16px;font-size:13px;" onclick="window.open('privacy.html','_blank')">查看隐私政策</button>
+    <button style="padding:8px 16px;font-size:13px;background:linear-gradient(135deg,#C4A7FF,#8FC7FF);" onclick="acceptPrivacy()">我知道了</button>
   </div>
 </div>
 
@@ -371,18 +381,29 @@ let me = null;             // 当前选中的学生
 let selKind = null;        // 选中的伙伴 kind
 let selColor = SWATCHES[0];
 let currentPack = null;    // null 表示按年级推荐，'all' 表示全部
+let deviceToken = null;    // R45: 设备令牌
 
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600); }
 
 // URL 带 ?code= 直接进；若已认领则尝试直接进入主页
 (function init(){
   const m=location.search.match(/[?&]code=([^&]+)/); if(m) $('codeInput').value=m[1].trim();
+  // R36: 首次访问展示隐私提示
+  if(!localStorage.getItem('gp_privacy_ok')){
+    $('privacyBanner').style.display='block';
+  }
   let saved=null;
   try{ saved=JSON.parse(localStorage.getItem('gp_me')||'null'); }catch(e){}
-  if(saved && saved.classCode && saved.studentId){
+  if(saved && saved.classCode && saved.studentId && saved.deviceToken){
+    deviceToken = saved.deviceToken;
     restoreHome(saved.classCode, saved.studentId);
   }
 })();
+
+function acceptPrivacy(){
+  localStorage.setItem('gp_privacy_ok','1');
+  $('privacyBanner').style.display='none';
+}
 
 async function restoreHome(code, studentId){
   try{
@@ -391,7 +412,7 @@ async function restoreHome(code, studentId){
     const data=await res.json();
     CLASS=data.class; STUDENTS=data.students||[];
     const st=STUDENTS.find(s=>s.id===studentId);
-    if(st && st.partner_kind){ me=st; await loadHome(); }
+    if(st && st.partner_kind && deviceToken){ me=st; await loadHome(); }
   }catch(e){}
 }
 
@@ -507,6 +528,9 @@ async function claim(){
       body:JSON.stringify({partner_kind:selKind, nickname:nick||null, color:selColor})
     });
     if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'认领失败'); }
+    const data=await res.json();
+    // R45: 保存设备令牌
+    deviceToken = data.device_token;
     done(nick);
   }catch(err){ $('claimErr').textContent=err.message; }
 }
@@ -522,7 +546,7 @@ function done(nick){
   confetti();
   toast('🎉 你的伙伴入住星球！');
   // 记住已认领，刷新后直接进主页
-  try{ localStorage.setItem('gp_me', JSON.stringify({classCode:CLASS.class_code||CLASS.id, studentId:me.id})); }catch(e){}
+  try{ localStorage.setItem('gp_me', JSON.stringify({classCode:CLASS.class_code||CLASS.id, studentId:me.id, deviceToken:deviceToken})); }catch(e){}
   setTimeout(loadHome, 1800);
 }
 
@@ -576,13 +600,90 @@ function drawHome(v){
   });
 }
 
+// R47: 课间答题 — 服务端出题 → 学生选答 → 服务端判分
+async function startQuiz(){
+  $('actMsg').textContent='';
+  try{
+    // 1. 从服务端取题
+    const res=await fetch('/api/students/'+me.id+'/quiz/next');
+    const data=await res.json();
+    if(!data.question){ $('actMsg').textContent=data.message||'暂无题目'; return; }
+    showQuiz(data.question);
+  }catch(err){ $('actMsg').textContent='取题失败：'+err.message; }
+}
+
+function showQuiz(q){
+  // 构建答题弹窗
+  let modal=document.getElementById('quizModal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='quizModal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(74,68,102,.45);display:flex;align-items:center;justify-content:center;z-index:80;padding:20px;';
+    document.body.appendChild(modal);
+  }
+  const optsHtml=q.options.map((o,i)=>`<button class="quiz-opt" data-idx="${i}" style="display:block;width:100%;margin:8px 0;padding:14px 16px;border:2px solid #EFE6F5;border-radius:14px;background:#fff;color:#4A4466;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;">${escapeHtml(o)}</button>`).join('');
+  modal.innerHTML=`<div style="background:#fff;border-radius:24px;padding:28px;max-width:480px;width:100%;box-shadow:0 20px 50px rgba(170,140,200,.3);">
+    <div style="font-size:17px;font-weight:800;margin-bottom:6px;color:#5A4E86;">📚 课间答题</div>
+    ${q.unit?`<div style="font-size:12px;color:#8A84A8;margin-bottom:12px;">单元：${escapeHtml(q.unit)}</div>`:''}
+    <div style="font-size:15px;line-height:1.7;margin-bottom:16px;color:#4A4466;">${escapeHtml(q.question)}</div>
+    <div id="quizOpts">${optsHtml}</div>
+    <div id="quizResult" style="display:none;margin-top:16px;"></div>
+    <button id="quizClose" style="display:none;margin-top:14px;width:100%;padding:12px;border:none;border-radius:14px;background:linear-gradient(135deg,#C4A7FF,#8FC7FF);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;">关闭</button>
+  </div>`;
+  modal.style.display='flex';
+
+  modal.querySelectorAll('.quiz-opt').forEach(btn=>{
+    btn.onclick=()=>submitQuiz(q.id, parseInt(btn.dataset.idx), modal);
+  });
+}
+
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function submitQuiz(questionId, choice, modal){
+  // 禁用所有选项
+  modal.querySelectorAll('.quiz-opt').forEach(b=>{b.style.pointerEvents='none';b.style.opacity='.6';});
+  modal.querySelector('#quizOpts').style.pointerEvents='none';
+
+  try{
+    const res=await fetch('/api/students/'+me.id+'/quiz',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Device-Token':deviceToken||''},
+      body:JSON.stringify({question_id:questionId, choice})
+    });
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||'提交失败');
+
+    // 标注正确/错误
+    modal.querySelectorAll('.quiz-opt').forEach((b,i)=>{
+      if(i===data.answer){ b.style.borderColor='#7FE3C0'; b.style.background='#F0FFF8'; }
+      if(i===choice && !data.correct){ b.style.borderColor='#FF9EC9'; b.style.background='#FFF0F5'; }
+    });
+
+    const result=modal.querySelector('#quizResult');
+    result.style.display='block';
+    if(data.correct){
+      result.innerHTML=`<div style="text-align:center;font-size:18px;font-weight:800;color:#2f8f6f;">✅ 答对了！生态值 +${data.points}</div>${data.explanation?`<div style="font-size:13px;color:#6f6691;margin-top:8px;line-height:1.6;">💡 ${escapeHtml(data.explanation)}</div>`:''}`;
+    }else{
+      result.innerHTML=`<div style="text-align:center;font-size:18px;font-weight:800;color:#d8506a;">❌ 答错了，再加油～</div>${data.explanation?`<div style="font-size:13px;color:#6f6691;margin-top:8px;line-height:1.6;">💡 ${escapeHtml(data.explanation)}</div>`:''}`;
+    }
+    modal.querySelector('#quizClose').style.display='block';
+    modal.querySelector('#quizClose').onclick=()=>{ modal.style.display='none'; renderHome(); };
+
+    // 跳动反馈
+    const av=$('homeAva').querySelector('.crt'); if(av){ av.classList.remove('hop'); void av.offsetWidth; av.classList.add('hop'); }
+    toast('🎉 答题完成！');
+  }catch(err){
+    $('actMsg').textContent=err.message;
+    modal.style.display='none';
+  }
+}
+
 async function doActivity(kind){
   $('actMsg').textContent='';
   let body={kind};
-  if(kind==='quiz'){
-    const ok=confirm('你答对这道题了吗？\n确定=答对(生态值+2)，取消=答错(不加分)');
-    body.correct=ok;
-  }else if(kind==='observe'){
+  if(kind==='observe'){
     const t=prompt('记录一条你的观察（例如：今天蚕宝宝又蜕皮了，白白的～）：','');
     if(t===null) return;
     body.detail=(t||'').slice(0,200);
@@ -593,7 +694,7 @@ async function doActivity(kind){
   }
   try{
     const res=await fetch('/api/students/'+me.id+'/activity',{
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+      method:'POST', headers:{'Content-Type':'application/json','X-Device-Token':deviceToken||''}, body:JSON.stringify(body)
     });
     const v=await res.json();
     if(!res.ok){ throw new Error(v.error||'提交失败'); }
@@ -604,6 +705,54 @@ async function doActivity(kind){
     toast('🎉 互动成功！');
     await renderHome();
   }catch(err){ $('actMsg').textContent=err.message; }
+}
+
+// R46: 申请换伙伴（需老师授权）
+async function requestSwitch(){
+  if(!confirm('要换一个科学伙伴吗？\n换伙伴需要老师授权后才能生效哦～')) return;
+  // 重新打开选伙伴页
+  document.querySelectorAll('.panel').forEach(p=>p.classList.add('hidden'));
+  $('stepPick').classList.remove('hidden');
+  renderLib();
+  $('stepPick').scrollIntoView({behavior:'smooth'});
+  // 记录待提交的换伙伴状态
+  window._switchingPartner = true;
+}
+
+// 修改 claim 函数处理换伙伴申请
+async function claim(){
+  $('claimErr').textContent='';
+  if(!selKind){ $('claimErr').textContent='请先选一个伙伴'; return; }
+  const nick=$('nick').value.trim();
+
+  if(window._switchingPartner){
+    // R46: 提交换伙伴申请
+    try{
+      const res=await fetch('/api/students/'+me.id+'/partner-change',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({requested_kind:selKind})
+      });
+      if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'申请失败'); }
+      window._switchingPartner=false;
+      $('claimErr').textContent='';
+      toast('✅ 换伙伴申请已提交！等老师授权后生效～');
+      setTimeout(()=>loadHome(), 1500);
+    }catch(err){ $('claimErr').textContent=err.message; }
+    return;
+  }
+
+  try{
+    const res=await fetch('/api/students/'+me.id+'/claim',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({partner_kind:selKind, nickname:nick||null, color:selColor})
+    });
+    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'认领失败'); }
+    const data=await res.json();
+    // R45: 保存设备令牌
+    deviceToken = data.device_token;
+    done(nick);
+  }catch(err){ $('claimErr').textContent=err.message; }
 }
 
 function confetti(){
@@ -622,7 +771,7 @@ function confetti(){
 }
 
 function resetAll(){
-  CLASS=null; STUDENTS=[]; me=null; selKind=null;
+  CLASS=null; STUDENTS=[]; me=null; selKind=null; deviceToken=null;
   try{ localStorage.removeItem('gp_me'); }catch(e){}
   ['stepWho','stepPick','stepInfo','stepDone','stepHome'].forEach(id=>$(id).classList.add('hidden'));
   $('stepCode').classList.remove('hidden');

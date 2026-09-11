@@ -4,9 +4,11 @@ import {
   assertOwnsStudent,
   assertUuid,
   badRequest,
-  notFound
+  notFound,
+  forbidden
 } from '../util.js';
 import { LABELS, getLabel, stageOf, classStageOf, DROOP_THRESHOLD } from '../labels.js';
+import { assertLessonSession } from '../middleware.js';
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
@@ -40,13 +42,16 @@ export default async function eventRoutes(fastify) {
   // 标签字典（前端首次拉取，保证与服务端一致）
   fastify.get('/api/labels', auth, async () => ({ labels: LABELS }));
 
-  // 提交一条点评：两步操作（点伙伴 → 点标签），分值由服务端决定
+  // R52: 提交一条点评 — 需授课会话令牌
   fastify.post('/api/events', auth, async (req, reply) => {
     const classId = assertUuid(req.body?.class_id, 'class_id');
     const studentId = assertUuid(req.body?.student_id, 'student_id');
     const partnerId = req.body?.partner_id ? assertUuid(req.body.partner_id, 'partner_id') : null;
 
     await assertOwnsClass(req.user.sub, classId);
+    // R52: 校验授课会话
+    await assertLessonSession(req, classId);
+
     const student = await assertOwnsStudent(req.user.sub, studentId);
     if (student.class_id !== classId) throw badRequest('该学生不属于此班级');
 
@@ -236,7 +241,7 @@ export default async function eventRoutes(fastify) {
     };
   });
 
-  // 撤销最近一条点评（老师点错了，课堂刚需）
+  // R52: 撤销最近一条点评 — 需授课会话令牌
   fastify.delete('/api/events/:id', auth, async (req, reply) => {
     const eventId = assertUuid(req.params.id, 'id');
     const ev = await queryOne(
@@ -245,6 +250,9 @@ export default async function eventRoutes(fastify) {
     );
     if (!ev) throw notFound('点评记录不存在');
     if (ev.teacher_id !== req.user.sub) throw notFound('点评记录不存在');
+
+    // R52: 校验授课会话
+    await assertLessonSession(req, ev.class_id);
 
     await withTx(async (client) => {
       await client.query('DELETE FROM events WHERE id=$1', [eventId]);

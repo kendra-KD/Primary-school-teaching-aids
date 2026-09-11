@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS students (
   vitality     INT DEFAULT 50,
   loved        BOOLEAN DEFAULT false,
   hurt         BOOLEAN DEFAULT false,
+  device_token  TEXT,                   -- R45: 设备令牌，认领时签发
+  device_token_at TIMESTAMPTZ,          -- 令牌签发时间
   created_at   TIMESTAMPTZ DEFAULT now()
 );
 
@@ -92,3 +94,51 @@ CREATE INDEX IF NOT EXISTS idx_events_student ON events(student_id);
 CREATE INDEX IF NOT EXISTS idx_vines_class ON vines(class_id);
 CREATE INDEX IF NOT EXISTS idx_activities_class ON student_activities(class_id);
 CREATE INDEX IF NOT EXISTS idx_activities_student ON student_activities(student_id);
+
+-- ===== Phase 3: 授课会话 / 题库 / 换伙伴申请 =====
+CREATE TABLE IF NOT EXISTS lesson_sessions (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  teacher_id  UUID NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
+  class_id    UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  pin         TEXT,
+  started_at  TIMESTAMPTZ DEFAULT now(),
+  expires_at  TIMESTAMPTZ DEFAULT now() + interval '90 minutes',
+  ended_at    TIMESTAMPTZ,
+  active      BOOLEAN DEFAULT true
+);
+CREATE INDEX IF NOT EXISTS idx_lesson_sessions_teacher ON lesson_sessions(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_sessions_class ON lesson_sessions(class_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_sessions_active ON lesson_sessions(active) WHERE active = true;
+CREATE INDEX IF NOT EXISTS idx_lesson_sessions_expires ON lesson_sessions(expires_at);
+
+CREATE TABLE IF NOT EXISTS questions (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id    UUID REFERENCES classes(id) ON DELETE CASCADE,
+  grade       INT,
+  unit        TEXT,
+  question    TEXT NOT NULL,
+  options     JSONB NOT NULL,
+  answer      INT NOT NULL,
+  explanation  TEXT,
+  created_by  UUID REFERENCES teachers(id),
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  is_active   BOOLEAN DEFAULT true
+);
+CREATE INDEX IF NOT EXISTS idx_questions_class ON questions(class_id);
+CREATE INDEX IF NOT EXISTS idx_questions_grade ON questions(grade);
+CREATE INDEX IF NOT EXISTS idx_questions_active ON questions(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_questions_created_by ON questions(created_by);
+
+CREATE TABLE IF NOT EXISTS partner_change_requests (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id     UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  class_id       UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  current_kind   TEXT,
+  requested_kind TEXT,
+  status         TEXT DEFAULT 'pending',
+  created_at     TIMESTAMPTZ DEFAULT now(),
+  resolved_at    TIMESTAMPTZ,
+  resolved_by    UUID REFERENCES teachers(id)
+);
+CREATE INDEX IF NOT EXISTS idx_change_req_class ON partner_change_requests(class_id);
+CREATE INDEX IF NOT EXISTS idx_change_req_status ON partner_change_requests(status);
