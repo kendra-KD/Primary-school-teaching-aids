@@ -1235,7 +1235,9 @@ const GP={
     const data=await this.api('/api/auth/login',{method:'POST',body:JSON.stringify({email,password})});
     this.token=data.token; this.teacher=data.teacher;
     localStorage.setItem('gp_token',data.token);
-    await this.pullAll();
+    // 登录已成功；同步失败不应被当成登录失败
+    try{ await this.pullAll(); }
+    catch(e){ console.error('[growth-planet] 登录后同步失败：',e); toast('☁ 已登录，但云端数据拉取失败：'+(e.message||e)); }
   },
 
   logout(){

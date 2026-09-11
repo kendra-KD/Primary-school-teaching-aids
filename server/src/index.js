@@ -30,7 +30,8 @@ app.decorate('authenticate', async (req, reply) => {
   try {
     await req.jwtVerify();
   } catch (err) {
-    reply.code(401).send({ error: '未登录或登录已失效' });
+    // 必须 return，否则钩子放行后处理器仍会执行、取 req.user 抛错变成 500
+    return reply.code(401).send({ error: '未登录或登录已失效' });
   }
 });
 
