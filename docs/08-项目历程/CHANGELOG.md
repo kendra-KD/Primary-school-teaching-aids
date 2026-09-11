@@ -6,6 +6,21 @@
 
 ---
 
+## [v0.2.4] — 2026-09-11 · 删除修复 + 学生作业入口 + 老师互动明细
+
+### 修复
+- **删除学生报 Bad Request（400）**（R42 / INC-007）
+  - 根因：前端 `GP.api()` 对无 body 的 `DELETE` 也强制 `Content-Type: application/json`，Fastify 5 抛 `FST_ERR_CTP_EMPTY_JSON_BODY`。
+  - 双层修复：① 前端仅在有 body 时设头；② 后端 `server/src/index.js` 注册容忍空 JSON body 的 content type parser（不依赖前端）。
+
+### 新增
+- **R32 学生端「提交作业」入口**：`partner-demo.html` 新增「📝 提交作业」按钮，复用 `doActivity('homework')`，+3。
+- **R34 老师端查看学生互动明细**：`/state` 返回每个学生最近 8 条自主互动；老师大屏成长卡新增「📋 互动明细（学生自助）」列表，点评有依据。
+
+**提交**：`ac055b2`
+
+---
+
 ## [v0.2.3] — 2026-09-11 · 导入修复与文档中心
 
 ### 修复
@@ -103,4 +118,5 @@
 | v0.2.0 | 2026-09-07 | Phase 1.5 | `ad3d259` `dd9cde5` `7ac1df7` `7b2e2a7` `14976f4` |
 | v0.2.1 | 2026-09-10 | Phase 2 | `329dc66` `8566fe3` `f0cdf16` `6e28c34` `04e4225` `ff96939` |
 | v0.2.2 | 2026-09-11 | Phase 2.1 | `91feb29` |
+| v0.2.4 | 2026-09-11 | Phase 2.2 | ac055b2 |
 | v0.2.3 | 2026-09-11 | Phase 2.1+ | 4fd168d |
