@@ -122,7 +122,8 @@ CREATE TABLE IF NOT EXISTS questions (
   explanation  TEXT,
   created_by  UUID REFERENCES teachers(id),
   created_at  TIMESTAMPTZ DEFAULT now(),
-  is_active   BOOLEAN DEFAULT true
+  is_active   BOOLEAN DEFAULT true,
+  recommended_labels JSONB DEFAULT '[]'::JSONB
 );
 CREATE INDEX IF NOT EXISTS idx_questions_class ON questions(class_id);
 CREATE INDEX IF NOT EXISTS idx_questions_grade ON questions(grade);

@@ -105,6 +105,29 @@
   .pcard.sel .crt{filter:drop-shadow(0 0 6px rgba(196,167,255,.7));}
   .crt.hop{animation:hop .55s cubic-bezier(.3,1.6,.5,1);}
   @keyframes hop{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-10px) scale(1.12)}60%{transform:translateY(0) scale(.96)}100%{transform:translateY(0) scale(1)}}
+
+  /* R43: 伙伴点击互动 — 部位反馈 */
+  .ava-home{position:relative;}
+  .ava-home svg{cursor:pointer;touch-action:manipulation;}
+  .ava-home .hot-zone{fill:transparent;stroke:none;cursor:pointer;}
+  .ava-home .hot-zone:hover{fill:rgba(255,255,255,.08);}
+  /* 部位动画 */
+  @keyframes pet-nod{0%,100%{transform:rotate(0)}20%{transform:rotate(-12deg)}60%{transform:rotate(8deg)}80%{transform:rotate(-4deg)}}
+  @keyframes pet-belly{0%,100%{transform:scale(1)}25%{transform:scale(1.15,scaleY(.92))}50%{transform:scale(.9,1.1)}75%{transform:scale(1.08)}}
+  @keyframes pet-dance{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-6px) rotate(-8deg)}50%{transform:translateY(-2px) rotate(6deg)}75%{transform:translateY(-4px) rotate(-4deg)}}
+  @keyframes pet-spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+  .crt.pet-nod{animation:pet-nod .6s ease-in-out;}
+  .crt.pet-belly{animation:pet-belly .55s ease-in-out;transform-origin:50% 65%;}
+  .crt.pet-dance{animation:pet-dance .7s ease-in-out;transform-origin:50% 80%;}
+  .crt.pet-spin{animation:pet-spin .6s ease-in-out;transform-origin:50% 50%;}
+  /* 对话气泡 */
+  .pet-bubble{position:absolute;left:50%;top:-10px;transform:translateX(-50%);background:#fff;border-radius:14px;padding:6px 14px;font-size:14px;font-weight:800;color:#5A4E86;box-shadow:0 4px 14px rgba(120,90,160,.25);white-space:nowrap;pointer-events:none;animation:bub-in .3s ease-out;z-index:10;}
+  .pet-bubble.out{animation:bub-out .3s ease-in forwards;}
+  @keyframes bub-in{0%{opacity:0;transform:translateX(-50%) translateY(8px) scale(.7);}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}}
+  @keyframes bub-out{0%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}100%{opacity:0;transform:translateX(-50%) translateY(-12px) scale(.8);}}
+  /* 爱心/星星粒子 */
+  .pet-fx{position:absolute;font-size:20px;pointer-events:none;animation:pet-float 1.1s ease-out forwards;z-index:10;}
+  @keyframes pet-float{0%{opacity:1;transform:translateY(0) scale(.5);}100%{opacity:0;transform:translateY(-50px) scale(1.4);}}
   /* 我的伙伴主页 */
   .home{text-align:center;padding:6px 0;}
   .home-head{display:flex;align-items:center;gap:18px;justify-content:center;margin:6px 0 4px;}
@@ -571,12 +594,80 @@ async function renderHome(){
   }catch(e){}
 }
 
+/* R43: 伙伴点击互动 — 汤姆猫式部位反馈 */
+const PET_PARTS = [
+  { id:'head',    cx:50, cy:48, r:20, anim:'pet-nod',   bubbles:['你好呀！','嗨～','(点头)','开心！'], fx:'✨' },
+  { id:'belly',   cx:50, cy:70, r:18, anim:'pet-belly', bubbles:['(咯咯笑)','好痒！','哈哈～','别挠啦！'], fx:'💛' },
+  { id:'feet',    cx:50, cy:92, r:14, anim:'pet-dance', bubbles:['(跳舞)！','转圈圈～','蹦蹦跳！','耶！'], fx:'🌟' },
+  { id:'cheek',   cx:35, cy:60, r:10, anim:'pet-nod',   bubbles:['(脸红)','害羞～','嘻嘻'], fx:'💕' },
+];
+let petClickCount = 0;
+
+function addPetHotZones(){
+  const svg=$('homeAva').querySelector('svg');
+  if(!svg) return;
+  // 移除旧热区
+  svg.querySelectorAll('.hot-zone').forEach(el=>el.remove());
+  const ns='http://www.w3.org/2000/svg';
+  PET_PARTS.forEach(p=>{
+    const c=document.createElementNS(ns,'circle');
+    c.setAttribute('class','hot-zone');
+    c.setAttribute('cx',p.cx); c.setAttribute('cy',p.cy); c.setAttribute('r',p.r);
+    c.setAttribute('data-part',p.id);
+    c.addEventListener('click',()=>onPetClick(p));
+    svg.appendChild(c);
+  });
+}
+
+function onPetClick(part){
+  const svg=$('homeAva').querySelector('svg.crt');
+  if(!svg) return;
+  // 播放动画
+  PET_PARTS.forEach(p=>svg.classList.remove(p.anim));
+  void svg.offsetWidth;
+  svg.classList.add(part.anim);
+  // 随机气泡
+  const msg=part.bubbles[Math.floor(Math.random()*part.bubbles.length)];
+  showPetBubble(msg);
+  // 粒子特效
+  if(part.fx) showPetFx(part.fx);
+  // 彩蛋：连续点击 5 次
+  petClickCount++;
+  if(petClickCount%5===0){
+    svg.classList.add('pet-spin');
+    showPetBubble('🎉 彩蛋！伙伴转了一圈！');
+    setTimeout(()=>svg.classList.remove('pet-spin'),700);
+  }
+}
+
+function showPetBubble(msg){
+  const wrap=$('homeAva');
+  // 移除旧气泡
+  wrap.querySelectorAll('.pet-bubble').forEach(el=>el.remove());
+  const b=document.createElement('div');
+  b.className='pet-bubble'; b.textContent=msg;
+  wrap.appendChild(b);
+  setTimeout(()=>{ b.classList.add('out'); setTimeout(()=>b.remove(),300); }, 1800);
+}
+
+function showPetFx(emoji){
+  const wrap=$('homeAva');
+  const f=document.createElement('div');
+  f.className='pet-fx'; f.textContent=emoji;
+  f.style.left=(35+Math.random()*30)+'%';
+  f.style.top='30%';
+  wrap.appendChild(f);
+  setTimeout(()=>f.remove(),1100);
+}
+
 function drawHome(v){
   const k=LIB.find(x=>x.kind===v.student.partner_kind)||{name:'伙伴'};
   const color=v.student.color||SWATCHES[0];
   const total=v.totalPoints||0, today=v.todayPoints||0;
   const stage=Math.floor(total/5)+1;
   $('homeAva').innerHTML=creature(v.student.partner_kind, color);
+  // R43: 添加部位点击热区
+  addPetHotZones();
   $('homeName').textContent=(v.student.nickname||k.name)+' · Lv'+stage;
   $('homeSub').textContent=k.name+' · 已完成 '+(v.activities||[]).length+' 次互动';
   const pct=Math.min(100, (total%5)*20);

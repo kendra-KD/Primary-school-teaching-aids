@@ -59,3 +59,6 @@ CREATE INDEX IF NOT EXISTS idx_change_req_status ON partner_change_requests(stat
 -- ===== 补全 init.sql 缺失的索引 =====
 CREATE INDEX IF NOT EXISTS idx_lesson_sessions_expires ON lesson_sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_questions_created_by ON questions(created_by);
+
+-- ===== R30: 题目→标签映射 =====
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS recommended_labels JSONB DEFAULT '[]'::JSONB;

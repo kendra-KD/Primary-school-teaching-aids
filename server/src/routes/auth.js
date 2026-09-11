@@ -56,4 +56,19 @@ export default async function authRoutes(fastify) {
     if (!row) throw unauthorized('账号不存在');
     return { teacher: publicTeacher(row) };
   });
+
+  // R48: 我的带班记录（班级 + 学生数 + 最近活动数）
+  fastify.get('/api/me/classes', { onRequest: [fastify.authenticate] }, async (req) => {
+    const { rows: classes } = await query(
+      `SELECT c.*,
+        (SELECT COUNT(*)::INT FROM students s WHERE s.class_id = c.id) AS student_count,
+        (SELECT COUNT(*)::INT FROM student_activities sa WHERE sa.class_id = c.id) AS activity_count,
+        (SELECT MAX(created_at) FROM student_activities sa WHERE sa.class_id = c.id) AS last_activity_at
+       FROM classes c
+       WHERE c.teacher_id = $1
+       ORDER BY c.created_at DESC`,
+      [req.user.sub]
+    );
+    return { classes };
+  });
 }

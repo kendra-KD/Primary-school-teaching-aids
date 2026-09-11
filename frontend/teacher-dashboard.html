@@ -42,6 +42,8 @@ body::before{
     radial-gradient(1px 1px at 10% 80%, rgba(255,255,255,.5), transparent);
 }
 .app{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:18px 18px 120px;}
+@media(max-width:1366px){.app{padding:14px 14px 110px;}}
+@media(max-width:1100px){.app{padding:12px 12px 100px;}}
 
 /* ===== 顶部栏 ===== */
 .topbar{
@@ -50,6 +52,8 @@ body::before{
   border:1px solid var(--line);border-radius:var(--r);
   padding:12px 16px;box-shadow:0 10px 40px rgba(0,0,0,.28);
 }
+@media(max-width:1366px){.topbar{padding:10px 12px;gap:10px;}}
+@media(max-width:768px){.topbar{padding:8px 10px;gap:8px;font-size:13px;}}
 .brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:18px;letter-spacing:.5px;}
 .brand .logo{width:30px;height:30px;border-radius:50%;
   background:radial-gradient(circle at 35% 30%,#fff,#8be9d4 40%,#5fae9f 80%);
@@ -75,7 +79,8 @@ body::before{
 
 /* ===== 主区 ===== */
 .main{display:grid;grid-template-columns:1fr 320px;gap:18px;margin-top:18px;}
-@media(max-width:900px){.main{grid-template-columns:1fr;}}
+@media(max-width:1366px){.main{gap:14px;margin-top:14px;grid-template-columns:1fr 300px;}}
+@media(max-width:900px){.main{grid-template-columns:1fr;gap:12px;margin-top:12px;}}
 
 /* 星球面板 */
 .planet-wrap{
@@ -88,6 +93,8 @@ body::before{
   box-shadow:0 18px 60px rgba(0,0,0,.32), inset 0 0 60px rgba(139,233,212,.06);
   padding:18px;
 }
+@media(max-width:1366px){.planet-wrap{padding:14px;}}
+@media(max-width:768px){.planet-wrap{padding:10px;border-radius:20px;}}
 .planet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
 .planet-title{display:flex;align-items:center;gap:12px;}
 .planet-title .big{width:64px;height:64px;filter:drop-shadow(0 0 10px var(--accent));}
@@ -95,21 +102,28 @@ body::before{
 .planet-title .sub{font-size:12px;color:var(--txt2);}
 .planet-stats{display:flex;gap:10px;align-items:center;}
 .stat{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:8px 12px;text-align:center;min-width:78px;}
+@media(max-width:1366px){.stat{padding:6px 10px;min-width:66px;}}
 .stat .v{font-size:20px;font-weight:900;}
 .stat .k{font-size:11px;color:var(--txt2);}
+@media(max-width:1366px){.stat .v{font-size:17px;}.stat .k{font-size:10px;}}
 .ring{position:relative;width:64px;height:64px;}
 .ring svg{position:absolute;inset:0;}
 
 .planet{position:relative;min-height:420px;border-radius:22px;
   background:radial-gradient(circle at 50% 45%, rgba(181,140,255,.10), transparent 70%);}
+@media(max-width:1366px){.planet{min-height:360px;}}
+@media(max-width:768px){.planet{min-height:300px;}}
 #vines{position:absolute;inset:0;pointer-events:none;z-index:3;}
 #planetGrid{position:relative;z-index:2;display:grid;gap:14px;padding:8px;}
+@media(max-width:1366px){#planetGrid{gap:10px;padding:4px;}}
 .partner{
   position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;
   padding:12px 8px 10px;border-radius:18px;cursor:pointer;
   background:var(--glass);border:1px solid transparent;transition:transform .18s,box-shadow .18s,background .18s;
   animation:float 5s ease-in-out infinite;
 }
+@media(max-width:1366px){.partner{padding:10px 6px 8px;border-radius:16px;gap:3px;}}
+@media(max-width:768px){.partner{padding:8px 4px 6px;border-radius:14px;}}
 .partner:nth-child(2n){animation-delay:-1.2s;}
 .partner:nth-child(3n){animation-delay:-2.4s;}
 .partner:hover{transform:translateY(-3px);background:var(--glass-strong);}
@@ -118,6 +132,8 @@ body::before{
   background:rgba(0,0,0,.25);border-radius:10px;padding:1px 7px;}
 .partner .blob{width:74px;height:74px;position:relative;display:grid;place-items:center;
   filter:drop-shadow(0 0 7px color-mix(in srgb,var(--c) 60%,transparent));}
+@media(max-width:1366px){.partner .blob{width:62px;height:62px;}}
+@media(max-width:768px){.partner .blob{width:52px;height:52px;}}
 .partner .blob svg{width:100%;height:100%;}
 .partner .blob.glow{animation:pop .9s ease;}
 .partner .fx{position:absolute;inset:0;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:1px;padding-top:2px;}
@@ -167,6 +183,8 @@ body::before{
 .side{display:flex;flex-direction:column;gap:16px;}
 .panel{background:var(--glass);border:1px solid var(--line);border-radius:var(--r);
   backdrop-filter:blur(14px);padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.25);}
+@media(max-width:1366px){.panel{padding:14px;}}
+@media(max-width:768px){.panel{padding:12px;border-radius:18px;}}
 .panel h3{font-size:14px;font-weight:900;margin-bottom:10px;display:flex;align-items:center;gap:6px;color:var(--txt);}
 .selcard{display:flex;align-items:center;gap:12px;min-height:64px;
   background:var(--glass);border:1px dashed var(--line);border-radius:16px;padding:10px 12px;color:var(--txt2);font-size:13px;}
@@ -194,6 +212,8 @@ body::before{
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:10px 16px 14px;
   background:linear-gradient(0deg,rgba(20,15,40,.92),rgba(20,15,40,.55) 70%,transparent);
   backdrop-filter:blur(6px);transition:.25s;}
+@media(max-width:1366px){.dock{padding:8px 14px 12px;}}
+@media(max-width:768px){.dock{padding:6px 10px 10px;}}
 .dock-inner{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:8px;}
 .dock .dock-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .dock .dock-toggle{font:inherit;font-weight:800;font-size:12px;cursor:pointer;border-radius:12px;padding:7px 11px;
@@ -232,6 +252,15 @@ body::before{
 .rdel{font:inherit;font-weight:800;font-size:12px;border:1px solid rgba(255,158,158,.5);background:rgba(255,158,158,.14);
   color:#ffc9c9;border-radius:10px;padding:7px 10px;cursor:pointer;}
 .import-note{font-size:12px;color:var(--txt2);margin-top:8px;white-space:pre-line;}
+
+/* R30: 标签选择 chip */
+.qlabel-chip{font-size:12px;font-weight:700;padding:5px 10px;border-radius:10px;cursor:pointer;
+  background:var(--glass);border:1px solid var(--line);color:var(--txt2);transition:.15s;}
+.qlabel-chip:hover{background:var(--glass-strong);}
+.qlabel-chip.sel{background:rgba(139,233,212,.2);border-color:var(--accent);color:var(--accent);}
+/* R30: 推荐标签高亮（dock 区） */
+.tag.recommended{box-shadow:0 0 12px rgba(139,233,212,.5);animation:rec-pulse 2s ease-in-out infinite;}
+@keyframes rec-pulse{0%,100%{box-shadow:0 0 8px rgba(139,233,212,.3)}50%{box-shadow:0 0 16px rgba(139,233,212,.6)}}
 
 /* 成长卡 */
 .ghead{display:flex;gap:14px;align-items:center;margin-bottom:14px;}
@@ -400,10 +429,11 @@ hidden{display:none!important;}
     </div>
     <div class="import-note" id="importHint"></div>
 
-    <!-- 老师工具区：录题 + 换伙伴审批 -->
+    <!-- 老师工具区：录题 + 换伙伴审批 + 带班记录 -->
     <div class="roster-tools" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
       <button class="btn" id="quizBtn" style="white-space:nowrap">📝 录题/题库</button>
       <button class="btn" id="partnerReqBtn" style="white-space:nowrap">🔄 换伙伴审批</button>
+      <button class="btn" id="myClassesBtn" style="white-space:nowrap">📋 带班记录</button>
       <span id="partnerReqBadge" style="display:none;font-size:12px;color:var(--warn);font-weight:800;padding:4px 8px;background:rgba(255,214,165,.15);border-radius:8px"></span>
     </div>
 
@@ -765,7 +795,7 @@ function renderDock(){
       <div class="group" style="--gc:${g.color}">
         <div class="gt"><span class="gd"></span>${g.name}</div>
         <div class="chips-tags">${g.tags.map((t,ti)=>`
-          <button class="tag ${g.neg?'neg':''}" data-g="${i}" data-t="${ti}" style="--gc:${g.color}">
+          <button class="tag ${g.neg?'neg':''}" data-g="${i}" data-t="${ti}" data-key="${t.key}" style="--gc:${g.color}">
             ${t.label}<span class="v">${t.v>0?'+'+t.v:''}</span>
           </button>`).join('')}</div>
       </div>`).join('');
@@ -774,7 +804,7 @@ function renderDock(){
     rows=`<div class="group" style="--gc:${g.color}">
       <div class="gt"><span class="gd"></span>${g.name}</div>
       <div class="chips-tags">${g.tags.map((t,ti)=>`
-        <button class="tag ${g.neg?'neg':''}" data-g="${gi}" data-t="${ti}" style="--gc:${g.color}">
+        <button class="tag ${g.neg?'neg':''}" data-g="${gi}" data-t="${ti}" data-key="${t.key}" style="--gc:${g.color}">
           ${t.label}<span class="v">${t.v>0?'+'+t.v:''}</span>
         </button>`).join('')}</div>
     </div>`;
@@ -1250,6 +1280,12 @@ const KIND2TYPE={
 };
 const PACK2TYPE={cute_nature:'worm',life_obs:'sprout',anime_original:'crystal'};
 
+/* R30: 推荐标签管理 */
+let GP_recLabels = [];
+function GP_clearRecommendedLabels(){
+  GP_recLabels = [];
+  document.querySelectorAll('.tag.recommended').forEach(el=>el.classList.remove('recommended'));
+}
 const GP={
   token:'',
   teacher:null,
@@ -1271,6 +1307,8 @@ const GP={
       this.lessonPin=data.pin||'';
       this.renderLessonUI();
       toast('📚 已开始上课 · PIN: '+this.lessonPin+'（切班需验证）');
+      // R30: 拉取推荐标签并高亮 dock
+      this.loadRecommendedLabels(cid);
     }catch(err){ toast('开始上课失败：'+(err.message||'未知错误')); }
   },
 
@@ -1284,6 +1322,7 @@ const GP={
     }catch(err){ /* 会话可能已过期，静默清理 */
       console.warn('[growth-planet] 下课清理：',err.message); }
     this.lessonToken=''; this.lessonPin=''; this.renderLessonUI();
+    GP_clearRecommendedLabels(); // R30: 清理高亮
   },
 
   renderLessonUI(){
@@ -1327,6 +1366,14 @@ const GP={
     // 登录已成功；同步失败不应被当成登录失败
     try{ await this.pullAll(); }
     catch(e){ console.error('[growth-planet] 登录后同步失败：',e); toast('☁ 已登录，但云端数据拉取失败：'+(e.message||e)); }
+  },
+
+  async loadRecommendedLabels(cid){
+    try{
+      const data=await this.api('/api/classes/'+cid+'/recommended-labels');
+      GP_recLabels = data.labels||[];
+      GP_highlightRecommended();
+    }catch(e){ console.warn('推荐标签拉取失败',e); }
   },
 
   logout(){
@@ -1434,6 +1481,9 @@ function openLogin(){
       <div style="display:flex;gap:10px;margin-top:6px">
         <button id="gpCancel" style="flex:1;padding:10px;border-radius:12px;border:2px solid #EFE9E1;background:#fff;color:#7A7484;font-weight:800;cursor:pointer">稍后</button>
         <button id="gpOk" style="flex:1;padding:10px;border-radius:12px;border:0;background:#A8E6CF;color:#3E6B52;font-weight:800;cursor:pointer">登录</button>
+      </div>
+      <div style="text-align:center;margin-top:12px;font-size:12px;color:#9A94A6">
+        还没有账号？<a href="#" id="gpGoReg" style="color:#7AB8D8;font-weight:700;text-decoration:none">注册新账号</a>
       </div></div>`;
     document.body.appendChild(box);
   }
@@ -1443,12 +1493,61 @@ function openLogin(){
   eyeBtn.onclick=()=>{ const show=pwdEl.type==='password'; pwdEl.type=show?'text':'password'; eyeBtn.textContent=show?'🙈':'👁️'; };
   $('gpCancel').onclick=()=>{ box.style.display='none'; };
   box.onclick=e=>{ if(e.target===box) box.style.display='none'; };
+  $('gpGoReg').onclick=(e)=>{ e.preventDefault(); box.style.display='none'; openRegister(); };
   const submit=async()=>{
     errEl.textContent='登录中…';
     try{ await GP.login(emailEl.value.trim(), pwdEl.value); box.style.display='none'; renderGPBtn(); toast('☁ 已同步云端数据'); }
     catch(err){ errEl.textContent=err.message||'登录失败'; }
   };
   $('gpOk').onclick=submit;
+  pwdEl.onkeydown=e=>{ if(e.key==='Enter') submit(); };
+}
+
+/* R48: 老师自助注册弹窗 */
+function openRegister(){
+  let box=$('gpReg');
+  if(!box){
+    box=document.createElement('div'); box.id='gpReg';
+    box.style.cssText='position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;'+
+      'background:rgba(60,55,70,.35);backdrop-filter:blur(3px)';
+    box.innerHTML=`<div style="background:#fff;border-radius:20px;padding:26px 28px;width:340px;box-shadow:0 18px 50px rgba(0,0,0,.2)">
+      <div style="font-size:17px;font-weight:900;color:#5A5566;margin-bottom:4px">🌱 注册新账号</div>
+      <div style="font-size:12px;color:#9A94A6;margin-bottom:16px">注册后立即可建班、上课、云端同步</div>
+      <input id="regName" placeholder="你的称呼（如：王老师）" style="width:100%;padding:10px 12px;border:2px solid #EFE9E1;border-radius:12px;margin-bottom:10px;font-size:14px;outline:none">
+      <input id="regEmail" placeholder="邮箱" style="width:100%;padding:10px 12px;border:2px solid #EFE9E1;border-radius:12px;margin-bottom:10px;font-size:14px;outline:none">
+      <div style="position:relative;margin-bottom:6px">
+        <input id="regPwd" type="password" placeholder="密码（至少 8 位）" style="width:100%;padding:10px 38px 10px 12px;border:2px solid #EFE9E1;border-radius:12px;font-size:14px;outline:none">
+        <button id="regEye" type="button" title="显示/隐藏密码" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:26px;height:26px;border:0;background:transparent;cursor:pointer;font-size:16px;color:#9A94A6;display:flex;align-items:center;justify-content:center">👁️</button>
+      </div>
+      <div id="regErr" style="color:#E4798A;font-size:12px;min-height:18px;margin-top:8px"></div>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <button id="regCancel" style="flex:1;padding:10px;border-radius:12px;border:2px solid #EFE9E1;background:#fff;color:#7A7484;font-weight:800;cursor:pointer">返回登录</button>
+        <button id="regOk" style="flex:1;padding:10px;border-radius:12px;border:0;background:#B8D8F0;color:#2E5A7E;font-weight:800;cursor:pointer">注册</button>
+      </div></div>`;
+    document.body.appendChild(box);
+  }
+  box.classList.remove('hidden'); box.style.display='flex';
+  const nameEl=$('regName'), emailEl=$('regEmail'), pwdEl=$('regPwd'), errEl=$('regErr'), eyeBtn=$('regEye');
+  errEl.textContent=''; nameEl.value=''; emailEl.value=''; pwdEl.value=''; nameEl.focus();
+  eyeBtn.onclick=()=>{ const show=pwdEl.type==='password'; pwdEl.type=show?'text':'password'; eyeBtn.textContent=show?'🙈':'👁️'; };
+  $('regCancel').onclick=()=>{ box.style.display='none'; openLogin(); };
+  box.onclick=e=>{ if(e.target===box) box.style.display='none'; };
+  const submit=async()=>{
+    const name=nameEl.value.trim(), email=emailEl.value.trim(), pwd=pwdEl.value;
+    if(!name) { errEl.textContent='请输入称呼'; return; }
+    if(!email) { errEl.textContent='请输入邮箱'; return; }
+    if(pwd.length<8) { errEl.textContent='密码至少 8 位'; return; }
+    errEl.textContent='注册中…';
+    try{
+      const data=await GP.api('/api/auth/register',{method:'POST',body:JSON.stringify({email,password:pwd,display_name:name})});
+      GP.token=data.token; GP.teacher=data.teacher;
+      localStorage.setItem('gp_token',data.token);
+      box.style.display='none'; renderGPBtn();
+      toast('🌱 注册成功，已自动登录');
+      try{ await GP.pullAll(); }catch(e){ console.error('首次同步失败',e); }
+    }catch(err){ errEl.textContent=err.message||'注册失败'; }
+  };
+  $('regOk').onclick=submit;
   pwdEl.onkeydown=e=>{ if(e.key==='Enter') submit(); };
 }
 
@@ -1482,6 +1581,7 @@ function bindControls(){
   bind('openStuBtn', openStudentPage);
   bind('quizBtn', openQuizPanel);       // R33 录题入口
   bind('partnerReqBtn', openPartnerRequests); // R46 换伙伴审批入口
+  bind('myClassesBtn', openMyClasses);  // R48 带班记录入口
   bind('lessonBtn', ()=>{ GP.lessonActive()? GP.endLesson() : GP.startLesson(); }); // R49/R51
   const ncName=$('ncName');
   if(ncName) ncName.onkeydown=e=>{ if(e.key==='Enter') createClass(); };
@@ -1557,9 +1657,71 @@ async function pollState(){
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init);
 else init();
 
+/* R30: 推荐标签高亮 — 在 dock 区 tag 上加 .recommended */
+function GP_highlightRecommended(){
+  document.querySelectorAll('.tag.recommended').forEach(el=>el.classList.remove('recommended'));
+  if(!GP_recLabels.length) return;
+  GP_recLabels.forEach(key=>{
+    const el=document.querySelector('.tag[data-key="'+key+'"]');
+    if(el) el.classList.add('recommended');
+  });
+}
+
+/* =====================================================================
+   R48 带班记录面板
+   ===================================================================== */
+function openMyClasses(){
+  if(!GP.enabled()){ toast('请先登录后查看带班记录'); return; }
+  let box=$('myClassesPanel');
+  if(!box){
+    box=document.createElement('div'); box.id='myClassesPanel';
+    box.className='overlay';
+    box.innerHTML=`<div class="panel" style="max-width:520px">
+      <div class="panel-head">
+        <h3>📋 我的带班记录</h3>
+        <button class="close" onclick="document.getElementById('myClassesPanel').classList.remove('show')">×</button>
+      </div>
+      <div id="myClassesList" style="padding:16px;max-height:60vh;overflow-y:auto"></div>
+    </div>`;
+    document.body.appendChild(box);
+  }
+  box.classList.add('show');
+  const list=$('myClassesList');
+  list.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px">加载中…</div>';
+  GP.api('/api/me/classes').then(data=>{
+    if(!data.classes||!data.classes.length){
+      list.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px">还没有班级，去建一个吧～</div>';
+      return;
+    }
+    list.innerHTML=data.classes.map(c=>`
+      <div style="padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;cursor:pointer"
+           onclick="GP_jumpToClass('${c.id}');document.getElementById('myClassesPanel').classList.remove('show')">
+        <div style="font-weight:800;color:var(--txt);font-size:14px">${escHtml(c.name)} <span style="color:var(--muted);font-size:12px">${escHtml(c.theme||'')}</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;display:flex;gap:16px">
+          <span>👥 ${c.student_count} 名学生</span>
+          <span>📊 ${c.activity_count} 条互动</span>
+          <span>🔑 班级码 ${escHtml(c.join_code||'—')}</span>
+        </div>
+        ${c.last_activity_at?`<div style="font-size:11px;color:var(--muted);margin-top:3px">最近活动：${new Date(c.last_activity_at).toLocaleString('zh-CN')}</div>`:''}
+      </div>`).join('');
+  }).catch(err=>{
+    list.innerHTML='<div style="color:var(--warn);padding:16px">加载失败：'+escHtml(err.message)+'</div>';
+  });
+}
+
 /* =====================================================================
    R33 录题面板 + R46 换伙伴审批面板
    ===================================================================== */
+function GP_jumpToClass(remoteId){
+  // 从 GP.clsMap 找到对应的本地 class id
+  for(const lid in GP.clsMap){
+    if(GP.clsMap[lid].remoteId===remoteId){
+      switchClass(lid);
+      return;
+    }
+  }
+  toast('未找到该班级（可能需要刷新数据）');
+}
 function openQuizPanel(){
   if(!GP.enabled()){ toast('请先登录后使用录题'); return; }
   let box=$('quizPanel');
@@ -1584,6 +1746,11 @@ function openQuizPanel(){
         <textarea id="qText" placeholder="题干：如「植物的根主要吸收什么？」" rows="2"
           style="padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--glass);color:var(--txt);resize:vertical;font:inherit"></textarea>
         <div id="qOptions" style="display:flex;flex-direction:column;gap:6px"></div>
+        <!-- R30: 关联推荐标签 -->
+        <div style="margin-top:6px">
+          <div style="font-size:12px;color:var(--txt2);margin-bottom:5px">关联标签（选填，上课时高亮推荐）</div>
+          <div id="qLabels" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
         <div style="display:flex;gap:8px">
           <button class="btn" onclick="GP_addOption()">+ 添加选项</button>
           <button class="btn primary" id="qSaveBtn" style="margin-left:auto">💾 保存题目</button>
@@ -1599,9 +1766,35 @@ function openQuizPanel(){
     box.onclick=e=>{ if(e.target===box) box.classList.remove('show'); };
     $('qSaveBtn').onclick=GP_saveQuestion;
     GP_addOption(); GP_addOption(); // 默认 2 个选项
+    GP_renderLabelChips();
   }
   box.classList.add('show');
   GP_loadQuestions();
+}
+/* R30: 标签多选 chips */
+const QUIZ_LABELS = [
+  {key:'ask_question',name:'提出好问题'},
+  {key:'conclude',name:'完整表达结论'},
+  {key:'safe_op',name:'规范操作实验'},
+  {key:'safety_remind',name:'安全提醒'},
+  {key:'observe',name:'认真观察记录'},
+  {key:'reading',name:'科学阅读'},
+  {key:'love_life',name:'爱护实验生物'},
+  {key:'cooperate',name:'小组合作探究'},
+  {key:'help_mate',name:'帮助同学'},
+  {key:'engineering',name:'创新小制作'},
+  {key:'tidy_up',name:'主动整理'},
+  {key:'persist_observe',name:'坚持长期观察'}
+];
+let GP_selectedLabels = [];
+function GP_renderLabelChips(){
+  const box=$('qLabels'); if(!box) return;
+  box.innerHTML=QUIZ_LABELS.map(l=>`<span class="qlabel-chip${GP_selectedLabels.includes(l.key)?' sel':''}" data-k="${l.key}" onclick="GP_toggleLabel('${l.key}')">${l.name}</span>`).join('');
+}
+function GP_toggleLabel(key){
+  const i=GP_selectedLabels.indexOf(key);
+  if(i>=0) GP_selectedLabels.splice(i,1); else GP_selectedLabels.push(key);
+  GP_renderLabelChips();
 }
 function GP_addOption(){
   const c=$('qOptions'); if(!c) return;
@@ -1627,13 +1820,15 @@ async function GP_saveQuestion(){
   const answer=parseInt(answerEl.value,10);
   const grade=$('qGrade').value?parseInt($('qGrade').value,10):null;
   const unit=$('qUnit').value.trim()||null;
+  const recommendedLabels=[...GP_selectedLabels]; // R30
   const cid=remoteClassId();
   $('qHint').textContent='保存中…';
   try{
     await GP.api('/api/classes/'+cid+'/questions',{method:'POST',
-      body:JSON.stringify({grade,unit,question:text,options:opts,answer,explanation:''})});
+      body:JSON.stringify({grade,unit,question:text,options:opts,answer,explanation:'',recommended_labels:recommendedLabels})});
     $('qHint').textContent='✅ 已保存'; $('qText').value='';
     $('qOptions').innerHTML=''; GP_addOption(); GP_addOption();
+    GP_selectedLabels=[]; GP_renderLabelChips(); // 清空标签
     GP_loadQuestions();
   }catch(err){ $('qHint').textContent='保存失败：'+(err.message||'未知错误'); }
 }
