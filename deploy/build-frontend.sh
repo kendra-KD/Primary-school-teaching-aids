@@ -21,4 +21,6 @@ done
 echo "✓ 前端已构建到 $OUT （GP_API_BASE='${API_BASE:-同域}'）"
 
 # ── 构建后自动体检：script 标签配对 + JS 语法。坏了直接中止，绝不发布「打不开」的页面 ──
-bash deploy/check-frontend.sh "$OUT/teacher-dashboard.html"
+for f in teacher-dashboard.html partner-demo.html index.html; do
+  [ -f "$OUT/$f" ] && bash deploy/check-frontend.sh "$OUT/$f"
+done
