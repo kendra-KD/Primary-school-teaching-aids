@@ -5,13 +5,28 @@
 
 差异化护城河：**12 条科学学科专属行为标签**（提出好问题 / 观察记录 / 爱护实验生物 / 整理器材 / 工程制作 / 长期观察）——这些是希沃、ClassDojo 等通用积分工具记不下来的。
 
+## 📚 完整文档中心 → [`docs/`](docs/README.md)
+
+**产品规划、需求台账（已实现/未实现）、设计说明、技术文档、研发流程规范、测试验收、部署运维、开发历程，全部收拢在 [`docs/`](docs/README.md)。**
+
+| 我想了解 | 去看 |
+|---|---|
+| 这个项目是什么、给谁用、到哪一步了 | [docs/01-项目概览](docs/01-项目概览/项目简介.md) |
+| 提了哪些需求、哪些做了哪些没做 | [docs/02-需求/需求清单与实现状态](docs/02-需求/需求清单与实现状态.md) ⭐ |
+| 下一步做什么、不做什么 | [docs/03-产品设计/产品路线图](docs/03-产品设计/产品路线图.md) |
+| 架构 / 数据库 / 接口 | [docs/04-技术设计](docs/04-技术设计/系统架构设计.md) |
+| 开发流程与规范 | [docs/05-研发流程与规范](docs/05-研发流程与规范/研发流程规范.md) ⭐ |
+| 怎么部署、出问题怎么查 | [docs/07-部署与运维](docs/07-部署与运维/部署手册.md) |
+| 完整的开发过程记录 | [docs/08-项目历程](docs/08-项目历程/全流程开发日志.md) ⭐ |
+
 ## 目录结构
 
 ```
-design/    产品设计文档（requirements-research / final-design-report / teacher-interview-outline / teacher-trial-validation-kit / partner-selection-design / grade-preference-survey / design-spec）
-frontend/  老师大屏驾驶舱高保真原型 HTML（teacher-dashboard.html，自包含，双击即用）+ 伙伴自选演示 HTML（partner-demo.html）
+docs/      📚 项目文档中心（唯一入口，见上）
+frontend/  老师大屏驾驶舱高保真原型 HTML（teacher-dashboard.html，自包含，双击即用）+ 学生端（partner-demo.html）
 server/    后端 API（Node 22 + Fastify 5 + Postgres）
-deploy/    docker-compose、初始化 SQL、Nginx 配置、.env 样例
+deploy/    docker-compose、初始化 SQL、迁移 SQL、Nginx 配置、.env 样例
+preview-creatures.html   38 种伙伴图鉴预览页
 ```
 
 ## 当前进展
@@ -20,8 +35,10 @@ deploy/    docker-compose、初始化 SQL、Nginx 配置、.env 样例
 - ✅ 伙伴自选设计（1–6 年级分层主题包，原创形象无版权风险）
 - ✅ 后端 API：老师账号 / 班级 / 花名册 / 科学点评 / 全班实时状态 / 撤销点评
 - ✅ 前端云同步层：配置 `GP_API_BASE` 后跨设备同步，未配置则纯本地运行
-- ⏳ 学生端轻网页（入班码认领伙伴）待开发
-- ⏳ 真实老师试用验证（见 `design/teacher-trial-validation-kit.md`）
+- ✅ 学生端（入班码认领伙伴 + 我的伙伴主页 + 签到/答题/观察互动）
+- ✅ 38 种伙伴独立形象 + 动画；老师大屏 15s 实时轮询
+- ⏳ 真实老师试用验证（见 `docs/90-历史设计资料/teacher-trial-validation-kit.md`）
+- 🔴 待办：题库、作业入口、老师端互动明细、数据备份、隐私政策（见 [路线图](docs/03-产品设计/产品路线图.md)）
 
 ## 本地预览（不装任何东西）
 
@@ -116,4 +133,4 @@ docker compose -f deploy/growth-planet-docker-compose.yml down       # 停止
 - **数据最小化**：当前只存学生姓名 + 课堂行为，不采集手机号等隐私；涉及未成年，正式面向学校使用前建议补一份《隐私政策》并在宿主 Nginx 的 growth-planet server 块加隐私提示。
 - **登录鉴权**：所有写接口需 JWT；公开注册默认关闭，账号只经 `create-teacher.js` 创建。
 - **生产操作先备份**：`deploy/data/postgres` 是数据库卷，定期备份；误删容器数据不回滚。
-- 详细架构与备份/监控/扩容见 `deploy/growth-planet-backend-架构与部署方案.md`。
+- 详细架构与备份/监控/扩容见 `docs/07-部署与运维/后端架构与部署方案（原始稿）.md`、`docs/04-技术设计/系统架构设计.md`、`docs/07-部署与运维/运维监控与备份.md`。

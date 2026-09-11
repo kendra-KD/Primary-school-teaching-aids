@@ -152,7 +152,7 @@ export default async function eventRoutes(fastify) {
 
     const { rows: boardRows } = await query(
       `SELECT s.id, s.name,
-              (COALESCE(SUM(e.delta), 0) + COALESCE(a.act_points, 0))::INT AS growth,
+              (COALESCE(SUM(e.delta), 0) + COALESCE(MAX(a.act_points), 0))::INT AS growth,
               COUNT(*) FILTER (WHERE e.label_key = 'ask_question')::INT AS ask_count,
               COUNT(*) FILTER (WHERE e.label_key = 'love_life')::INT    AS love_count
          FROM students s

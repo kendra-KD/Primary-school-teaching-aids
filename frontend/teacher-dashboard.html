@@ -1161,9 +1161,11 @@ function importBatch(){
     const fresh=names.filter(n=>!seen.has(n));
     if(!fresh.length){ $('importHint').textContent='这些名字都已在本班，无需重复导入'; return; }
     $('importHint').textContent='正在导入 '+fresh.length+' 位…';
+    // 注意：新增与刷新分开处理——新增成功但 /state 刷新失败时，不能报成"导入失败"误导老师
     GP.api('/api/classes/'+remoteClassId()+'/students',{method:'POST',body:JSON.stringify({names:fresh})})
-      .then(()=>refreshFromCloud())
-      .then(()=>{ $('importHint').textContent='已导入 '+fresh.length+' 位（已同步云端）'; $('importArea').value=''; })
+      .then(()=>refreshFromCloud()
+        .then(()=>{ $('importHint').textContent='已导入 '+fresh.length+' 位（已同步云端）'; $('importArea').value=''; })
+        .catch(()=>{ $('importHint').textContent='已导入 '+fresh.length+' 位，但花名册刷新超时，请手动刷新页面'; $('importArea').value=''; }))
       .catch(err=>{ $('importHint').textContent='导入失败：'+((err&&err.message)||'未知错误'); });
     return;
   }
