@@ -146,12 +146,32 @@ body::before{
 .partner.wilt{filter:grayscale(.5) brightness(.8);}
 .partner.injured .blob{animation:shake .5s;}
 .partner.loved{box-shadow:0 0 18px rgba(255,158,201,.5);}
-.partner .spark{position:absolute;top:6px;font-size:20px;animation:rise .9s ease forwards;pointer-events:none;}
+.partner .spark{position:absolute;top:6px;left:50%;margin-left:-12px;font-size:22px;animation:sparkFloat 2.5s ease-out forwards;pointer-events:none;z-index:5;}
+@keyframes sparkFloat{0%{opacity:0;transform:translate(0,0) scale(.5)}15%{opacity:1;transform:translate(calc(var(--dx,0px)*.3),calc(var(--dy,0px)*.3)) scale(1.3)}60%{opacity:1;transform:translate(var(--dx,0px),var(--dy,0px)) scale(1)}100%{opacity:0;transform:translate(calc(var(--dx,0px)*1.5),calc(var(--dy,0px)*1.5 - 30px)) scale(.8)}}
 
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
 @keyframes rise{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-34px)}}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.pin-shake{animation:shake .35s ease-in-out 2;}
+/* 大屏计时器全屏模式 */
+.fullscreen-timer{position:fixed;inset:0;z-index:9999;background:rgba(16,12,28,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.fullscreen-timer .fs-num{font-size:clamp(8rem,22vw,20rem);font-weight:900;color:#A8E6CF;font-variant-numeric:tabular-nums;line-height:1;text-shadow:0 0 40px rgba(168,230,207,.4);}
+.fullscreen-timer .fs-label{font-size:1.5rem;color:#9A94A6;margin-top:1rem;letter-spacing:2px;}
+.fullscreen-timer .fs-close{position:fixed;top:2rem;right:2rem;font-size:1.2rem;color:#9A94A6;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 18px;cursor:pointer;}
+.fullscreen-timer .fs-close:hover{color:#F4EFE7;}
+/* 装扮穿戴点击态 */
+.ditem.wearing{outline:2px solid var(--accent);outline-offset:2px;box-shadow:0 0 12px rgba(168,230,207,.5);}
+.ditem.wearing .dn::before{content:'✓ 穿戴中 ';color:var(--accent);font-size:10px;}
+.ditem .wear-btn{font-size:10px;padding:3px 8px;border-radius:6px;background:var(--glass-strong);color:var(--accent);border:1px solid var(--line);cursor:pointer;margin-top:4px;}
+.ditem.lock .wear-btn{display:none;}
+.wear-layer{position:absolute;top:-8px;left:50%;width:28px;height:28px;transform:translateX(-50%);pointer-events:none;z-index:6;}
+.wear-layer .wear-svg{width:100%;height:100%;}
+/* 点评装饰永久佩戴 —— 星球墙上的花/叶更大更明显 */
+.partner .fx{position:absolute;inset:0;pointer-events:none;display:flex;gap:3px;justify-content:center;align-items:flex-end;padding-bottom:2px;}
+.partner .fx span{width:20px;height:20px;display:block;}
+.partner .fx span svg{width:100%;height:100%;}
+.partner .fx-big span{width:28px;height:28px;}
 
 /* ===== 伙伴生物动画（呼吸 / 眨眼 / 摆动手足） ===== */
 .partner .blob{transition:transform .2s ease;}
@@ -364,6 +384,7 @@ hidden{display:none!important;}
       <span class="clock" id="timerTxt">00:00</span>
       <button id="tStart" title="课堂计时器">⏱ 计时</button>
       <button id="tReset">重置</button>
+      <button id="tFsBtn" title="全屏放大计时（考试/做题用）">⛶</button>
     </div>
     <button class="btn" id="gearBtn">⚙ 花名册</button>
     <button class="btn" id="reportBtn">📊 周报</button>
@@ -436,7 +457,8 @@ hidden{display:none!important;}
       </div>
       <div class="join-acts">
         <button class="btn primary" id="copyLinkBtn">🔗 复制入班链接</button>
-        <button class="btn" id="openStuBtn">🎒 打开学生自选页</button>
+        <button class="btn" id="openStuBtn">🎒 学生自选页（首次认领）</button>
+        <button class="btn" id="openStuDailyBtn">📱 学生互动入口（课间答题/交作业）</button>
       </div>
       <div class="join-hint" id="joinHint">登录并建班后自动生成入班码</div>
     </div>
@@ -510,7 +532,7 @@ const GROUPS=['🌱萌芽组','🔬探秘组','💡奇思组','🛡️守护组'
 const GROUP_COLORS=['#A8E6CF','#A0D2FF','#FFE5A0','#CDB4FF'];
 
 function mk(n,type,color,state,score,ask,vines){
-  return {n,type,color,state:state||'active',score:score||8,ask:ask||0,vines:vines||[],decor:[]};
+  return {n,type,color,state:state||'active',score:score||8,ask:ask||0,vines:vines||[],decor:[],wearing:null};
 }
 const CLASSES={
   c1:{
@@ -678,6 +700,18 @@ function creature(type,color){
     rock_spirit:c=>`<path d="M26 72 l10 -28 l16 8 l14 -16 l8 36z" fill="#b9a98f" stroke="${K}" stroke-width="2" stroke-linejoin="round"/><path d="M36 44 l16 8 l10 -10" fill="none" stroke="#8a7a60" stroke-width="1.4"/><circle cx="48" cy="60" r="12" fill="#f3e9da" stroke="${K}" stroke-width="1.8"/>${face(48,58,{dx:3.5,blush:false})}`,
     dragon_spirit:c=>`<g class="c-wig" style="transform-origin:50px 46px"><path d="M30 40 q-14 -14 -22 -6 q12 2 16 12z" fill="${c}" stroke="${K}" stroke-width="1.6"/></g><path d="M34 40 q16 -10 32 0 q10 14 0 30 q-16 12 -32 0 q-10 -16 0 -30z" fill="${c}" stroke="${K}" stroke-width="2" opacity=".92"/><path d="M50 26 q4 -8 10 -6 q-2 8 -10 8z" fill="${c}" stroke="${K}" stroke-width="1.4"/><circle cx="46" cy="48" r="3" fill="${K}"/><circle cx="58" cy="48" r="3" fill="${K}"/><path d="M42 60 q8 7 16 0" stroke="${K}" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M40 34 q10 -4 20 0" stroke="${c}" stroke-width="3" fill="none" opacity=".6"/>`,
     dark_spirit:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".16"/><circle cx="50" cy="54" r="24" fill="#3a3550" stroke="${K}" stroke-width="2"/><circle cx="42" cy="50" r="4" fill="${c}"/><circle cx="58" cy="50" r="4" fill="${c}"/><path d="M42 64 q8 6 16 0" stroke="${c}" stroke-width="2.5" fill="none" stroke-linecap="round"/><g class="c-wig" style="transform-origin:50px 18px"><circle cx="38" cy="18" r="2.5" fill="${c}"/><circle cx="62" cy="18" r="2.5" fill="${c}"/><circle cx="50" cy="12" r="2.5" fill="${c}"/></g>`,
+    // ---------- 恐龙系列（原创，dino_pack）----------
+    dino_saurus:c=>`<path d="M28 74 q-4 -16 4 -26 q8 -10 18 -10 q10 0 18 10 q8 10 4 26z" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M32 50 q-10 -2 -14 -10 M40 44 q-8 -8 -8 -16 M60 44 q8 -8 8 -16 M68 50 q10 -2 14 -10" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="42" cy="46" r="3" fill="${K}"/><circle cx="58" cy="46" r="3" fill="${K}"/><path d="M44 56 q6 4 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M46 62 q4 3 8 0" fill="${K}"/><g class="c-wig" style="transform-origin:50px 38px"><path d="M40 38 q4 -10 10 -8 q-2 8 -10 8z M60 38 q-4 -10 -10 -8 q2 8 10 8z" fill="${c}" stroke="${K}" stroke-width="1.4"/></g>`,
+    tricera:c=>`<path d="M22 58 q-10 -4 -12 -16 q8 0 12 8z M78 58 q10 -4 12 -16 q-8 0 -12 8z" fill="${c}" stroke="${K}" stroke-width="1.8"/><ellipse cx="50" cy="56" rx="24" ry="22" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M38 38 q12 -6 24 0" stroke="${K}" stroke-width="3" fill="none"/><path d="M44 36 q6 -14 12 -2 q-6 10 -12 2z" fill="${E}" stroke="${K}" stroke-width="1.6"/>${face(50,54,{dx:5,blush:false})}<path d="M46 64 q4 4 8 0 q-4 4 -8 0z" fill="${K}"/>`,
+    ptera:c=>`<g class="c-wig" style="transform-origin:50px 50px"><path d="M30 50 q-20 -8 -24 -20 q14 6 24 16z" fill="${c}" stroke="${K}" stroke-width="1.8"/><path d="M70 50 q20 -8 24 -20 q-14 6 -24 16z" fill="${c}" stroke="${K}" stroke-width="1.8"/></g><ellipse cx="50" cy="56" rx="16" ry="20" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M46 40 q4 -10 8 -4 q-4 6 -8 4z" fill="${c}" stroke="${K}" stroke-width="1.4"/>${face(50,54,{dx:4,blush:false})}<path d="M44 66 q6 4 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    // ---------- 星际精灵系列（原创，cosmo_pack）----------
+    meteor_spirit:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".12"/><g class="c-wig" style="transform-origin:50px 54px"><path d="M50 22 q8 12 0 22 q-8 -10 0 -22z" fill="${c}" stroke="${K}" stroke-width="1.8"/><circle cx="50" cy="56" r="14" fill="#fff" stroke="${K}" stroke-width="1.8"/></g><path d="M20 30 q20 6 24 18 M80 78 q-16 -6 -20 -18" stroke="${c}" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/>${face(50,54,{dx:4,blush:false})}<g fill="${c}" opacity=".6"><circle cx="24" cy="20" r="1.5"/><circle cx="76" cy="24" r="1.5"/><circle cx="70" cy="12" r="1"/></g>`,
+    nebula_beast:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".14"/><g class="c-wig" style="transform-origin:50px 50px"><circle cx="36" cy="44" r="14" fill="${c}" opacity=".4"/><circle cx="64" cy="44" r="14" fill="${c}" opacity=".4"/><circle cx="50" cy="60" r="18" fill="${c}" opacity=".3"/></g><ellipse cx="50" cy="52" rx="18" ry="16" fill="#fff" stroke="${K}" stroke-width="1.8"/><path d="M38 44 q12 -8 24 0" stroke="${c}" stroke-width="2" fill="none"/>${face(50,50,{dx:5,blush:false})}<g fill="${c}"><circle cx="20" cy="24" r="1.5"/><circle cx="80" cy="20" r="1.5"/><circle cx="74" cy="78" r="1.5"/></g>`,
+    void_spirit:c=>`<circle cx="50" cy="54" r="32" fill="${c}" opacity=".1"/><circle cx="50" cy="54" r="22" fill="#1a1a2e" stroke="${K}" stroke-width="2"/><circle cx="50" cy="54" r="16" fill="#000"/><circle cx="50" cy="54" r="22" fill="none" stroke="${c}" stroke-width="1.5" opacity=".8"/><g class="c-wig" style="transform-origin:50px 54px"><circle cx="50" cy="54" r="4" fill="${c}"/><circle cx="38" cy="48" r="2" fill="${c}"/><circle cx="62" cy="48" r="2" fill="${c}"/><circle cx="50" cy="38" r="1.5" fill="${c}"/><circle cx="50" cy="70" r="1.5" fill="${c}"/></g><path d="M42 40 q8 4 16 0" stroke="${c}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    // ---------- Xiaolong人系列（原创龙人，xiaolong_pack）----------
+    xiaolong_scholar:c=>`<path d="M34 80 q16 6 32 0 l-2 -8 q-14 4 -28 0z" fill="#5a4a3a"/><ellipse cx="50" cy="54" rx="20" ry="24" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M36 44 q14 -12 28 0" stroke="${K}" stroke-width="2" fill="none"/><path d="M42 42 q8 -8 8 -14 M58 42 q-8 -8 -8 -14" stroke="${K}" stroke-width="1.6" fill="none"/><g class="c-wig" style="transform-origin:50px 30px"><path d="M40 30 q10 -12 20 -2 q-8 8 -20 2z" fill="${c}" stroke="${K}" stroke-width="1.4"/></g><rect x="40" y="58" width="20" height="12" rx="2" fill="#f3e9da" stroke="${K}" stroke-width="1.4"/><line x1="44" y1="62" x2="56" y2="62" stroke="${K}" stroke-width="1"/><line x1="44" y1="66" x2="56" y2="66" stroke="${K}" stroke-width="1"/>${face(50,50,{dx:4,blush:false})}`,
+    xiaolong_warrior:c=>`<path d="M28 80 q22 4 44 0 l-2 -6 q-20 3 -40 0z" fill="#6a3a3a"/><ellipse cx="50" cy="54" rx="22" ry="24" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M34 40 q16 -14 32 0" stroke="${K}" stroke-width="2.5" fill="none"/><path d="M36 38 q14 -10 28 0 q-8 -16 -28 0z" fill="${c}" stroke="${K}" stroke-width="1.6"/><path d="M44 34 q6 -6 12 0" fill="${c}" stroke="${K}" stroke-width="1.4"/><rect x="42" y="62" width="16" height="14" rx="3" fill="#9a8a7a" stroke="${K}" stroke-width="1.6"/><path d="M46 64 h8 v4 h-8z" fill="${c}"/>${face(50,52,{dx:4,blush:false})}<path d="M30 50 q-8 4 -10 12 M70 50 q8 4 10 12" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    xiaolong_chef:c=>`<ellipse cx="50" cy="54" rx="20" ry="24" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M34 42 q16 -10 32 0" stroke="${K}" stroke-width="2" fill="none"/><path d="M40 40 q10 -8 20 0 q-6 -14 -20 0z" fill="${c}" stroke="${K}" stroke-width="1.6"/><g class="c-wig" style="transform-origin:50px 26px"><ellipse cx="50" cy="24" rx="16" ry="8" fill="#fff" stroke="${K}" stroke-width="1.6"/><path d="M38 24 q12 6 24 0" fill="#f3e9da" stroke="${K}" stroke-width="1.4"/></g><path d="M36 62 q14 6 28 0 l-2 -4 q-12 4 -24 0z" fill="#fff" stroke="${K}" stroke-width="1.6"/>${face(50,52,{dx:4,blush:false})}<circle cx="58" cy="62" r="2" fill="#ff6b6b"/>`,
     // 兜底
     _fallback:c=>`<ellipse cx="50" cy="60" rx="22" ry="26" fill="${E}" stroke="${K}" stroke-width="2"/><path d="M50 40 l4 -10 l4 10z" fill="${c}"/><circle cx="43" cy="58" r="3" fill="${K}"/><circle cx="57" cy="58" r="3" fill="${K}"/><path d="M44 66 q6 5 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`
   };
@@ -688,6 +722,19 @@ function decorSVG(kind){
   if(kind==='leaf') return `<svg viewBox="0 0 24 24"><path d="M12 22 C4 16 4 6 12 2 C20 6 20 16 12 22Z" fill="#8fd18f" stroke="#5fae5f" stroke-width="1"/><line x1="12" y1="22" x2="12" y2="8" stroke="#5fae5f" stroke-width="1"/></svg>`;
   if(kind==='know') return `<svg viewBox="0 0 24 24"><path d="M12 22 C5 16 5 7 12 3 C19 7 19 16 12 22Z" fill="#FFE5A0" stroke="#E0B84a" stroke-width="1"/><line x1="12" y1="20" x2="12" y2="7" stroke="#E0B84a" stroke-width="1"/></svg>`;
   return `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#FFB3C6"/><g fill="#FF8FB0"><circle cx="12" cy="4" r="3"/><circle cx="12" cy="20" r="3"/><circle cx="4" cy="12" r="3"/><circle cx="20" cy="12" r="3"/></g><circle cx="12" cy="12" r="2.5" fill="#fff"/></svg>`;
+}
+// 穿戴装扮 SVG（帽子/眼镜/围巾等，定位在伙伴头顶或身上）
+function wearSVG(key){
+  const M='<svg viewBox="0 0 24 24" class="wear-svg">';
+  if(key==='sprout') return M+`<path d="M12 4 C10 1 7 1 6 2 C7 4 9 5 12 4Z M12 4 C14 1 17 1 18 2 C17 4 15 5 12 4Z" fill="#8fd18f"/><rect x="11" y="3" width="2" height="6" fill="#5fae5f"/></svg>`;
+  if(key==='magnifier') return M+`<circle cx="9" cy="9" r="4" fill="none" stroke="#5A5566" stroke-width="1.5"/><circle cx="9" cy="9" r="3" fill="rgba(168,230,207,.3)"/><line x1="12" y1="12" x2="16" y2="16" stroke="#5A5566" stroke-width="2"/></svg>`;
+  if(key==='bow') return M+`<path d="M6 6 L12 10 L6 14 Z M18 6 L12 10 L18 14 Z" fill="#FFB3C6" stroke="#FF8FB0" stroke-width="1"/><circle cx="12" cy="10" r="2" fill="#FF8FB0"/></svg>`;
+  if(key==='scarf') return M+`<path d="M4 14 Q12 18 20 14 L20 17 Q12 21 4 17 Z" fill="#C75D5D"/><path d="M18 16 L20 22 L16 20 Z" fill="#A04848"/></svg>`;
+  if(key==='hat') return M+`<path d="M4 16 Q12 4 20 16 Z" fill="#8B6F47" stroke="#6B5237" stroke-width="1"/><rect x="3" y="15" width="18" height="3" rx="1" fill="#6B5237"/></svg>`;
+  if(key==='glasses') return M+`<circle cx="8" cy="10" r="3.5" fill="rgba(255,229,160,.5)" stroke="#E0B84a" stroke-width="1.5"/><circle cx="16" cy="10" r="3.5" fill="rgba(255,229,160,.5)" stroke="#E0B84a" stroke-width="1.5"/><line x1="11" y1="10" x2="13" y2="10" stroke="#E0B84a" stroke-width="1.5"/></svg>`;
+  if(key==='crown') return M+`<path d="M4 14 L6 6 L9 10 L12 4 L15 10 L18 6 L20 14 Z" fill="#FFD700" stroke="#E0B84a" stroke-width="1"/><circle cx="12" cy="8" r="1.5" fill="#FF4081"/></svg>`;
+  if(key==='cape') return M+`<path d="M6 6 Q12 20 18 6 L16 18 Q12 22 8 18 Z" fill="url(#capeGrad)"/><defs><linearGradient id="capeGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF8FB0"/><stop offset="0.5" stop-color="#A8E6CF"/><stop offset="1" stop-color="#A0D2FF"/></linearGradient></defs></svg>`;
+  return '';
 }
 
 /* =====================================================================
@@ -764,11 +811,14 @@ function renderPlanet(){
     const badge = s.state==='loved'?'💗':s.state==='injured'?'🩹':s.state==='wilt'?'🥀':'';
     const care = s.state==='injured'?'<div class="carepill">需照料</div>':'';
     const decor = s.decor.map(d=>`<span>${decorSVG(d)}</span>`).join('');
+    const decorCls = s.decor.length?'fx fx-big':'fx';
+    const wearLayer = s.wearing ? `<div class="wear-layer">${wearSVG(s.wearing)}</div>` : '';
     return `<div class="partner ${stateCls} ${selectedId===i?'sel':''}" data-i="${i}" style="--c:${s.color}">
       <div class="score">${s.score}</div>
       ${badge?`<div class="badge">${badge}</div>`:''}
       <div class="blob">${creature(s.type,s.color)}
-        <div class="fx">${decor}</div>
+        <div class="${decorCls}">${decor}</div>
+        ${wearLayer}
       </div>
       ${care}
       <div class="name">${esc(s.n)}</div>
@@ -914,11 +964,14 @@ function applyTag(gi,ti){
     let unlocked=false;
     try{ unlocked=sessionStorage.getItem('gp_unlocked')==='1'; }catch(e){}
     if(!unlocked){
-      const input=prompt('🔒 授课锁定中：点评需输入 PIN 解锁（老师操作）');
-      if(input===null){ return; }
-      if(String(input).trim()!==String(GP.lessonPin)){ toast('❌ PIN 不正确，已拦截本次点评'); return; }
-      try{ sessionStorage.setItem('gp_unlocked','1'); }catch(e){}
-      toast('🔓 已解锁，本节课可正常点评');
+      GP.pinPrompt('🔒 授课锁定中：点评需输入 PIN 解锁').then(input=>{
+        if(input===null){ return; }
+        if(String(input).trim()!==String(GP.lessonPin)){ GP.pinShake(); toast('❌ PIN 不正确，已拦截本次点评'); return; }
+        try{ sessionStorage.setItem('gp_unlocked','1'); }catch(e){}
+        toast('🔓 已解锁，本节课可正常点评');
+        applyTag(gi,ti);
+      });
+      return;
     }
   }
   if(selectedId===null){ toast('请先点一个伙伴 👆'); return; }
@@ -953,9 +1006,21 @@ function applyTag(gi,ti){
   toast(`${s.n} · ${tag.label} ${tag.v>0?'+'+tag.v:''} ✨`);
 }
 
-function flash(blob,clsName){blob.classList.add(clsName);setTimeout(()=>blob.classList.remove(clsName),900);
-  const svg=blob.querySelector('svg'); if(svg){ svg.classList.remove('hop'); void svg.offsetWidth; svg.classList.add('hop'); setTimeout(()=>svg.classList.remove('hop'),600); }}
-function spawnSpark(el,emo){const s=document.createElement('div');s.className='spark';s.textContent=emo;el.appendChild(s);setTimeout(()=>s.remove(),900);}
+function flash(blob,clsName){blob.classList.add(clsName);setTimeout(()=>blob.classList.remove(clsName),2200);
+  const svg=blob.querySelector('svg'); if(svg){ svg.classList.remove('hop'); void svg.offsetWidth; svg.classList.add('hop'); setTimeout(()=>svg.classList.remove('hop'),800); }}
+function spawnSpark(el,emo){
+  // 粒子更大更多、持续 2.5 秒，大屏投影也看得清
+  for(let k=0;k<5;k++){
+    const s=document.createElement('div'); s.className='spark';
+    s.textContent=emo;
+    const dx=(Math.random()-0.5)*60, dy=(Math.random()-0.5)*60;
+    s.style.setProperty('--dx',dx+'px'); s.style.setProperty('--dy',dy+'px');
+    s.style.fontSize=(16+Math.random()*10)+'px';
+    s.style.animationDelay=(k*80)+'ms';
+    el.appendChild(s);
+    setTimeout(()=>s.remove(),2500);
+  }
+}
 
 function measureCenters(){
   const scene=$('planet'), grid=$('planetGrid');
@@ -986,18 +1051,25 @@ function renderVines(){
 }
 
 function switchClass(id){
-  // R50: 授课中切班必须验证 PIN（防学生自行切班）；未授课则静默清理残留会话
-  if(GP.lessonActive()){
-    const input=prompt('📚 正在授课中，切班需输入本课 PIN（老师操作）：');
-    if(input===null){ toast('已取消切班'); return; }
-    if(String(input).trim()!==String(GP.lessonPin)){ toast('❌ PIN 不正确，已取消切班'); return; }
+  // R50: 切班永远需 PIN 验证（不论是否授课中）—— 防学生自行切班；仅未登录（纯本机模式）时跳过
+  const needPin = GP_CLOUD && GP.lessonToken;
+  if(needPin){
+    GP.pinPrompt('📚 切换班级需验证本课 PIN（仅老师操作）').then(input=>{
+      if(input===null){ toast('已取消切班'); return; }
+      if(String(input).trim()!==String(GP.lessonPin)){ GP.pinShake(); toast('❌ PIN 不正确，已取消切班'); return; }
+      doSwitchClass(id);
+    });
+    return;
   }
+  doSwitchClass(id);
+}
+function doSwitchClass(id){
   currentClass=id; selectedId=null;
   if(GP.lessonToken){
     GP.lessonToken=''; GP.lessonPin='';
     try{sessionStorage.removeItem('gp_unlocked');}catch(e){}
     GP.renderLessonUI();
-    toast('授课会话已结束，可安全切班');
+    toast('授课会话已结束，已切班');
   }
   try{localStorage.setItem('gp_lastClass',id);}catch(e){}
   renderTopbar(); renderPlanet(); renderBoard(); updateSelPanel(); renderJoinBox();
@@ -1012,6 +1084,21 @@ function onTimerStart(){
   else{tTimer=setInterval(()=>{tSec++;const m=String(Math.floor(tSec/60)).padStart(2,'0');const s=String(tSec%60).padStart(2,'0');$('timerTxt').textContent=m+':'+s;},1000);$('tStart').textContent='暂停';}
 }
 function onTimerReset(){clearInterval(tTimer);tTimer=null;tSec=0;$('timerTxt').textContent='00:00';$('tStart').textContent='开始';}
+function onTimerFs(){
+  // 全屏超大计时：考试/做题全班可见
+  const existing=document.getElementById('fsTimer'); if(existing){ existing.remove(); return; }
+  const fs=document.createElement('div'); fs.id='fsTimer'; fs.className='fullscreen-timer';
+  const fmt=()=>{ const m=String(Math.floor(tSec/60)).padStart(2,'0'); const s=String(tSec%60).padStart(2,'0'); return m+':'+s; };
+  fs.innerHTML=`<button class="fs-close" title="退出全屏（Esc）">✕ 退出</button><div class="fs-num" id="fsNum">${fmt()}</div><div class="fs-label" id="fsLabel">${tTimer?'⏱ 计时中':'⏸ 已暂停'}</div>`;
+  document.body.appendChild(fs);
+  const upd=()=>{ const n=document.getElementById('fsNum'); const l=document.getElementById('fsLabel'); if(n) n.textContent=fmt(); if(l) l.textContent=tTimer?'⏱ 计时中':'⏸ 已暂停'; };
+  fs.querySelector('.fs-close').onclick=()=>{ clearInterval(fs._iv); fs.remove(); };
+  fs.onclick=e=>{ if(e.target===fs){ clearInterval(fs._iv); fs.remove(); } };
+  // 点击数字也能暂停/继续
+  fs.querySelector('.fs-num').onclick=(e)=>{ e.stopPropagation(); onTimerStart(); };
+  document.addEventListener('keydown',function escH(e){ if(e.key==='Escape'){ const f=document.getElementById('fsTimer'); if(f){ clearInterval(f._iv); f.remove(); } document.removeEventListener('keydown',escH); } });
+  fs._iv=setInterval(upd,500);
+}
 
 /* 选择面板按钮 */
 function onClearSel(){selectedId=null;document.querySelectorAll('.partner').forEach(e=>e.classList.remove('sel'));updateSelPanel();}
@@ -1042,10 +1129,11 @@ function openGrowthCard(i){
     return `<div class="tnode ${done?'done':''} ${cur?'cur':''}"><div class="dot">${done?'✓':k+1}</div><div class="tl">${nm}</div></div>${line}`;
   }).join('');
 
-  const DECORS=[['🌱','嫩芽发夹',1],['🔍','放大镜',1],['🎀','蝴蝶结',1],['🧣','小围巾',2],['🎩','探险帽',2],['👓','星星眼镜',2],['👑','小皇冠',3],['🌈','彩虹披风',3]];
-  const decorHtml=DECORS.map(([em,nm,req])=>{
+  const DECORS=[['sprout','🌱','嫩芽发夹',1],['magnifier','🔍','放大镜',1],['bow','🎀','蝴蝶结',1],['scarf','🧣','小围巾',2],['hat','🎩','探险帽',2],['glasses','👓','星星眼镜',2],['crown','👑','小皇冠',3],['cape','🌈','彩虹披风',3]];
+  const decorHtml=DECORS.map(([key,em,nm,req])=>{
     const ok = s.score>= (req===1?6:req===2?12:18);
-    return `<div class="ditem ${ok?'':'lock'}"><div class="di">${em}</div><div class="dn">${nm}</div></div>`;
+    const worn = s.wearing===key;
+    return `<div class="ditem ${ok?'':'lock'} ${worn?'wearing':''}" data-wear="${key}"><div class="di">${em}</div><div class="dn">${nm}</div>${ok?`<button class="wear-btn">${worn?'卸下':'穿戴'}</button>`:''}</div>`;
   }).join('');
 
   const connected=s.vines.map(j=>cls.students[j]).filter(Boolean);
@@ -1098,6 +1186,18 @@ function openGrowthCard(i){
     <div class="sec"><div class="sect">📋 互动明细（学生自助）</div><div class="actlist">${actsHtml}</div></div>
   `;
   $('overlay').classList.add('show');
+  // 装扮穿戴/卸下绑定
+  document.querySelectorAll('#growthCard .ditem[data-wear]').forEach(el=>{
+    el.onclick=()=>{
+      const key=el.dataset.wear;
+      const s2=CLASSES[currentClass].students[growthCardId];
+      if(s2.wearing===key){ s2.wearing=null; toast('已卸下装扮'); }
+      else{ s2.wearing=key; toast('已穿戴：'+(DECORS.find(d=>d[0]===key)||[])[2]||'装扮'); }
+      saveClass(currentClass);
+      openGrowthCard(growthCardId); // 刷新卡片
+      renderPlanet(); // 刷新星球上的穿戴效果
+    };
+  });
 }
 
 /* =====================================================================
@@ -1190,9 +1290,14 @@ function legacyCopy(txt,done){
   }catch(e){ toast('复制失败，请手动复制：'+txt); }
 }
 function openStudentPage(){
-  // fresh=1: 强制进认领页，不自动恢复上个同学的互动页（公用设备场景）
+  // fresh=1: 强制进认领页，不自动恢复上个同学的互动页（新学生首次认领场景）
   const url=joinURL();
   window.open(url+(url.includes('?')?'&':'?')+'fresh=1','_blank');
+}
+function openStudentDaily(){
+  // 学生日常入口：不带 fresh，直接进上次认领的伙伴主页（课间答题/交作业）
+  const url=joinURL();
+  window.open(url,'_blank');
 }
 
 /* 新建班级 */
@@ -1420,14 +1525,12 @@ const GP={
       btn.textContent='📒 下课';
       btn.style.display=''; btn.classList.add('primary');
       if(pill){
-        pill.style.display='flex'; pill.style.cursor='pointer';
-        pill.title='点击查看 PIN（默认隐藏，防止投影泄露）';
+        pill.style.display='flex';
+        pill.title='🔒 授课锁定中（PIN 已隐藏，防投影泄露）';
         if(pinTxt){
-          pinTxt.textContent='PIN:已生成 · 点击查看';
-          pill.onclick=()=>{ if(!GP.lessonActive()) return;
-            pinTxt.textContent='PIN:'+GP.lessonPin;
-            setTimeout(()=>{ if(pinTxt) pinTxt.textContent='PIN:已生成 · 点击查看'; },3000);
-          };
+          pinTxt.textContent='🔒 授课锁定中';
+          pill.style.cursor='default';
+          pill.onclick=null; // 默认不响应点击，防学生点开看 PIN
         }
       }
     }else{
@@ -1545,6 +1648,44 @@ const GP={
   }
 };
 
+/* =====================================================================
+   精致解锁面板（替换原生 prompt）——暗色卡片式 PIN 输入
+   用法：const ok = await GP.pinPrompt('切班需验证 PIN');
+   ===================================================================== */
+GP.pinPrompt = function(title){
+  return new Promise(resolve=>{
+    // 已有面板先清
+    const old=document.getElementById('pinModal'); if(old) old.remove();
+    const mask=document.createElement('div'); mask.id='pinModal';
+    mask.className='overlay show';
+    mask.innerHTML=`<div class="modal" style="position:relative;max-width:360px;background:#241f3a;border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:26px 24px;box-shadow:0 18px 50px rgba(0,0,0,.5)">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:30px;margin-bottom:6px">🔒</div>
+        <div style="font-size:15px;font-weight:900;color:#F4EFE7">${title||'请输入 PIN'}</div>
+        <div style="font-size:11px;color:#9A94A6;margin-top:4px">仅老师操作</div>
+      </div>
+      <input id="pinInput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autofocus
+        style="width:100%;text-align:center;letter-spacing:8px;font-size:24px;font-weight:900;color:#F4EFE7;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.15);border-radius:12px;padding:12px;outline:none">
+      <div id="pinErr" style="text-align:center;color:#E4798A;font-size:12px;min-height:18px;margin-top:8px"></div>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <button id="pinCancel" style="flex:1;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#9A94A6;font-weight:800;cursor:pointer">取消</button>
+        <button id="pinOk" style="flex:1;padding:11px;border-radius:12px;border:0;background:#A8E6CF;color:#3E6B52;font-weight:900;cursor:pointer">解锁</button>
+      </div>
+    </div>`;
+    document.body.appendChild(mask);
+    const inp=mask.querySelector('#pinInput'), errBox=mask.querySelector('#pinErr');
+    const close=(val)=>{ mask.remove(); document.removeEventListener('keydown',onKey); resolve(val); };
+    const submit=()=>{ const v=inp.value.trim(); if(!v){ errBox.textContent='请输入 PIN'; inp.focus(); return; } close(v); };
+    mask.querySelector('#pinOk').onclick=submit;
+    mask.querySelector('#pinCancel').onclick=()=>close(null);
+    mask.onclick=e=>{ if(e.target===mask) close(null); };
+    const onKey=e=>{ if(e.key==='Enter') submit(); else if(e.key==='Escape') close(null); };
+    document.addEventListener('keydown',onKey);
+    setTimeout(()=>inp.focus(),50);
+  });
+};
+GP.pinShake=function(){ const m=document.getElementById('pinModal'); if(!m) return; const inp=m.querySelector('#pinInput'); const err=m.querySelector('#pinErr'); if(inp){ inp.style.borderColor='#E4798A'; inp.value=''; inp.focus(); } if(err){ err.textContent='❌ PIN 不正确'; } const card=m.querySelector('.modal'); if(card){ card.classList.remove('pin-shake'); void card.offsetWidth; card.classList.add('pin-shake'); } };
+
 /* 登录入口：右下角固定按钮，不干扰大屏布局 */
 function renderGPBtn(){
   let btn=$('gpBtn');
@@ -1555,10 +1696,28 @@ function renderGPBtn(){
       'font-size:13px;font-weight:800;color:#5A5566;user-select:none';
     document.body.appendChild(btn);
   }
-  if(!GP_CLOUD){ btn.style.display='none'; return; }
+  if(!GP_CLOUD){ btn.style.display='none'; if($('gpPinBtn')) $('gpPinBtn').style.display='none'; return; }
   btn.style.display=''; // 确保在
   btn.textContent = GP.token ? ('☁ '+((GP.teacher&&GP.teacher.display_name)||'已同步')+' · 退出') : '☁ 登录同步';
-  btn.onclick=()=>{ if(GP.token){ if(confirm('退出后将回到本机数据，确定？')) { GP.logout(); GP.renderLessonUI(); } } else openLogin(); };
+  btn.onclick=()=>{ if(GP.token){ if(confirm('退出后将回到本机数据，确定？')) { GP.logout(); GP.renderLessonUI(); renderGPBtn(); } } else openLogin(); };
+  // 隐蔽 PIN 查看按钮（仅授课中显示，右下角，不投影到大屏主区）
+  let pinBtn=$('gpPinBtn');
+  if(!pinBtn){
+    pinBtn=document.createElement('div'); pinBtn.id='gpPinBtn';
+    pinBtn.style.cssText='position:fixed;right:16px;bottom:54px;z-index:90;padding:5px 11px;border-radius:999px;'+
+      'background:rgba(36,31,58,.85);box-shadow:0 3px 10px rgba(0,0,0,.2);cursor:pointer;'+
+      'font-size:11px;font-weight:700;color:#A8E6CF;user-select:none;border:1px solid rgba(168,230,207,.3)';
+    pinBtn.textContent='🔑 查看 PIN';
+    pinBtn.title='老师查看本课 PIN（仅显示 3 秒）';
+    pinBtn.onclick=()=>{
+      if(!GP.lessonActive()){ toast('当前未授课'); return; }
+      pinBtn.textContent='PIN: '+GP.lessonPin;
+      pinBtn.style.background='rgba(168,230,207,.9)'; pinBtn.style.color='#234';
+      setTimeout(()=>{ pinBtn.textContent='🔑 查看 PIN'; pinBtn.style.background='rgba(36,31,58,.85)'; pinBtn.style.color='#A8E6CF'; },3000);
+    };
+    document.body.appendChild(pinBtn);
+  }
+  pinBtn.style.display = GP.lessonActive() ? '' : 'none';
 }
 
 function openLogin(){
@@ -1661,6 +1820,7 @@ if(GP_CLOUD){
 function bindControls(){
   bind('tStart', onTimerStart);
   bind('tReset', onTimerReset);
+  bind('tFsBtn', onTimerFs);
   bind('clearSel', onClearSel);
   bind('openCard', onOpenCard);
   bind('overlay', onOverlayClick);
@@ -1678,6 +1838,7 @@ function bindControls(){
   bind('newClass', e=>{ if(e.target===$('newClass')) closeNewClass(); });
   bind('copyLinkBtn', copyJoinLink);
   bind('openStuBtn', openStudentPage);
+  bind('openStuDailyBtn', openStudentDaily);
   bind('quizBtn', openQuizPanel);       // R33 录题入口
   bind('partnerReqBtn', openPartnerRequests); // R46 换伙伴审批入口
   bind('myClassesBtn', openMyClasses);  // R48 带班记录入口
@@ -1852,7 +2013,27 @@ function openQuizPanel(){
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn" onclick="GP_addOption()">+ 添加选项</button>
-          <button class="btn primary" id="qSaveBtn" style="margin-left:auto">💾 保存题目</button>
+          <button class="btn" id="qBatchBtn" style="margin-left:auto">📋 批量导入</button>
+          <button class="btn primary" id="qSaveBtn">💾 保存题目</button>
+        </div>
+        <div id="qBatchArea" style="display:none;margin-top:10px;padding:12px;border:1px dashed var(--line);border-radius:10px;background:var(--glass)">
+          <div style="font-size:12px;color:var(--txt2);margin-bottom:6px">
+            每行一题，用 <code style="background:var(--glass-strong);padding:1px 4px;border-radius:3px">|</code> 分隔：
+            <br><b>题干 | 选项A | 选项B | 选项C | 选项D | 答案(A/B/C/D)</b>
+            <br>示例：植物的根主要吸收什么？|水分|阳光|空气|肥料|A
+          </div>
+          <textarea id="qBatchText" rows="6" placeholder="植物的根主要吸收什么？|水分|阳光|空气|肥料|A&#10;光合作用在哪个部位进行？|根|茎|叶|花|C&#10;（至少2个选项，答案为 A/B/C/D...）"
+            style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--glass);color:var(--txt);resize:vertical;font:inherit;font-size:12px"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+            <label style="font-size:12px;color:var(--txt2);cursor:pointer;display:flex;align-items:center;gap:4px">
+              <input type="file" id="qBatchFile" accept=".csv,.txt" style="font-size:12px;cursor:pointer">
+            </label>
+            <span style="font-size:11px;color:var(--txt2)">支持 CSV/TXT（UTF-8，逗号或竖线分隔）</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn primary" id="qBatchDoBtn">📥 导入题目</button>
+            <span id="qBatchHint" style="font-size:12px;color:var(--txt2);align-self:center"></span>
+          </div>
         </div>
         <div id="qHint" style="font-size:12px;min-height:18px"></div>
       </div>
@@ -1864,6 +2045,9 @@ function openQuizPanel(){
     document.body.appendChild(box);
     box.onclick=e=>{ if(e.target===box) box.classList.remove('show'); };
     $('qSaveBtn').onclick=GP_saveQuestion;
+    $('qBatchBtn').onclick=()=>{ const a=$('qBatchArea'); a.style.display=a.style.display==='none'?'block':'none'; };
+    $('qBatchDoBtn').onclick=GP_batchImport;
+    $('qBatchFile').onchange=GP_batchFileLoad;
     GP_addOption(); GP_addOption(); // 默认 2 个选项
     GP_renderLabelChips();
   }
@@ -1905,6 +2089,60 @@ function GP_addOption(){
     <input placeholder="选项 ${String.fromCharCode(65+idx)}" style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--glass);color:var(--txt)">
     <button class="btn" onclick="this.parentNode.remove()" style="padding:4px 8px">✕</button>`;
   c.appendChild(row);
+}
+/* 批量导入：解析「题干|A|B|C|D|答案」多行文本，逐条 POST 到题库 */
+function GP_parseBatch(text){
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const parsed=[];
+  const errs=[];
+  lines.forEach((ln,idx)=>{
+    const parts=ln.split(/[|｜,，]/).map(p=>p.trim());
+    if(parts.length<4){ errs.push(`第${idx+1}行：至少需要 题干+2选项+答案`); return; }
+    const question=parts[0];
+    const options=parts.slice(1,-1);
+    const ansRaw=parts[parts.length-1].toUpperCase();
+    const ansCode=ansRaw.charCodeAt(0);
+    if(ansCode>=65 && ansCode<=90){ // A-Z
+      const ansIdx=ansCode-65;
+      if(ansIdx>=options.length){ errs.push(`第${idx+1}行：答案 ${ansRaw} 超出选项范围`); return; }
+      parsed.push({question,options,answer:ansIdx});
+    }else if(/^\d+$/.test(ansRaw)){
+      const ansIdx=parseInt(ansRaw,10)-1;
+      if(ansIdx>=options.length||ansIdx<0){ errs.push(`第${idx+1}行：答案序号 ${ansRaw} 无效`); return; }
+      parsed.push({question,options,answer:ansIdx});
+    }else{ errs.push(`第${idx+1}行：答案「${ansRaw}」需为 A/B/C/D 或数字`); }
+  });
+  return {parsed,errs};
+}
+function GP_batchFileLoad(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{ $('qBatchText').value=String(reader.result||'').trim(); toast('文件已载入，点击「导入题目」'); };
+  reader.onerror=()=>toast('文件读取失败');
+  reader.readAsText(file,'UTF-8');
+}
+async function GP_batchImport(){
+  const text=$('qBatchText').value.trim();
+  if(!text){ $('qBatchHint').textContent='请粘贴题目或上传文件'; return; }
+  const {parsed,errs}=GP_parseBatch(text);
+  if(!parsed.length){ $('qBatchHint').textContent='未解析到有效题目：'+errs[0]; return; }
+  const cid=remoteClassId();
+  const grade=$('qGrade').value?parseInt($('qGrade').value,10):null;
+  const unit=$('qUnit').value.trim()||null;
+  $('qBatchHint').textContent=`正在导入 ${parsed.length} 题…`;
+  let ok=0, fail=0;
+  for(let i=0;i<parsed.length;i++){
+    const q=parsed[i];
+    try{
+      await GP.api('/api/classes/'+cid+'/questions',{method:'POST',
+        body:JSON.stringify({grade,unit,question:q.question,options:q.options,answer:q.answer,explanation:'',recommended_labels:[]})});
+      ok++;
+    }catch(e){ fail++; }
+  }
+  let msg=`✅ 成功 ${ok} 题${fail?`，❌ 失败 ${fail} 题`:''}`;
+  if(errs.length) msg+=`；${errs.length} 行格式有误已跳过`;
+  $('qBatchHint').textContent=msg;
+  if(ok>0){ $('qBatchText').value=''; GP_loadQuestions(); }
 }
 async function GP_saveQuestion(){
   const text=$('qText').value.trim();

@@ -314,10 +314,22 @@ const LIB = [
   {kind:"wind_spirit",name:"风灵",emoji:"🌪️",pack:"anime_original",rarity:"epic"},
   {kind:"rock_spirit",name:"岩灵",emoji:"🪨",pack:"anime_original",rarity:"common"},
   {kind:"dragon_spirit",name:"龙灵",emoji:"🐲",pack:"anime_original",rarity:"epic"},
-  {kind:"dark_spirit",name:"暗灵",emoji:"🌑",pack:"anime_original",rarity:"rare"}
+  {kind:"dark_spirit",name:"暗灵",emoji:"🌑",pack:"anime_original",rarity:"rare"},
+  // 恐龙系列（原创，dino_pack）
+  {kind:"dino_saurus",name:"小雷龙",emoji:"🦕",pack:"dino_pack",rarity:"common"},
+  {kind:"tricera",name:"三角龙",emoji:"🦖",pack:"dino_pack",rarity:"rare"},
+  {kind:"ptera",name:"翼龙",emoji:"🦋",pack:"dino_pack",rarity:"rare"},
+  // 星际精灵系列（原创，cosmo_pack）
+  {kind:"meteor_spirit",name:"流星精灵",emoji:"☄️",pack:"cosmo_pack",rarity:"rare"},
+  {kind:"nebula_beast",name:"星云兽",emoji:"🌌",pack:"cosmo_pack",rarity:"epic"},
+  {kind:"void_spirit",name:"黑洞精灵",emoji:"⚫",pack:"cosmo_pack",rarity:"epic"},
+  // Xiaolong人系列（原创龙人，xiaolong_pack）
+  {kind:"xiaolong_scholar",name:"龙人学者",emoji:"📚",pack:"xiaolong_pack",rarity:"rare"},
+  {kind:"xiaolong_warrior",name:"龙人勇士",emoji:"⚔️",pack:"xiaolong_pack",rarity:"epic"},
+  {kind:"xiaolong_chef",name:"龙人厨师",emoji:"🍳",pack:"xiaolong_pack",rarity:"common"}
 ];
-const PACK_LABEL = {all:"全部图鉴",cute_nature:"萌系自然包 · 圆润可爱小动物", life_obs:"生命观察包 · 真实生命与植物", anime_original:"动漫原创包 · 元素精灵收集"};
-const PACK_SHORT = {all:"全部",cute_nature:"萌系自然",life_obs:"生命观察",anime_original:"动漫原创"};
+const PACK_LABEL = {all:"全部图鉴",cute_nature:"萌系自然包 · 圆润可爱小动物", life_obs:"生命观察包 · 真实生命与植物", anime_original:"动漫原创包 · 元素精灵收集", dino_pack:"恐龙系列包 · 史前萌龙", cosmo_pack:"星际精灵包 · 宇宙探索", xiaolong_pack:"Xiaolong人包 · 龙人职业"};
+const PACK_SHORT = {all:"全部",cute_nature:"萌系自然",life_obs:"生命观察",anime_original:"动漫原创",dino_pack:"恐龙系列",cosmo_pack:"星际精灵",xiaolong_pack:"Xiaolong人"};
 const PACK_OF = {1:"cute_nature",2:"cute_nature",3:"life_obs",4:"life_obs",5:"anime_original",6:"anime_original"};
 const RARITY_LABEL = {common:"普通",rare:"稀有",epic:"史诗"};
 const RARITY_COLOR = {common:"#8FC7FF",rare:"#7FE3C0",epic:"#FFB38A"};
@@ -393,6 +405,18 @@ function creature(type,color){
     rock_spirit:c=>`<path d="M26 72 l10 -28 l16 8 l14 -16 l8 36z" fill="#b9a98f" stroke="${K}" stroke-width="2" stroke-linejoin="round"/><path d="M36 44 l16 8 l10 -10" fill="none" stroke="#8a7a60" stroke-width="1.4"/><circle cx="48" cy="60" r="12" fill="#f3e9da" stroke="${K}" stroke-width="1.8"/>${face(48,58,{dx:3.5,blush:false})}`,
     dragon_spirit:c=>`<g class="c-wig" style="transform-origin:50px 46px"><path d="M30 40 q-14 -14 -22 -6 q12 2 16 12z" fill="${c}" stroke="${K}" stroke-width="1.6"/></g><path d="M34 40 q16 -10 32 0 q10 14 0 30 q-16 12 -32 0 q-10 -16 0 -30z" fill="${c}" stroke="${K}" stroke-width="2" opacity=".92"/><path d="M50 26 q4 -8 10 -6 q-2 8 -10 8z" fill="${c}" stroke="${K}" stroke-width="1.4"/><circle cx="46" cy="48" r="3" fill="${K}"/><circle cx="58" cy="48" r="3" fill="${K}"/><path d="M42 60 q8 7 16 0" stroke="${K}" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M40 34 q10 -4 20 0" stroke="${c}" stroke-width="3" fill="none" opacity=".6"/>`,
     dark_spirit:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".16"/><circle cx="50" cy="54" r="24" fill="#3a3550" stroke="${K}" stroke-width="2"/><circle cx="42" cy="50" r="4" fill="${c}"/><circle cx="58" cy="50" r="4" fill="${c}"/><path d="M42 64 q8 6 16 0" stroke="${c}" stroke-width="2.5" fill="none" stroke-linecap="round"/><g class="c-wig" style="transform-origin:50px 18px"><circle cx="38" cy="18" r="2.5" fill="${c}"/><circle cx="62" cy="18" r="2.5" fill="${c}"/><circle cx="50" cy="12" r="2.5" fill="${c}"/></g>`,
+    // ---------- 恐龙系列（原创，dino_pack）----------
+    dino_saurus:c=>`<path d="M28 74 q-4 -16 4 -26 q8 -10 18 -10 q10 0 18 10 q8 10 4 26z" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M32 50 q-10 -2 -14 -10 M40 44 q-8 -8 -8 -16 M60 44 q8 -8 8 -16 M68 50 q10 -2 14 -10" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="42" cy="46" r="3" fill="${K}"/><circle cx="58" cy="46" r="3" fill="${K}"/><path d="M44 56 q6 4 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M46 62 q4 3 8 0" fill="${K}"/><g class="c-wig" style="transform-origin:50px 38px"><path d="M40 38 q4 -10 10 -8 q-2 8 -10 8z M60 38 q-4 -10 -10 -8 q2 8 10 8z" fill="${c}" stroke="${K}" stroke-width="1.4"/></g>`,
+    tricera:c=>`<path d="M22 58 q-10 -4 -12 -16 q8 0 12 8z M78 58 q10 -4 12 -16 q-8 0 -12 8z" fill="${c}" stroke="${K}" stroke-width="1.8"/><ellipse cx="50" cy="56" rx="24" ry="22" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M38 38 q12 -6 24 0" stroke="${K}" stroke-width="3" fill="none"/><path d="M44 36 q6 -14 12 -2 q-6 10 -12 2z" fill="${E}" stroke="${K}" stroke-width="1.6"/>${face(50,54,{dx:5,blush:false})}<path d="M46 64 q4 4 8 0 q-4 4 -8 0z" fill="${K}"/>`,
+    ptera:c=>`<g class="c-wig" style="transform-origin:50px 50px"><path d="M30 50 q-20 -8 -24 -20 q14 6 24 16z" fill="${c}" stroke="${K}" stroke-width="1.8"/><path d="M70 50 q20 -8 24 -20 q-14 6 -24 16z" fill="${c}" stroke="${K}" stroke-width="1.8"/></g><ellipse cx="50" cy="56" rx="16" ry="20" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M46 40 q4 -10 8 -4 q-4 6 -8 4z" fill="${c}" stroke="${K}" stroke-width="1.4"/>${face(50,54,{dx:4,blush:false})}<path d="M44 66 q6 4 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    // ---------- 星际精灵系列（原创，cosmo_pack）----------
+    meteor_spirit:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".12"/><g class="c-wig" style="transform-origin:50px 54px"><path d="M50 22 q8 12 0 22 q-8 -10 0 -22z" fill="${c}" stroke="${K}" stroke-width="1.8"/><circle cx="50" cy="56" r="14" fill="#fff" stroke="${K}" stroke-width="1.8"/></g><path d="M20 30 q20 6 24 18 M80 78 q-16 -6 -20 -18" stroke="${c}" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/>${face(50,54,{dx:4,blush:false})}<g fill="${c}" opacity=".6"><circle cx="24" cy="20" r="1.5"/><circle cx="76" cy="24" r="1.5"/><circle cx="70" cy="12" r="1"/></g>`,
+    nebula_beast:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".14"/><g class="c-wig" style="transform-origin:50px 50px"><circle cx="36" cy="44" r="14" fill="${c}" opacity=".4"/><circle cx="64" cy="44" r="14" fill="${c}" opacity=".4"/><circle cx="50" cy="60" r="18" fill="${c}" opacity=".3"/></g><ellipse cx="50" cy="52" rx="18" ry="16" fill="#fff" stroke="${K}" stroke-width="1.8"/><path d="M38 44 q12 -8 24 0" stroke="${c}" stroke-width="2" fill="none"/>${face(50,50,{dx:5,blush:false})}<g fill="${c}"><circle cx="20" cy="24" r="1.5"/><circle cx="80" cy="20" r="1.5"/><circle cx="74" cy="78" r="1.5"/></g>`,
+    void_spirit:c=>`<circle cx="50" cy="54" r="32" fill="${c}" opacity=".1"/><circle cx="50" cy="54" r="22" fill="#1a1a2e" stroke="${K}" stroke-width="2"/><circle cx="50" cy="54" r="16" fill="#000"/><circle cx="50" cy="54" r="22" fill="none" stroke="${c}" stroke-width="1.5" opacity=".8"/><g class="c-wig" style="transform-origin:50px 54px"><circle cx="50" cy="54" r="4" fill="${c}"/><circle cx="38" cy="48" r="2" fill="${c}"/><circle cx="62" cy="48" r="2" fill="${c}"/><circle cx="50" cy="38" r="1.5" fill="${c}"/><circle cx="50" cy="70" r="1.5" fill="${c}"/></g><path d="M42 40 q8 4 16 0" stroke="${c}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    // ---------- Xiaolong人系列（原创龙人，xiaolong_pack）----------
+    xiaolong_scholar:c=>`<path d="M34 80 q16 6 32 0 l-2 -8 q-14 4 -28 0z" fill="#5a4a3a"/><ellipse cx="50" cy="54" rx="20" ry="24" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M36 44 q14 -12 28 0" stroke="${K}" stroke-width="2" fill="none"/><path d="M42 42 q8 -8 8 -14 M58 42 q-8 -8 -8 -14" stroke="${K}" stroke-width="1.6" fill="none"/><g class="c-wig" style="transform-origin:50px 30px"><path d="M40 30 q10 -12 20 -2 q-8 8 -20 2z" fill="${c}" stroke="${K}" stroke-width="1.4"/></g><rect x="40" y="58" width="20" height="12" rx="2" fill="#f3e9da" stroke="${K}" stroke-width="1.4"/><line x1="44" y1="62" x2="56" y2="62" stroke="${K}" stroke-width="1"/><line x1="44" y1="66" x2="56" y2="66" stroke="${K}" stroke-width="1"/>${face(50,50,{dx:4,blush:false})}`,
+    xiaolong_warrior:c=>`<path d="M28 80 q22 4 44 0 l-2 -6 q-20 3 -40 0z" fill="#6a3a3a"/><ellipse cx="50" cy="54" rx="22" ry="24" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M34 40 q16 -14 32 0" stroke="${K}" stroke-width="2.5" fill="none"/><path d="M36 38 q14 -10 28 0 q-8 -16 -28 0z" fill="${c}" stroke="${K}" stroke-width="1.6"/><path d="M44 34 q6 -6 12 0" fill="${c}" stroke="${K}" stroke-width="1.4"/><rect x="42" y="62" width="16" height="14" rx="3" fill="#9a8a7a" stroke="${K}" stroke-width="1.6"/><path d="M46 64 h8 v4 h-8z" fill="${c}"/>${face(50,52,{dx:4,blush:false})}<path d="M30 50 q-8 4 -10 12 M70 50 q8 4 10 12" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    xiaolong_chef:c=>`<ellipse cx="50" cy="54" rx="20" ry="24" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M34 42 q16 -10 32 0" stroke="${K}" stroke-width="2" fill="none"/><path d="M40 40 q10 -8 20 0 q-6 -14 -20 0z" fill="${c}" stroke="${K}" stroke-width="1.6"/><g class="c-wig" style="transform-origin:50px 26px"><ellipse cx="50" cy="24" rx="16" ry="8" fill="#fff" stroke="${K}" stroke-width="1.6"/><path d="M38 24 q12 6 24 0" fill="#f3e9da" stroke="${K}" stroke-width="1.4"/></g><path d="M36 62 q14 6 28 0 l-2 -4 q-12 4 -24 0z" fill="#fff" stroke="${K}" stroke-width="1.6"/>${face(50,52,{dx:4,blush:false})}<circle cx="58" cy="62" r="2" fill="#ff6b6b"/>`,
     _fallback:c=>`<ellipse cx="50" cy="60" rx="22" ry="26" fill="${E}" stroke="${K}" stroke-width="2"/><path d="M50 40 l4 -10 l4 10z" fill="${c}"/><circle cx="43" cy="58" r="3" fill="${K}"/><circle cx="57" cy="58" r="3" fill="${K}"/><path d="M44 66 q6 5 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`
   };
   const key = DRAW[type] ? type : '_fallback';
@@ -417,13 +441,15 @@ function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('sho
   }
   let saved=null;
   try{ saved=JSON.parse(localStorage.getItem('gp_me')||'null'); }catch(e){}
-  const fresh=/[?&]fresh=1/.test(location.search); // 老师端"打开学生自选页"进入：不自动恢复上个同学
+  const fresh=/[?&]fresh=1/.test(location.search); // 老师端"打开学生自选页"进入：强制重新认领
   if(saved && saved.classCode && saved.studentId && saved.deviceToken){
     if(fresh){
+      // 老师端入口（首次认领新学生）：给二选一
       const redo=confirm('这台设备已认领过伙伴。\n\n「确定」= 换同学重新认领（回到入班页）\n「取消」= 继续上次的伙伴');
       if(redo){ $('codeInput').value=saved.classCode; }
       else{ deviceToken=saved.deviceToken; restoreHome(saved.classCode, saved.studentId); }
     }else{
+      // 学生日常入口（课间答题/交作业）：直接进上次伙伴主页，不弹窗
       deviceToken=saved.deviceToken;
       restoreHome(saved.classCode, saved.studentId);
     }
