@@ -417,9 +417,16 @@ function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('sho
   }
   let saved=null;
   try{ saved=JSON.parse(localStorage.getItem('gp_me')||'null'); }catch(e){}
+  const fresh=/[?&]fresh=1/.test(location.search); // 老师端"打开学生自选页"进入：不自动恢复上个同学
   if(saved && saved.classCode && saved.studentId && saved.deviceToken){
-    deviceToken = saved.deviceToken;
-    restoreHome(saved.classCode, saved.studentId);
+    if(fresh){
+      const redo=confirm('这台设备已认领过伙伴。\n\n「确定」= 换同学重新认领（回到入班页）\n「取消」= 继续上次的伙伴');
+      if(redo){ $('codeInput').value=saved.classCode; }
+      else{ deviceToken=saved.deviceToken; restoreHome(saved.classCode, saved.studentId); }
+    }else{
+      deviceToken=saved.deviceToken;
+      restoreHome(saved.classCode, saved.studentId);
+    }
   }
 })();
 
@@ -694,6 +701,8 @@ function drawHome(v){
 // R47: 课间答题 — 服务端出题 → 学生选答 → 服务端判分
 async function startQuiz(){
   $('actMsg').textContent='';
+  const btn=$('btnQuiz'); const oldTxt=btn?btn.textContent:'';
+  if(btn){ btn.disabled=true; btn.style.opacity='.6'; btn.textContent='⏳ 出题中…'; }
   try{
     // 1. 从服务端取题
     const res=await fetch('/api/students/'+me.id+'/quiz/next');
@@ -701,6 +710,9 @@ async function startQuiz(){
     if(!data.question){ $('actMsg').textContent=data.message||'暂无题目'; return; }
     showQuiz(data.question);
   }catch(err){ $('actMsg').textContent='取题失败：'+err.message; }
+  finally{
+    if(btn){ btn.disabled=false; btn.style.opacity=''; btn.textContent=oldTxt; }
+  }
 }
 
 function showQuiz(q){
@@ -783,6 +795,11 @@ async function doActivity(kind){
     if(t===null) return;
     body.detail=(t||'').slice(0,200);
   }
+  // 点击立即反馈：禁用按钮+loading，不再干等网络往返
+  const btn=$('btn'+kind.charAt(0).toUpperCase()+kind.slice(1));
+  const oldTxt=btn?btn.textContent:'';
+  if(btn){ btn.disabled=true; btn.style.opacity='.6'; btn.textContent='⏳ 记录中…'; }
+  $('actMsg').textContent='⏳ 正在记录…';
   try{
     const res=await fetch('/api/students/'+me.id+'/activity',{
       method:'POST', headers:{'Content-Type':'application/json','X-Device-Token':deviceToken||''}, body:JSON.stringify(body)
@@ -796,6 +813,9 @@ async function doActivity(kind){
     toast('🎉 互动成功！');
     await renderHome();
   }catch(err){ $('actMsg').textContent=err.message; }
+  finally{
+    if(btn){ btn.disabled=false; btn.style.opacity=''; btn.textContent=oldTxt; }
+  }
 }
 
 // R46: 申请换伙伴（需老师授权）

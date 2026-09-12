@@ -909,6 +909,18 @@ function selectPartner(i){
 }
 
 function applyTag(gi,ti){
+  // R50: 授课锁定 —— 防止学生上讲台乱点加分；老师输 PIN 解锁一次（本课有效）
+  if(GP.lessonActive()){
+    let unlocked=false;
+    try{ unlocked=sessionStorage.getItem('gp_unlocked')==='1'; }catch(e){}
+    if(!unlocked){
+      const input=prompt('🔒 授课锁定中：点评需输入 PIN 解锁（老师操作）');
+      if(input===null){ return; }
+      if(String(input).trim()!==String(GP.lessonPin)){ toast('❌ PIN 不正确，已拦截本次点评'); return; }
+      try{ sessionStorage.setItem('gp_unlocked','1'); }catch(e){}
+      toast('🔓 已解锁，本节课可正常点评');
+    }
+  }
   if(selectedId===null){ toast('请先点一个伙伴 👆'); return; }
   const cls=CLASSES[currentClass]; const s=cls.students[selectedId];
   const tag=TAG_GROUPS[gi].tags[ti]; if(!tag) return;
@@ -974,9 +986,19 @@ function renderVines(){
 }
 
 function switchClass(id){
+  // R50: 授课中切班必须验证 PIN（防学生自行切班）；未授课则静默清理残留会话
+  if(GP.lessonActive()){
+    const input=prompt('📚 正在授课中，切班需输入本课 PIN（老师操作）：');
+    if(input===null){ toast('已取消切班'); return; }
+    if(String(input).trim()!==String(GP.lessonPin)){ toast('❌ PIN 不正确，已取消切班'); return; }
+  }
   currentClass=id; selectedId=null;
-  // R50: 切班时清理授课会话，防止令牌跨班误用
-  if(GP.lessonToken){ GP.lessonToken=''; GP.lessonPin=''; GP.renderLessonUI(); toast('已切班，授课会话已重置'); }
+  if(GP.lessonToken){
+    GP.lessonToken=''; GP.lessonPin='';
+    try{sessionStorage.removeItem('gp_unlocked');}catch(e){}
+    GP.renderLessonUI();
+    toast('授课会话已结束，可安全切班');
+  }
   try{localStorage.setItem('gp_lastClass',id);}catch(e){}
   renderTopbar(); renderPlanet(); renderBoard(); updateSelPanel(); renderJoinBox();
   if($('roster')&&!$('roster').classList.contains('hidden')) renderRoster();
@@ -1167,7 +1189,11 @@ function legacyCopy(txt,done){
     document.execCommand('copy'); document.body.removeChild(ta); done();
   }catch(e){ toast('复制失败，请手动复制：'+txt); }
 }
-function openStudentPage(){ window.open(joinURL(),'_blank'); }
+function openStudentPage(){
+  // fresh=1: 强制进认领页，不自动恢复上个同学的互动页（公用设备场景）
+  const url=joinURL();
+  window.open(url+(url.includes('?')?'&':'?')+'fresh=1','_blank');
+}
 
 /* 新建班级 */
 function openNewClass(){ const h=$('ncHint'); if(h) h.textContent=''; $('newClass').classList.add('show'); setTimeout(()=>{const n=$('ncName'); if(n) n.focus();},80); }
@@ -1364,6 +1390,7 @@ const GP={
       const data=await this.api('/api/classes/'+cid+'/lesson/start',{method:'POST'});
       this.lessonToken=data.lesson_token||data.session_id||'';
       this.lessonPin=data.pin||'';
+      try{sessionStorage.removeItem('gp_unlocked');}catch(e){}  // 新课重新上锁
       this.renderLessonUI();
       toast('📚 已开始上课 · PIN: '+this.lessonPin+'（切班需验证）');
       // R30: 拉取推荐标签并高亮 dock
@@ -1380,7 +1407,9 @@ const GP={
       toast('📒 已下课');
     }catch(err){ /* 会话可能已过期，静默清理 */
       console.warn('[growth-planet] 下课清理：',err.message); }
-    this.lessonToken=''; this.lessonPin=''; this.renderLessonUI();
+    this.lessonToken=''; this.lessonPin='';
+    try{sessionStorage.removeItem('gp_unlocked');}catch(e){}
+    this.renderLessonUI();
     GP_clearRecommendedLabels(); // R30: 清理高亮
   },
 
@@ -1390,7 +1419,17 @@ const GP={
     if(this.lessonActive()){
       btn.textContent='📒 下课';
       btn.style.display=''; btn.classList.add('primary');
-      if(pill){ pill.style.display='flex'; if(pinTxt) pinTxt.textContent='PIN:'+this.lessonPin; }
+      if(pill){
+        pill.style.display='flex'; pill.style.cursor='pointer';
+        pill.title='点击查看 PIN（默认隐藏，防止投影泄露）';
+        if(pinTxt){
+          pinTxt.textContent='PIN:已生成 · 点击查看';
+          pill.onclick=()=>{ if(!GP.lessonActive()) return;
+            pinTxt.textContent='PIN:'+GP.lessonPin;
+            setTimeout(()=>{ if(pinTxt) pinTxt.textContent='PIN:已生成 · 点击查看'; },3000);
+          };
+        }
+      }
     }else{
       btn.textContent='📚 开始上课';
       btn.style.display = GP_CLOUD?'':'none';
