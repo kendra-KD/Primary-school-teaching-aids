@@ -231,6 +231,28 @@ body::before{
 .tag .v{opacity:.8;margin-left:3px;font-size:11px;}
 .tag.neg{background:rgba(255,158,158,.16);border-color:rgba(255,158,158,.5);color:#ffc9c9;}
 .dock .hint{font-size:11px;color:var(--txt2);opacity:.8;}
+#tagRow{max-height:42vh;overflow-y:auto;scrollbar-width:thin;}
+.report{max-width:720px;margin:24px auto;background:#fff;color:#222;border-radius:16px;padding:28px 32px;box-shadow:0 18px 50px rgba(0,0,0,.45);}
+.report h1{font-size:22px;margin:0 0 6px;}
+.report .r-meta{color:#666;font-size:13px;margin-bottom:18px;}
+.report section{margin:18px 0;}
+.report h2{font-size:16px;border-left:4px solid #8BE9D4;padding-left:8px;margin:0 0 10px;}
+.report .r-kpi{display:flex;gap:14px;flex-wrap:wrap;}
+.report .r-kpi div{flex:1;min-width:120px;background:#f2f7f6;border-radius:12px;padding:14px;text-align:center;}
+.report .r-kpi span{display:block;font-size:24px;font-weight:900;color:#2E6B5E;}
+.report ol{margin:0;padding-left:22px;line-height:2;}
+.report .r-line{margin-top:8px;color:#444;}
+.report .r-msg{width:100%;min-height:90px;border:1px solid #ddd;border-radius:10px;padding:10px;font:inherit;resize:vertical;box-sizing:border-box;}
+.report .r-actions{margin-top:18px;display:flex;gap:10px;}
+.report .btn{background:#8BE9D4;color:#143;font-weight:800;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;font:inherit;}
+.report .btn.ghost{background:#eee;color:#555;}
+@media print{
+  body *{visibility:hidden!important;}
+  #rOverlay,#rOverlay *{visibility:visible!important;}
+  #rOverlay{position:absolute!important;inset:0!important;background:#fff!important;display:flex!important;align-items:flex-start!important;overflow:visible!important;}
+  .report{box-shadow:none!important;margin:0 auto!important;}
+  .no-print{display:none!important;}
+}
 
 /* ===== 浮层通用 ===== */
 .overlay{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;
@@ -340,10 +362,11 @@ hidden{display:none!important;}
     <div class="stage-pill">阶段 <b id="stageTxt">—</b></div>
     <div class="timer">
       <span class="clock" id="timerTxt">00:00</span>
-      <button id="tStart">开始</button>
+      <button id="tStart" title="课堂计时器">⏱ 计时</button>
       <button id="tReset">重置</button>
     </div>
     <button class="btn" id="gearBtn">⚙ 花名册</button>
+    <button class="btn" id="reportBtn">📊 周报</button>
     <button class="btn" id="newClassBtn">➕ 建班</button>
     <button class="btn" id="lessonBtn" style="display:none">📚 开始上课</button>
     <div class="stage-pill" id="lessonPill" style="display:none">
@@ -749,7 +772,7 @@ function renderPlanet(){
       </div>
       ${care}
       <div class="name">${esc(s.n)}</div>
-      <div class="grp">${GROUPS[i%4]}</div>
+      <div class="grp">所属小队：${GROUPS[i%4]}</div>
     </div>`;
   }).join('');
   document.querySelectorAll('.partner').forEach(el=>{ el.onclick=()=>selectPartner(+el.dataset.i); });
@@ -768,7 +791,7 @@ function renderBoard(){
   let loveBest=0,loveMax=-1; S.forEach((s,i)=>{const lv=(s.state==='loved'?1:0); if(lv>loveMax){loveMax=lv;loveBest=i;}});
   const tidyColor = cls.tidy>75?'#7FD1B4':cls.tidy>50?'#FFD6A5':'#FF9E9E';
   const cards=[
-    {m:'🥇',c:'#FFE5A0',t:'最繁荣小组',n:GROUPS[bestG],v:`${grpScore[bestG]} 生态值`},
+    {m:'🥇',c:'#FFE5A0',t:'最繁荣小组（小队）',n:GROUPS[bestG],v:`${grpScore[bestG]} 生态值`},
     {m:'🤝',c:'#A0D2FF',t:'最佳搭档',n:bestPair?`${esc(S[bestPair[0]].n)} & ${esc(S[bestPair[1]].n)}`:'期待第一次合作',v:`${bestN} 根藤蔓`},
     {m:'💡',c:'#CDB4FF',t:'最爱提问',n:esc(S[askBest].n),v:`${S[askBest].ask} 次好问题`},
     {m:'💗',c:'#FFB3C6',t:'生命守护星',n:esc(S[loveBest].n),v:loveMax>0?'温柔守护中':'一起爱护生命'},
@@ -782,7 +805,43 @@ function renderBoard(){
     </div>`).join('');
 }
 
-let expandedGroup='all'; // 'all' 展开全部，null 仅显示分组栏
+/* R38：班级周报 / 成长报告导出（给家长看，浏览器打印即 PDF，零依赖） */
+function openReport(){
+  const cls=CLASSES[currentClass];
+  if(!cls){ toast('请先选择一个班级'); return; }
+  const S=cls.students||[];
+  const sorted=[...S].sort((a,b)=>(b.score||0)-(a.score||0));
+  const top3=sorted.slice(0,3).map((s,i)=>`<li><b>${esc(s.n)}</b> · ${s.score||0} 生态值</li>`).join('')||'<li>暂无数据</li>';
+  let askBest=0; S.forEach((s,i)=>{ if((s.ask||0)>(S[askBest]?S[askBest].ask||0:0)) askBest=i; });
+  const tidyTxt=cls.tidy>75?'整洁如新':cls.tidy>50?'还算整洁':'该整理啦';
+  const today=new Date().toLocaleDateString('zh-CN');
+  const box=document.createElement('div'); box.id='rOverlay'; box.className='overlay show'; box.style.cssText='z-index:130;overflow:auto;';
+  box.innerHTML=`<div class="report">
+    <h1>🌱 成长星球 · 班级周报</h1>
+    <div class="r-meta">班级：<b>${esc(cls.name||'—')}</b> ｜ 日期：${today} ｜ 共 ${S.length} 位伙伴</div>
+    <section><h2>📈 班级生态</h2>
+      <div class="r-kpi">
+        <div><span>${cls.eco||0}</span>生态值</div>
+        <div><span>${cls.tidy||0}%</span>整洁度（${tidyTxt}）</div>
+        <div><span>${S.filter(s=>s.state==='active').length}</span>活跃伙伴</div>
+      </div>
+    </section>
+    <section><h2>🏆 本周之星</h2><ol>${top3}</ol>
+      <div class="r-line">最爱提问：<b>${esc(S[askBest]?S[askBest].n:'—')}</b>（${S[askBest]?(S[askBest].ask||0):0} 次好问题）</div>
+    </section>
+    <section><h2>✍️ 教师寄语</h2>
+      <textarea class="r-msg" placeholder="写一段话，发给家长看看孩子们这周的成长…"></textarea>
+    </section>
+    <div class="r-actions no-print">
+      <button class="btn" onclick="window.print()">🖨️ 打印 / 保存 PDF</button>
+      <button class="btn ghost" onclick="document.getElementById('rOverlay').remove()">关闭</button>
+    </div>
+  </div>`;
+  box.onclick=e=>{ if(e.target===box) box.remove(); };
+  document.body.appendChild(box);
+}
+
+let expandedGroup=null; // null 默认仅显示分组快捷栏（收起），点击分组或"全部标签"再展开；避免全展开压住星球区
 function renderDock(){
   const bar=`<div class="dock-bar">
     <button class="dock-toggle ${expandedGroup==='all'?'active':''}" data-g="all">🏷️ 全部标签</button>
@@ -831,7 +890,7 @@ function updateSelPanel(){
   card.className='selcard';
   card.innerHTML=`<div class="selava" style="--c:${s.color}">${creature(s.type,s.color)}</div>
     <div><div class="sn">${esc(s.n)}</div>
-    <div class="ss">${GROUPS[selectedId%4]} · ${stateText(s.state)} · ${s.score}生态值</div></div>`;
+    <div class="ss">所属小队 ${GROUPS[selectedId%4]} · ${stateText(s.state)} · ${s.score}生态值</div></div>`;
   btn.disabled=clr.disabled=false; btn.style.opacity=clr.style.opacity=1;
 }
 
@@ -1007,7 +1066,7 @@ function openGrowthCard(i){
     <div class="ghead">
       <div class="gava" style="--c:${s.color}">${creature(s.type,s.color)}</div>
       <div><div class="gn">${esc(s.n)}</div>
-        <div class="gm">${cls.name} · ${GROUPS[i%4]} · ${cls.theme}</div>
+        <div class="gm">${cls.name} · 小队 ${GROUPS[i%4]} · ${cls.theme}</div>
         <div class="gstate" style="background:${stColor}22;color:${stColor}">${stTxt} · ${s.score} 生态值</div>
       </div>
     </div>
@@ -1469,20 +1528,20 @@ function openLogin(){
     box=document.createElement('div'); box.id='gpLogin';
     box.style.cssText='position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;'+
       'background:rgba(60,55,70,.35);backdrop-filter:blur(3px)';
-    box.innerHTML=`<div style="background:#fff;border-radius:20px;padding:26px 28px;width:320px;box-shadow:0 18px 50px rgba(0,0,0,.2)">
-      <div style="font-size:17px;font-weight:900;color:#5A5566;margin-bottom:4px">☁ 老师登录</div>
-      <div style="font-size:12px;color:#9A94A6;margin-bottom:16px">登录后班级数据跨设备同步；不登录也能用（只存本机）</div>
-      <input id="gpEmail" placeholder="邮箱" style="width:100%;padding:10px 12px;border:2px solid #EFE9E1;border-radius:12px;margin-bottom:10px;font-size:14px;outline:none">
+    box.innerHTML=`<div style="background:#241f3a;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:26px 28px;width:320px;box-shadow:0 18px 50px rgba(0,0,0,.45)">
+      <div style="font-size:17px;font-weight:900;color:#ECE8F5;margin-bottom:4px">☁ 老师登录</div>
+      <div style="font-size:12px;color:#A89FC0;margin-bottom:16px">登录后班级数据跨设备同步；不登录也能用（只存本机）</div>
+      <input id="gpEmail" placeholder="邮箱" style="width:100%;padding:10px 12px;border:2px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#ECE8F5;border-radius:12px;margin-bottom:10px;font-size:14px;outline:none">
       <div style="position:relative;margin-top:10px">
-        <input id="gpPwd" type="password" placeholder="密码" style="width:100%;padding:10px 38px 10px 12px;border:2px solid #EFE9E1;border-radius:12px;font-size:14px;outline:none">
-        <button id="gpEye" type="button" title="显示/隐藏密码" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:26px;height:26px;border:0;background:transparent;cursor:pointer;font-size:16px;color:#9A94A6;display:flex;align-items:center;justify-content:center">👁️</button>
+        <input id="gpPwd" type="password" placeholder="密码" style="width:100%;padding:10px 38px 10px 12px;border:2px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#ECE8F5;border-radius:12px;font-size:14px;outline:none">
+        <button id="gpEye" type="button" title="显示/隐藏密码" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:26px;height:26px;border:0;background:transparent;cursor:pointer;font-size:16px;color:#A89FC0;display:flex;align-items:center;justify-content:center">👁️</button>
       </div>
-      <div id="gpErr" style="color:#E4798A;font-size:12px;min-height:18px;margin-top:8px"></div>
+      <div id="gpErr" style="color:#FF9E9E;font-size:12px;min-height:18px;margin-top:8px"></div>
       <div style="display:flex;gap:10px;margin-top:6px">
-        <button id="gpCancel" style="flex:1;padding:10px;border-radius:12px;border:2px solid #EFE9E1;background:#fff;color:#7A7484;font-weight:800;cursor:pointer">稍后</button>
-        <button id="gpOk" style="flex:1;padding:10px;border-radius:12px;border:0;background:#A8E6CF;color:#3E6B52;font-weight:800;cursor:pointer">登录</button>
+        <button id="gpCancel" style="flex:1;padding:10px;border-radius:12px;border:2px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);color:#A89FC0;font-weight:800;cursor:pointer">稍后</button>
+        <button id="gpOk" style="flex:1;padding:10px;border-radius:12px;border:0;background:#A8E6CF;color:#234;font-weight:800;cursor:pointer">登录</button>
       </div>
-      <div style="text-align:center;margin-top:12px;font-size:12px;color:#9A94A6">
+      <div style="text-align:center;margin-top:12px;font-size:12px;color:#A89FC0">
         还没有账号？<a href="#" id="gpGoReg" style="color:#7AB8D8;font-weight:700;text-decoration:none">注册新账号</a>
       </div></div>`;
     document.body.appendChild(box);
@@ -1510,19 +1569,19 @@ function openRegister(){
     box=document.createElement('div'); box.id='gpReg';
     box.style.cssText='position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;'+
       'background:rgba(60,55,70,.35);backdrop-filter:blur(3px)';
-    box.innerHTML=`<div style="background:#fff;border-radius:20px;padding:26px 28px;width:340px;box-shadow:0 18px 50px rgba(0,0,0,.2)">
-      <div style="font-size:17px;font-weight:900;color:#5A5566;margin-bottom:4px">🌱 注册新账号</div>
-      <div style="font-size:12px;color:#9A94A6;margin-bottom:16px">注册后立即可建班、上课、云端同步</div>
-      <input id="regName" placeholder="你的称呼（如：王老师）" style="width:100%;padding:10px 12px;border:2px solid #EFE9E1;border-radius:12px;margin-bottom:10px;font-size:14px;outline:none">
-      <input id="regEmail" placeholder="邮箱" style="width:100%;padding:10px 12px;border:2px solid #EFE9E1;border-radius:12px;margin-bottom:10px;font-size:14px;outline:none">
+    box.innerHTML=`<div style="background:#241f3a;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:26px 28px;width:340px;box-shadow:0 18px 50px rgba(0,0,0,.45)">
+      <div style="font-size:17px;font-weight:900;color:#ECE8F5;margin-bottom:4px">🌱 注册新账号</div>
+      <div style="font-size:12px;color:#A89FC0;margin-bottom:16px">注册后立即可建班、上课、云端同步</div>
+      <input id="regName" placeholder="你的称呼（如：王老师）" style="width:100%;padding:10px 12px;border:2px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#ECE8F5;border-radius:12px;margin-bottom:10px;font-size:14px;outline:none">
+      <input id="regEmail" placeholder="邮箱" style="width:100%;padding:10px 12px;border:2px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#ECE8F5;border-radius:12px;margin-bottom:10px;font-size:14px;outline:none">
       <div style="position:relative;margin-bottom:6px">
-        <input id="regPwd" type="password" placeholder="密码（至少 8 位）" style="width:100%;padding:10px 38px 10px 12px;border:2px solid #EFE9E1;border-radius:12px;font-size:14px;outline:none">
-        <button id="regEye" type="button" title="显示/隐藏密码" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:26px;height:26px;border:0;background:transparent;cursor:pointer;font-size:16px;color:#9A94A6;display:flex;align-items:center;justify-content:center">👁️</button>
+        <input id="regPwd" type="password" placeholder="密码（至少 8 位）" style="width:100%;padding:10px 38px 10px 12px;border:2px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#ECE8F5;border-radius:12px;font-size:14px;outline:none">
+        <button id="regEye" type="button" title="显示/隐藏密码" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:26px;height:26px;border:0;background:transparent;cursor:pointer;font-size:16px;color:#A89FC0;display:flex;align-items:center;justify-content:center">👁️</button>
       </div>
-      <div id="regErr" style="color:#E4798A;font-size:12px;min-height:18px;margin-top:8px"></div>
+      <div id="regErr" style="color:#FF9E9E;font-size:12px;min-height:18px;margin-top:8px"></div>
       <div style="display:flex;gap:10px;margin-top:6px">
-        <button id="regCancel" style="flex:1;padding:10px;border-radius:12px;border:2px solid #EFE9E1;background:#fff;color:#7A7484;font-weight:800;cursor:pointer">返回登录</button>
-        <button id="regOk" style="flex:1;padding:10px;border-radius:12px;border:0;background:#B8D8F0;color:#2E5A7E;font-weight:800;cursor:pointer">注册</button>
+        <button id="regCancel" style="flex:1;padding:10px;border-radius:12px;border:2px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);color:#A89FC0;font-weight:800;cursor:pointer">返回登录</button>
+        <button id="regOk" style="flex:1;padding:10px;border-radius:12px;border:0;background:#B8D8F0;color:#234;font-weight:800;cursor:pointer">注册</button>
       </div></div>`;
     document.body.appendChild(box);
   }
@@ -1567,6 +1626,7 @@ function bindControls(){
   bind('openCard', onOpenCard);
   bind('overlay', onOverlayClick);
   bind('gearBtn', openRoster);
+  bind('reportBtn', openReport); // R38 班级周报 / 成长报告导出
   bind('rosterClose', closeRoster);
   bind('roster', e=>{ if(e.target===$('roster')) closeRoster(); });
   bind('addBtn', ()=>{ const v=$('addInput').value; $('addInput').value=''; addStudent(v); });
