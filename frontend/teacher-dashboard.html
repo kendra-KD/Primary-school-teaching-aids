@@ -632,38 +632,38 @@ const TAG_GROUPS=[
    ===================================================================== */
 function creature(type,color){
   const E='#F4EFE7', K='#3A3550', c=color||'#8be9d4';
-  // R76 Q版立体渐变风：每个形象独立 defs（按 type 唯一 id，避免多 SVG 同 id 冲突）
+  // R97 第二轮重做：借鉴 Duolingo 设计语言 —— 扁平鲜艳 + 巨眼 + 统一豆形
   const uid=(type||'fb').replace(/[^a-z0-9]/gi,'');
   const G={body:'gB'+uid, belly:'gW'+uid, shine:'gS'+uid, eye:'gE'+uid};
   const defs=`<defs>
-    <radialGradient id="${G.body}" cx="38%" cy="30%" r="80%">
-      <stop offset="0%" stop-color="#fff" stop-opacity=".42"/>
-      <stop offset="45%" stop-color="${c}"/>
-      <stop offset="100%" stop-color="#1a1530" stop-opacity=".28"/>
+    <radialGradient id="${G.body}" cx="38%" cy="28%" r="75%">
+      <stop offset="0%" stop-color="#fff" stop-opacity=".55"/>
+      <stop offset="35%" stop-color="${c}"/>
+      <stop offset="100%" stop-color="${c}" stop-opacity=".75"/>
     </radialGradient>
-    <radialGradient id="${G.belly}" cx="40%" cy="35%" r="78%">
+    <linearGradient id="${G.belly}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#fffdf5"/>
       <stop offset="100%" stop-color="${E}"/>
-    </radialGradient>
+    </linearGradient>
     <radialGradient id="${G.shine}" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#fff" stop-opacity=".72"/>
+      <stop offset="0%" stop-color="#fff" stop-opacity=".8"/>
       <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="${G.eye}" cx="40%" cy="32%" r="72%">
-      <stop offset="0%" stop-color="#6a6488"/>
+    <radialGradient id="${G.eye}" cx="42%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#5a5478"/>
       <stop offset="100%" stop-color="${K}"/>
     </radialGradient>
   </defs>`;
-  // 高光椭圆（顶部亮斑，模拟球体光照）
-  const hi=(cx,cy,rx,ry,o={})=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry||rx}" fill="url(#${G.shine})" opacity="${o.op!=null?o.op:.65}"/>`;
-  // 大眼表情：渐变瞳孔 + 双层白色高光 + 腮红（粉色，不再用主色避免冲突）
+  // 高光椭圆（顶部亮斑，模拟球体光照）—— R97: 提高透明度
+  const hi=(cx,cy,rx,ry,o={})=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry||rx}" fill="url(#${G.shine})" opacity="${o.op!=null?o.op:.7}"/>`;
+  // R97 巨眼升级：瞳孔 r 3.4→5（+47%），双层高光自适应缩放，腮红改椭圆，微笑弧度自适应
   const face=(cx,cy,o={})=>{
-    const dx=o.dx||5, er=o.er||3.4;
+    const dx=o.dx||5.5, er=o.er||Math.min(5,dx-0.8);
     const eye=`<circle class="c-eye" cx="${cx-dx}" cy="${cy}" r="${er}" fill="url(#${G.eye})"/><circle class="c-eye" cx="${cx+dx}" cy="${cy}" r="${er}" fill="url(#${G.eye})"/>`+
-      `<circle cx="${(cx-dx-0.8).toFixed(1)}" cy="${(cy-1.2).toFixed(1)}" r="${(er*0.46).toFixed(2)}" fill="#fff"/><circle cx="${(cx+dx-0.8).toFixed(1)}" cy="${(cy-1.2).toFixed(1)}" r="${(er*0.46).toFixed(2)}" fill="#fff"/>`+
-      `<circle cx="${(cx-dx+1.3).toFixed(1)}" cy="${(cy+1.5).toFixed(1)}" r="${(er*0.22).toFixed(2)}" fill="#fff" opacity=".85"/><circle cx="${(cx+dx+1.3).toFixed(1)}" cy="${(cy+1.5).toFixed(1)}" r="${(er*0.22).toFixed(2)}" fill="#fff" opacity=".85"/>`;
-    const sm=o.smile===false?'':`<path d="M${cx-dx*0.7} ${cy+5} q${dx*0.7} 5 ${dx*1.4} 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
-    const bl=o.blush===false?'':`<circle cx="${cx-dx*1.7}" cy="${cy+3}" r="2.6" fill="#ff9ec9" opacity=".5"/><circle cx="${cx+dx*1.7}" cy="${cy+3}" r="2.6" fill="#ff9ec9" opacity=".5"/>`;
+      `<circle cx="${(cx-dx-er*0.22).toFixed(1)}" cy="${(cy-er*0.28).toFixed(1)}" r="${(er*0.42).toFixed(2)}" fill="#fff"/><circle cx="${(cx+dx-er*0.22).toFixed(1)}" cy="${(cy-er*0.28).toFixed(1)}" r="${(er*0.42).toFixed(2)}" fill="#fff"/>`+
+      `<circle cx="${(cx-dx+er*0.22).toFixed(1)}" cy="${(cy+er*0.28).toFixed(1)}" r="${(er*0.2).toFixed(2)}" fill="#fff" opacity=".9"/><circle cx="${(cx+dx+er*0.22).toFixed(1)}" cy="${(cy+er*0.28).toFixed(1)}" r="${(er*0.2).toFixed(2)}" fill="#fff" opacity=".9"/>`;
+    const sm=o.smile===false?'':`<path d="M${(cx-dx*0.55).toFixed(1)} ${(cy+er+1.5).toFixed(1)} q${(dx*0.55).toFixed(1)} 4 ${(dx*1.1).toFixed(1)} 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+    const bl=o.blush===false?'':`<ellipse cx="${(cx-dx*1.8).toFixed(1)}" cy="${(cy+er*0.4).toFixed(1)}" rx="3" ry="2" fill="#ff9ec9" opacity=".4"/><ellipse cx="${(cx+dx*1.8).toFixed(1)}" cy="${(cy+er*0.4).toFixed(1)}" rx="3" ry="2" fill="#ff9ec9" opacity=".4"/>`;
     return eye+sm+bl;
   };
   // 立体哺乳动物：耳朵/头部用渐变，耳廓内侧主色，头顶高光
@@ -1036,21 +1036,8 @@ function selectPartner(i){
 }
 
 function applyTag(gi,ti){
-  // R50: 授课锁定 —— 防止学生上讲台乱点加分；老师输 PIN 解锁一次（本课有效）
-  if(GP.lessonActive()){
-    let unlocked=false;
-    try{ unlocked=sessionStorage.getItem('gp_unlocked')==='1'; }catch(e){}
-    if(!unlocked){
-      GP.pinPrompt('🔒 授课锁定中：点评需输入 PIN 解锁').then(input=>{
-        if(input===null){ return; }
-        if(String(input).trim()!==String(GP.lessonPin)){ GP.pinShake(); toast('❌ PIN 不正确，已拦截本次点评'); return; }
-        try{ sessionStorage.setItem('gp_unlocked','1'); }catch(e){}
-        toast('🔓 已解锁，本节课可正常点评');
-        applyTag(gi,ti);
-      });
-      return;
-    }
-  }
+  // R95: 移除 R50 授课锁定 —— 上课不再生成 PIN，切班改由切班码(switch_code)负责。
+  // 授课会话令牌(lessonToken)保留：点评时仍通过 X-Lesson-Token 头校验，确保数据可追溯。
   if(selectedId===null){ toast('请先点一个伙伴 👆'); return; }
   const cls=CLASSES[currentClass]; const s=cls.students[selectedId];
   const tag=TAG_GROUPS[gi].tags[ti]; if(!tag) return;
@@ -1140,7 +1127,9 @@ function switchClass(id){
     return;
   }
   // 已设切班码：弹出输入面板验证
-  GP.pinPrompt('🔒 切换到「'+targetCls.name+'」需输入切班码').then(input=>{
+  GP.pinPrompt('🔄 切换到「'+targetCls.name+'」需输入切班码', {
+    type:'text', maxlength:12, icon:'🔄', hint:'输入切班码后按 Enter', okText:'切换'
+  }).then(input=>{
     if(input===null){ toast('已取消切班'); return; }
     // 调后端验证
     fetch('/api/classes/'+id+'/verify-switch',{
@@ -1156,7 +1145,7 @@ function switchClass(id){
 function doSwitchClass(id){
   currentClass=id; selectedId=null;
   if(GP.lessonToken){
-    GP.lessonToken=''; GP.lessonPin='';
+    GP.lessonToken='';
     try{sessionStorage.removeItem('gp_unlocked');}catch(e){}
     GP.renderLessonUI();
     toast('授课会话已结束，已切班');
@@ -1398,13 +1387,17 @@ function setSwitchCode(){
   const c=CLASSES[currentClass]||{};
   const status = c.switch_code_set ? '当前已设切班码' : '当前未设切班码（未设时已登录可直接切班）';
   // 两步：先输新切班码，再输登录密码验证
-  GP.pinPrompt('🔒 设置「'+c.name+'」切班码\n'+status+'\n输入新切班码（4-12位字母数字）').then(code=>{
+  GP.pinPrompt('🔑 设置「'+c.name+'」切班码\n'+status+'\n输入新切班码（4-12位字母数字）', {
+    type:'text', maxlength:12, icon:'🔑', hint:'输入后点确认', okText:'下一步'
+  }).then(code=>{
     if(code===null) return;
     const sc=String(code).trim();
     if(sc.length<4){ toast('切班码至少 4 位'); return; }
     if(sc.length>12){ toast('切班码最多 12 位'); return; }
     if(!/^[A-Za-z0-9]+$/.test(sc)){ toast('切班码只能用字母和数字'); return; }
-    GP.pinPrompt('🔐 验证身份：请输入你的登录密码').then(pwd=>{
+    GP.pinPrompt('🔐 验证身份：请输入你的登录密码', {
+      type:'password', maxlength:64, icon:'🔐', hint:'验证是本人操作', okText:'确认设置'
+    }).then(pwd=>{
       if(pwd===null) return;
       fetch('/api/classes/'+currentClass+'/switch-code',{
         method:'PUT',
@@ -1605,7 +1598,7 @@ const GP={
   teacher:null,
   clsMap:{},
   lessonToken:'',   // R49 授课会话令牌
-  lessonPin:'',     // R50 切班 PIN
+  lessonPin:'',     // R95 已废弃：切班改由 switch_code 负责
   ready:false,
   enabled(){ return GP_CLOUD && !!this.token; },
 
@@ -1618,10 +1611,11 @@ const GP={
     try{
       const data=await this.api('/api/classes/'+cid+'/lesson/start',{method:'POST'});
       this.lessonToken=data.lesson_token||data.session_id||'';
-      this.lessonPin=data.pin||'';
-      try{sessionStorage.removeItem('gp_unlocked');}catch(e){}  // 新课重新上锁
+      // R95: 移除 lessonPin —— 切班改由切班码(switch_code)负责，上课不再弹 PIN
+      this.lessonPin='';
+      try{sessionStorage.removeItem('gp_unlocked');}catch(e){}
       this.renderLessonUI();
-      toast('📚 已开始上课 · PIN: '+this.lessonPin+'（切班需验证）');
+      toast('📚 已开始上课 · 授课令牌已激活（点评可记录）');
       // R30: 拉取推荐标签并高亮 dock
       this.loadRecommendedLabels(cid);
     }catch(err){ toast('开始上课失败：'+(err.message||'未知错误')); }
@@ -1629,14 +1623,14 @@ const GP={
 
   async endLesson(){
     const cid=remoteClassId();
-    if(!cid||!this.lessonToken){ this.lessonToken=''; this.lessonPin=''; this.renderLessonUI(); return; }
+    if(!cid||!this.lessonToken){ this.lessonToken=''; this.renderLessonUI(); return; }
     try{
       await this.api('/api/classes/'+cid+'/lesson',{method:'DELETE',
         headers:{'X-Lesson-Token':this.lessonToken}});
       toast('📒 已下课');
     }catch(err){ /* 会话可能已过期，静默清理 */
       console.warn('[growth-planet] 下课清理：',err.message); }
-    this.lessonToken=''; this.lessonPin='';
+    this.lessonToken=''; // R95: lessonPin 已废弃
     try{sessionStorage.removeItem('gp_unlocked');}catch(e){}
     this.renderLessonUI();
     GP_clearRecommendedLabels(); // R30: 清理高亮
@@ -1650,11 +1644,11 @@ const GP={
       btn.style.display=''; btn.classList.add('primary');
       if(pill){
         pill.style.display='flex';
-        pill.title='🔒 授课锁定中（PIN 已隐藏，防投影泄露）';
+        pill.title='授课中 · 点评可记录到云端';
         if(pinTxt){
-          pinTxt.textContent='🔒 授课锁定中';
+          pinTxt.textContent='📚 授课中';
           pill.style.cursor='default';
-          pill.onclick=null; // 默认不响应点击，防学生点开看 PIN
+          pill.onclick=null;
         }
       }
     }else{
@@ -1703,7 +1697,7 @@ const GP={
 
   logout(){
     this.token=''; this.teacher=null; this.ready=false;
-    this.lessonToken=''; this.lessonPin='';
+    this.lessonToken='';
     localStorage.removeItem('gp_token');
     renderGPBtn();
   },
@@ -1777,30 +1771,36 @@ const GP={
    精致解锁面板（替换原生 prompt）——暗色卡片式 PIN 输入
    用法：const ok = await GP.pinPrompt('切班需验证 PIN');
    ===================================================================== */
-GP.pinPrompt = function(title){
+// R94: pinPrompt 改为通用输入面板 —— 支持 opts.type(text/password)、opts.maxlength、opts.icon、opts.hint、opts.okText
+GP.pinPrompt = function(title, opts={}){
   return new Promise(resolve=>{
-    // 已有面板先清
     const old=document.getElementById('pinModal'); if(old) old.remove();
     const mask=document.createElement('div'); mask.id='pinModal';
     mask.className='overlay show';
+    const inpType = opts.type || 'password';
+    const inpMaxlen = opts.maxlength || 32;
+    const icon = opts.icon || '🔒';
+    const hint = opts.hint || '仅老师操作';
+    const okText = opts.okText || '确认';
+    const spacing = inpType==='password' ? 'letter-spacing:6px;' : 'letter-spacing:1px;text-align:center;';
     mask.innerHTML=`<div class="modal" style="position:relative;max-width:360px;background:#241f3a;border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:26px 24px;box-shadow:0 18px 50px rgba(0,0,0,.5)">
       <div style="text-align:center;margin-bottom:16px">
-        <div style="font-size:30px;margin-bottom:6px">🔒</div>
-        <div style="font-size:15px;font-weight:900;color:#F4EFE7">${title||'请输入 PIN'}</div>
-        <div style="font-size:11px;color:#9A94A6;margin-top:4px">仅老师操作</div>
+        <div style="font-size:30px;margin-bottom:6px">${icon}</div>
+        <div style="font-size:15px;font-weight:900;color:#F4EFE7;line-height:1.5;white-space:pre-line">${title||'请输入'}</div>
+        <div style="font-size:11px;color:#9A94A6;margin-top:4px">${hint}</div>
       </div>
-      <input id="pinInput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autofocus
-        style="width:100%;text-align:center;letter-spacing:8px;font-size:24px;font-weight:900;color:#F4EFE7;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.15);border-radius:12px;padding:12px;outline:none">
+      <input id="pinInput" type="${inpType}" maxlength="${inpMaxlen}" autofocus
+        style="width:100%;${spacing}font-size:22px;font-weight:900;color:#F4EFE7;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.15);border-radius:12px;padding:12px;outline:none;box-sizing:border-box">
       <div id="pinErr" style="text-align:center;color:#E4798A;font-size:12px;min-height:18px;margin-top:8px"></div>
       <div style="display:flex;gap:10px;margin-top:6px">
         <button id="pinCancel" style="flex:1;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#9A94A6;font-weight:800;cursor:pointer">取消</button>
-        <button id="pinOk" style="flex:1;padding:11px;border-radius:12px;border:0;background:#A8E6CF;color:#3E6B52;font-weight:900;cursor:pointer">解锁</button>
+        <button id="pinOk" style="flex:1;padding:11px;border-radius:12px;border:0;background:#A8E6CF;color:#3E6B52;font-weight:900;cursor:pointer">${okText}</button>
       </div>
     </div>`;
     document.body.appendChild(mask);
     const inp=mask.querySelector('#pinInput'), errBox=mask.querySelector('#pinErr');
     const close=(val)=>{ mask.remove(); document.removeEventListener('keydown',onKey); resolve(val); };
-    const submit=()=>{ const v=inp.value.trim(); if(!v){ errBox.textContent='请输入 PIN'; inp.focus(); return; } close(v); };
+    const submit=()=>{ const v=inp.value.trim(); if(!v){ errBox.textContent='请输入'; inp.focus(); return; } close(v); };
     mask.querySelector('#pinOk').onclick=submit;
     mask.querySelector('#pinCancel').onclick=()=>close(null);
     mask.onclick=e=>{ if(e.target===mask) close(null); };
@@ -1821,28 +1821,12 @@ function renderGPBtn(){
       'font-size:13px;font-weight:800;color:#5A5566;user-select:none';
     document.body.appendChild(btn);
   }
-  if(!GP_CLOUD){ btn.style.display='none'; if($('gpPinBtn')) $('gpPinBtn').style.display='none'; return; }
+  if(!GP_CLOUD){ btn.style.display='none'; return; }
   btn.style.display=''; // 确保在
   btn.textContent = GP.token ? ('☁ '+((GP.teacher&&GP.teacher.display_name)||'已同步')+' · 退出') : '☁ 登录同步';
   btn.onclick=()=>{ if(GP.token){ if(confirm('退出后将回到本机数据，确定？')) { GP.logout(); GP.renderLessonUI(); renderGPBtn(); } } else openLogin(); };
-  // 隐蔽 PIN 查看按钮（仅授课中显示，右下角，不投影到大屏主区）
-  let pinBtn=$('gpPinBtn');
-  if(!pinBtn){
-    pinBtn=document.createElement('div'); pinBtn.id='gpPinBtn';
-    pinBtn.style.cssText='position:fixed;right:16px;bottom:54px;z-index:90;padding:5px 11px;border-radius:999px;'+
-      'background:rgba(36,31,58,.85);box-shadow:0 3px 10px rgba(0,0,0,.2);cursor:pointer;'+
-      'font-size:11px;font-weight:700;color:#A8E6CF;user-select:none;border:1px solid rgba(168,230,207,.3)';
-    pinBtn.textContent='🔑 查看 PIN';
-    pinBtn.title='老师查看本课 PIN（仅显示 3 秒）';
-    pinBtn.onclick=()=>{
-      if(!GP.lessonActive()){ toast('当前未授课'); return; }
-      pinBtn.textContent='PIN: '+GP.lessonPin;
-      pinBtn.style.background='rgba(168,230,207,.9)'; pinBtn.style.color='#234';
-      setTimeout(()=>{ pinBtn.textContent='🔑 查看 PIN'; pinBtn.style.background='rgba(36,31,58,.85)'; pinBtn.style.color='#A8E6CF'; },3000);
-    };
-    document.body.appendChild(pinBtn);
-  }
-  pinBtn.style.display = GP.lessonActive() ? '' : 'none';
+  // R95: 移除 PIN 查看按钮 —— 上课不再生成 PIN，切班由切班码负责
+  const oldPinBtn=$('gpPinBtn'); if(oldPinBtn) oldPinBtn.remove();
 }
 
 function openLogin(){

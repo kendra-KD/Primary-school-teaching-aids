@@ -362,38 +362,38 @@ const $ = id => document.getElementById(id);
    ===================================================================== */
 function creature(type,color){
   const E='#F4EFE7', K='#3A3550', c=color||'#8be9d4';
-  // R76 Q版立体渐变风：每个形象独立 defs（按 type 唯一 id，避免多 SVG 同 id 冲突）
+  // R97 第二轮重做：借鉴 Duolingo 设计语言 —— 扁平鲜艳 + 巨眼 + 统一豆形
   const uid=(type||'fb').replace(/[^a-z0-9]/gi,'');
   const G={body:'gB'+uid, belly:'gW'+uid, shine:'gS'+uid, eye:'gE'+uid};
   const defs=`<defs>
-    <radialGradient id="${G.body}" cx="38%" cy="30%" r="80%">
-      <stop offset="0%" stop-color="#fff" stop-opacity=".42"/>
-      <stop offset="45%" stop-color="${c}"/>
-      <stop offset="100%" stop-color="#1a1530" stop-opacity=".28"/>
+    <radialGradient id="${G.body}" cx="38%" cy="28%" r="75%">
+      <stop offset="0%" stop-color="#fff" stop-opacity=".55"/>
+      <stop offset="35%" stop-color="${c}"/>
+      <stop offset="100%" stop-color="${c}" stop-opacity=".75"/>
     </radialGradient>
-    <radialGradient id="${G.belly}" cx="40%" cy="35%" r="78%">
+    <linearGradient id="${G.belly}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#fffdf5"/>
       <stop offset="100%" stop-color="${E}"/>
-    </radialGradient>
+    </linearGradient>
     <radialGradient id="${G.shine}" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#fff" stop-opacity=".72"/>
+      <stop offset="0%" stop-color="#fff" stop-opacity=".8"/>
       <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="${G.eye}" cx="40%" cy="32%" r="72%">
-      <stop offset="0%" stop-color="#6a6488"/>
+    <radialGradient id="${G.eye}" cx="42%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#5a5478"/>
       <stop offset="100%" stop-color="${K}"/>
     </radialGradient>
   </defs>`;
-  // 高光椭圆（顶部亮斑，模拟球体光照）
-  const hi=(cx,cy,rx,ry,o={})=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry||rx}" fill="url(#${G.shine})" opacity="${o.op!=null?o.op:.65}"/>`;
-  // 大眼表情：渐变瞳孔 + 双层白色高光 + 腮红（粉色，不再用主色避免冲突）
+  // 高光椭圆（顶部亮斑，模拟球体光照）—— R97: 提高透明度
+  const hi=(cx,cy,rx,ry,o={})=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry||rx}" fill="url(#${G.shine})" opacity="${o.op!=null?o.op:.7}"/>`;
+  // R97 巨眼升级：瞳孔 r 3.4→5（+47%），双层高光自适应缩放，腮红改椭圆，微笑弧度自适应
   const face=(cx,cy,o={})=>{
-    const dx=o.dx||5, er=o.er||3.4;
+    const dx=o.dx||5.5, er=o.er||Math.min(5,dx-0.8);
     const eye=`<circle class="c-eye" cx="${cx-dx}" cy="${cy}" r="${er}" fill="url(#${G.eye})"/><circle class="c-eye" cx="${cx+dx}" cy="${cy}" r="${er}" fill="url(#${G.eye})"/>`+
-      `<circle cx="${(cx-dx-0.8).toFixed(1)}" cy="${(cy-1.2).toFixed(1)}" r="${(er*0.46).toFixed(2)}" fill="#fff"/><circle cx="${(cx+dx-0.8).toFixed(1)}" cy="${(cy-1.2).toFixed(1)}" r="${(er*0.46).toFixed(2)}" fill="#fff"/>`+
-      `<circle cx="${(cx-dx+1.3).toFixed(1)}" cy="${(cy+1.5).toFixed(1)}" r="${(er*0.22).toFixed(2)}" fill="#fff" opacity=".85"/><circle cx="${(cx+dx+1.3).toFixed(1)}" cy="${(cy+1.5).toFixed(1)}" r="${(er*0.22).toFixed(2)}" fill="#fff" opacity=".85"/>`;
-    const sm=o.smile===false?'':`<path d="M${cx-dx*0.7} ${cy+5} q${dx*0.7} 5 ${dx*1.4} 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
-    const bl=o.blush===false?'':`<circle cx="${cx-dx*1.7}" cy="${cy+3}" r="2.6" fill="#ff9ec9" opacity=".5"/><circle cx="${cx+dx*1.7}" cy="${cy+3}" r="2.6" fill="#ff9ec9" opacity=".5"/>`;
+      `<circle cx="${(cx-dx-er*0.22).toFixed(1)}" cy="${(cy-er*0.28).toFixed(1)}" r="${(er*0.42).toFixed(2)}" fill="#fff"/><circle cx="${(cx+dx-er*0.22).toFixed(1)}" cy="${(cy-er*0.28).toFixed(1)}" r="${(er*0.42).toFixed(2)}" fill="#fff"/>`+
+      `<circle cx="${(cx-dx+er*0.22).toFixed(1)}" cy="${(cy+er*0.28).toFixed(1)}" r="${(er*0.2).toFixed(2)}" fill="#fff" opacity=".9"/><circle cx="${(cx+dx+er*0.22).toFixed(1)}" cy="${(cy+er*0.28).toFixed(1)}" r="${(er*0.2).toFixed(2)}" fill="#fff" opacity=".9"/>`;
+    const sm=o.smile===false?'':`<path d="M${(cx-dx*0.55).toFixed(1)} ${(cy+er+1.5).toFixed(1)} q${(dx*0.55).toFixed(1)} 4 ${(dx*1.1).toFixed(1)} 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+    const bl=o.blush===false?'':`<ellipse cx="${(cx-dx*1.8).toFixed(1)}" cy="${(cy+er*0.4).toFixed(1)}" rx="3" ry="2" fill="#ff9ec9" opacity=".4"/><ellipse cx="${(cx+dx*1.8).toFixed(1)}" cy="${(cy+er*0.4).toFixed(1)}" rx="3" ry="2" fill="#ff9ec9" opacity=".4"/>`;
     return eye+sm+bl;
   };
   // 立体哺乳动物：耳朵/头部用渐变，耳廓内侧主色，头顶高光
