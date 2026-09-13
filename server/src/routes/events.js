@@ -225,7 +225,8 @@ export default async function eventRoutes(fastify) {
         theme: cls.theme,
         theme_pack: cls.theme_pack,
         eco_value: ecoValue,
-        stage: classStageOf(ecoValue)
+        stage: classStageOf(ecoValue),
+        switch_code_set: !!cls.switch_code
       },
       students: studentRows.map((row) => ({ ...shapeStudent(row), activities: actMap[row.id] || [] })),
       board: {

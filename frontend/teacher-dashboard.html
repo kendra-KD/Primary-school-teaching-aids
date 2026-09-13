@@ -459,6 +459,7 @@ hidden{display:none!important;}
         <button class="btn primary" id="copyLinkBtn">🔗 复制入班链接</button>
         <button class="btn" id="openStuBtn">🎒 学生自选页（首次认领）</button>
         <button class="btn" id="openStuDailyBtn">📱 学生互动入口（课间答题/交作业）</button>
+        <button class="btn" id="setSwitchCodeBtn">🔒 设置切班码</button>
       </div>
       <div class="join-hint" id="joinHint">登录并建班后自动生成入班码</div>
     </div>
@@ -631,92 +632,168 @@ const TAG_GROUPS=[
    ===================================================================== */
 function creature(type,color){
   const E='#F4EFE7', K='#3A3550', c=color||'#8be9d4';
-  // 通用表情：眼睛(可眨) + 微笑 + 腮红(学生主色)
+  // R76 Q版立体渐变风：每个形象独立 defs（按 type 唯一 id，避免多 SVG 同 id 冲突）
+  const uid=(type||'fb').replace(/[^a-z0-9]/gi,'');
+  const G={body:'gB'+uid, belly:'gW'+uid, shine:'gS'+uid, eye:'gE'+uid};
+  const defs=`<defs>
+    <radialGradient id="${G.body}" cx="38%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#fff" stop-opacity=".42"/>
+      <stop offset="45%" stop-color="${c}"/>
+      <stop offset="100%" stop-color="#1a1530" stop-opacity=".28"/>
+    </radialGradient>
+    <radialGradient id="${G.belly}" cx="40%" cy="35%" r="78%">
+      <stop offset="0%" stop-color="#fffdf5"/>
+      <stop offset="100%" stop-color="${E}"/>
+    </radialGradient>
+    <radialGradient id="${G.shine}" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fff" stop-opacity=".72"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="${G.eye}" cx="40%" cy="32%" r="72%">
+      <stop offset="0%" stop-color="#6a6488"/>
+      <stop offset="100%" stop-color="${K}"/>
+    </radialGradient>
+  </defs>`;
+  // 高光椭圆（顶部亮斑，模拟球体光照）
+  const hi=(cx,cy,rx,ry,o={})=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry||rx}" fill="url(#${G.shine})" opacity="${o.op!=null?o.op:.65}"/>`;
+  // 大眼表情：渐变瞳孔 + 双层白色高光 + 腮红（粉色，不再用主色避免冲突）
   const face=(cx,cy,o={})=>{
-    const dx=o.dx||5, er=o.er||3;
-    const e=`<circle class="c-eye" cx="${cx-dx}" cy="${cy}" r="${er}" fill="${K}"/><circle class="c-eye" cx="${cx+dx}" cy="${cy}" r="${er}" fill="${K}"/>`+
-            `<circle cx="${cx-dx-1}" cy="${cy-1}" r="1" fill="#fff"/><circle cx="${cx+dx-1}" cy="${cy-1}" r="1" fill="#fff"/>`;
+    const dx=o.dx||5, er=o.er||3.4;
+    const eye=`<circle class="c-eye" cx="${cx-dx}" cy="${cy}" r="${er}" fill="url(#${G.eye})"/><circle class="c-eye" cx="${cx+dx}" cy="${cy}" r="${er}" fill="url(#${G.eye})"/>`+
+      `<circle cx="${(cx-dx-0.8).toFixed(1)}" cy="${(cy-1.2).toFixed(1)}" r="${(er*0.46).toFixed(2)}" fill="#fff"/><circle cx="${(cx+dx-0.8).toFixed(1)}" cy="${(cy-1.2).toFixed(1)}" r="${(er*0.46).toFixed(2)}" fill="#fff"/>`+
+      `<circle cx="${(cx-dx+1.3).toFixed(1)}" cy="${(cy+1.5).toFixed(1)}" r="${(er*0.22).toFixed(2)}" fill="#fff" opacity=".85"/><circle cx="${(cx+dx+1.3).toFixed(1)}" cy="${(cy+1.5).toFixed(1)}" r="${(er*0.22).toFixed(2)}" fill="#fff" opacity=".85"/>`;
     const sm=o.smile===false?'':`<path d="M${cx-dx*0.7} ${cy+5} q${dx*0.7} 5 ${dx*1.4} 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
-    const bl=o.blush===false?'':`<circle cx="${cx-dx*1.7}" cy="${cy+3}" r="2.3" fill="${c}" opacity=".55"/><circle cx="${cx+dx*1.7}" cy="${cy+3}" r="2.3" fill="${c}" opacity=".55"/>`;
-    return e+sm+bl;
+    const bl=o.blush===false?'':`<circle cx="${cx-dx*1.7}" cy="${cy+3}" r="2.6" fill="#ff9ec9" opacity=".5"/><circle cx="${cx+dx*1.7}" cy="${cy+3}" r="2.6" fill="#ff9ec9" opacity=".5"/>`;
+    return eye+sm+bl;
   };
-  // 通用哺乳动物：ear 决定耳朵形状，区分 8 种萌系动物
+  // 立体哺乳动物：耳朵/头部用渐变，耳廓内侧主色，头顶高光
   const mammal=(ear,o={})=>{
     let ears='';
-    if(ear==='round') ears=`<g class="c-wig" style="transform-origin:50px 26px"><circle cx="34" cy="26" r="9" fill="${c}" stroke="${K}" stroke-width="1.6"/><circle cx="66" cy="26" r="9" fill="${c}" stroke="${K}" stroke-width="1.6"/></g>`;
-    else if(ear==='long') ears=`<g class="c-wig" style="transform-origin:50px 22px"><ellipse cx="38" cy="20" rx="6" ry="19" fill="${E}" stroke="${K}" stroke-width="1.6"/><ellipse cx="62" cy="20" rx="6" ry="19" fill="${E}" stroke="${K}" stroke-width="1.6"/><ellipse cx="38" cy="20" rx="2.6" ry="12" fill="${c}" opacity=".5"/><ellipse cx="62" cy="20" rx="2.6" ry="12" fill="${c}" opacity=".5"/></g>`;
-    else if(ear==='point') ears=`<g class="c-wig" style="transform-origin:50px 26px"><path d="M32 34 L28 14 L46 26Z" fill="${c}" stroke="${K}" stroke-width="1.6"/><path d="M68 34 L72 14 L54 26Z" fill="${c}" stroke="${K}" stroke-width="1.6"/></g>`;
-    else if(ear==='flop') ears=`<g class="c-wig" style="transform-origin:40px 40px"><path d="M30 34 q-16 -2 -16 18 q10 6 20 -4z" fill="${c}" stroke="${K}" stroke-width="1.6"/><path d="M70 34 q16 -2 16 18 q-10 6 -20 -4z" fill="${c}" stroke="${K}" stroke-width="1.6"/></g>`;
-    else if(ear==='tri') ears=`<g class="c-wig" style="transform-origin:50px 28px"><path d="M33 30 l-7 -12 l12 4z" fill="${c}" stroke="${K}" stroke-width="1.5"/><path d="M67 30 l7 -12 l-12 4z" fill="${c}" stroke="${K}" stroke-width="1.5"/></g>`;
-    const head=`<circle cx="50" cy="54" r="27" fill="${E}" stroke="${K}" stroke-width="2"/>`;
-    const snout=o.snout?`<ellipse cx="50" cy="62" rx="11" ry="8" fill="${c}" opacity=".4"/><circle cx="46" cy="62" r="1.8" fill="${K}"/><circle cx="54" cy="62" r="1.8" fill="${K}"/>`:'';
+    if(ear==='round') ears=`<g class="c-wig" style="transform-origin:50px 26px"><circle cx="34" cy="26" r="9" fill="url(#${G.body})" stroke="${K}" stroke-width="1.6"/><circle cx="34" cy="27" r="5" fill="${c}" opacity=".4"/><circle cx="66" cy="26" r="9" fill="url(#${G.body})" stroke="${K}" stroke-width="1.6"/><circle cx="66" cy="27" r="5" fill="${c}" opacity=".4"/></g>`;
+    else if(ear==='long') ears=`<g class="c-wig" style="transform-origin:50px 22px"><ellipse cx="38" cy="20" rx="6" ry="19" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/><ellipse cx="62" cy="20" rx="6" ry="19" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/><ellipse cx="38" cy="20" rx="2.6" ry="12" fill="${c}" opacity=".5"/><ellipse cx="62" cy="20" rx="2.6" ry="12" fill="${c}" opacity=".5"/></g>`;
+    else if(ear==='point') ears=`<g class="c-wig" style="transform-origin:50px 26px"><path d="M32 34 L28 14 L46 26Z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.6"/><path d="M68 34 L72 14 L54 26Z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.6"/><path d="M33 30 L31 18 L42 26Z" fill="${c}" opacity=".4"/><path d="M67 30 L69 18 L58 26Z" fill="${c}" opacity=".4"/></g>`;
+    else if(ear==='flop') ears=`<g class="c-wig" style="transform-origin:40px 40px"><path d="M30 34 q-16 -2 -16 18 q10 6 20 -4z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.6"/><path d="M70 34 q16 -2 16 18 q-10 6 -20 -4z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.6"/></g>`;
+    else if(ear==='tri') ears=`<g class="c-wig" style="transform-origin:50px 28px"><path d="M33 30 l-7 -12 l12 4z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.5"/><path d="M67 30 l7 -12 l-12 4z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.5"/></g>`;
+    const head=`<circle cx="50" cy="54" r="27" fill="url(#${G.belly})" stroke="${K}" stroke-width="2"/>`;
+    const shine=hi(42,44,13,9);
+    const snout=o.snout?`<ellipse cx="50" cy="62" rx="11" ry="8" fill="${c}" opacity=".35"/><circle cx="46" cy="62" r="1.8" fill="${K}"/><circle cx="54" cy="62" r="1.8" fill="${K}"/>`:'';
     const extra=o.extra||'';
-    return ears+head+face(50,50,{dx:6})+snout+extra;
+    return ears+head+shine+face(50,50,{dx:6})+snout+extra;
   };
-  const fishBody=(o={})=>`<g class="c-wig" style="transform-origin:18px 58px"><path d="M30 58 L12 45 L17 58 L12 71 Z" fill="${c}" stroke="${K}" stroke-width="2"/></g>
-     <ellipse cx="56" cy="58" rx="30" ry="20" fill="${E}" stroke="${K}" stroke-width="2"/>
+  // 立体鱼身：尾鳍/背鳍用主色渐变，身体用浅色渐变 + 腹部高光
+  const fishBody=(o={})=>`<g class="c-wig" style="transform-origin:18px 58px"><path d="M30 58 L12 45 L17 58 L12 71 Z" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/></g>
+     <ellipse cx="56" cy="58" rx="30" ry="20" fill="url(#${G.belly})" stroke="${K}" stroke-width="2"/>
+     ${hi(48,48,12,6)}
      <path d="M54 39 q7 -8 15 -6" stroke="${c}" stroke-width="4" fill="none" stroke-linecap="round"/>
-     <circle cx="70" cy="53" r="3" fill="${K}"/><path d="M66 63 q5 4 10 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>${o.tail||''}`;
-
+     <circle class="c-eye" cx="70" cy="53" r="3.4" fill="url(#${G.eye})"/><circle cx="69.2" cy="51.8" r="1.5" fill="#fff"/>
+     <path d="M66 63 q5 4 10 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>${o.tail||''}`;
   const DRAW={
-    // ---------- 萌系自然 1-2 年级 ----------
+    // ============ 自然生灵包：萌系动物（用 mammal 基底自动立体化）============
     tuan_tuan:c=>mammal('round'),
     hug_bear:c=>mammal('round',{extra:`<path d="M50 80 q-5 -6 -10 -2 q3 6 10 4 q7 2 10 -4 q-5 -4 -10 2z" fill="${c}" opacity=".85"/>`}),
     bunny:c=>mammal('long'),
     kitty:c=>mammal('point',{extra:`<g stroke="${K}" stroke-width="1.2" opacity=".7"><line x1="56" y1="60" x2="74" y2="58"/><line x1="56" y1="64" x2="74" y2="64"/><line x1="44" y1="60" x2="26" y2="58"/><line x1="44" y1="64" x2="26" y2="64"/></g>`}),
     puppy:c=>mammal('flop',{extra:`<path d="M44 66 q6 8 12 0 q-6 5 -12 0z" fill="${c}" opacity=".7"/>`}),
     piggy:c=>mammal('tri',{snout:true}),
-    duckling:c=>`<ellipse cx="52" cy="62" rx="26" ry="20" fill="${c}" stroke="${K}" stroke-width="2"/><circle cx="44" cy="40" r="16" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M28 40 q-12 2 -12 8 q8 4 14 -1z" fill="#ffb347" stroke="${K}" stroke-width="1.4"/><path d="M70 56 q14 -6 20 2 q-8 8 -18 4z" fill="${c}" stroke="${K}" stroke-width="1.4"/>${face(46,38,{dx:3.5,blush:false})}`,
-    cloud_sheep:c=>`<g class="c-wig" style="transform-origin:50px 50px"><circle cx="30" cy="46" r="14" fill="#fff" stroke="${K}" stroke-width="1.5"/><circle cx="70" cy="46" r="14" fill="#fff" stroke="${K}" stroke-width="1.5"/><circle cx="38" cy="66" r="15" fill="#fff" stroke="${K}" stroke-width="1.5"/><circle cx="62" cy="66" r="15" fill="#fff" stroke="${K}" stroke-width="1.5"/></g><circle cx="50" cy="54" r="18" fill="#fff" stroke="${K}" stroke-width="1.8"/>${face(50,54,{dx:5,blush:false})}`,
-    star_kid:c=>`<path d="M50 14 L61 40 L88 42 L67 60 L75 86 L50 70 L25 86 L33 60 L12 42 L39 40 Z" fill="${c}" stroke="${K}" stroke-width="2" stroke-linejoin="round" opacity=".92"/>${face(50,52,{dx:6,blush:false})}`,
-    ya_ya:c=>`<path d="M28 82 q22 12 44 0 l-6 -10 q-16 7 -32 0z" fill="#caa472"/><rect x="47" y="46" width="6" height="36" rx="3" fill="#8fd18f"/><path d="M50 56 q-17 -4 -21 -19 q15 2 21 14z" fill="#a7e3a7"/><path d="M50 50 q17 -6 23 -21 q-15 0 -23 15z" fill="#8fd18f"/><circle cx="50" cy="38" r="14" fill="#fff" stroke="${K}" stroke-width="1.8"/>${face(50,36,{dx:4,blush:false})}`,
+    // 黄小鸭：立体渐变身体 + 高光 + 橙嘴
+    duckling:c=>`<ellipse cx="52" cy="62" rx="26" ry="20" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(44,52,9,6)}<circle cx="44" cy="40" r="16" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(38,34,6,4)}<path d="M28 40 q-12 2 -12 8 q8 4 14 -1z" fill="#ffb347" stroke="${K}" stroke-width="1.4"/><path d="M70 56 q14 -6 20 2 q-8 8 -18 4z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.4"/>${face(46,38,{dx:3.6,blush:false})}`,
+    cloud_sheep:c=>`<g class="c-wig" style="transform-origin:50px 50px"><circle cx="30" cy="46" r="14" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.5"/><circle cx="70" cy="46" r="14" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.5"/><circle cx="38" cy="66" r="15" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.5"/><circle cx="62" cy="66" r="15" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.5"/></g><circle cx="50" cy="54" r="18" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(44,46,7,5)}${face(50,54,{dx:5,blush:false})}`,
+    star_kid:c=>`<path d="M50 14 L61 40 L88 42 L67 60 L75 86 L50 70 L25 86 L33 60 L12 42 L39 40 Z" fill="url(#${G.body})" stroke="${K}" stroke-width="2" stroke-linejoin="round"/>${hi(42,32,8,6)}${face(50,52,{dx:6,blush:false})}`,
+    // 芽芽：立体花盆 + 渐变嫩芽 + 高光
+    ya_ya:c=>`<path d="M28 82 q22 12 44 0 l-6 -10 q-16 7 -32 0z" fill="#caa472"/>${hi(44,76,8,3)}<rect x="47" y="46" width="6" height="36" rx="3" fill="url(#${G.body})"/>${hi(48,52,2,10)}<path d="M50 56 q-17 -4 -21 -19 q15 2 21 14z" fill="url(#${G.body})"/><path d="M50 50 q17 -6 23 -21 q-15 0 -23 15z" fill="url(#${G.body})" opacity=".85"/><circle cx="50" cy="38" r="14" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(46,32,5,4)}${face(50,36,{dx:4,blush:false})}`,
+    // 鱼类（用 fishBody 基底自动立体化）
     bub_fish:c=>fishBody(),
     minnow:c=>fishBody({tail:`<circle cx="84" cy="58" r="3" fill="${c}" opacity=".5"/>`}),
-    slow_turtle:c=>`<g class="c-wig" style="transform-origin:50px 56px"><path d="M30 56 q-12 -4 -14 4 q10 4 16 0z" fill="${E}" stroke="${K}" stroke-width="1.6"/><path d="M70 56 q12 -4 14 4 q-10 4 -16 0z" fill="${E}" stroke="${K}" stroke-width="1.6"/></g><path d="M50 30 l16 14 l-4 30 l-24 0 l-4 -30z" fill="#8fd18f" stroke="${K}" stroke-width="2"/><path d="M50 30 v44 M34 44 h32 M36 58 h28" stroke="#5fae5f" stroke-width="1.4" fill="none"/><circle cx="50" cy="74" r="14" fill="${E}" stroke="${K}" stroke-width="2"/>${face(50,74,{dx:4,dy:0})}`,
-    blue_whale:c=>`<path d="M30 58 L14 46 L20 58 L14 70Z" fill="${c}" stroke="${K}" stroke-width="2"/><ellipse cx="56" cy="56" rx="34" ry="24" fill="${c}" stroke="${K}" stroke-width="2" opacity=".92"/><path d="M50 32 q3 -8 9 -7" stroke="${K}" stroke-width="2" fill="none"/><circle cx="44" cy="54" r="2.6" fill="${K}"/><path d="M68 60 q6 4 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M40 72 q16 8 34 0" stroke="${c}" stroke-width="3" fill="none" opacity=".6"/>`,
-    little_crab:c=>`<g class="c-wig" style="transform-origin:50px 50px"><path d="M20 46 q-14 -10 -18 2 q12 8 20 2z" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M80 46 q14 -10 18 2 q-12 8 -20 2z" fill="${c}" stroke="${K}" stroke-width="2"/></g><ellipse cx="50" cy="58" rx="26" ry="18" fill="${c}" stroke="${K}" stroke-width="2"/><g stroke="${K}" stroke-width="2" fill="none"><path d="M30 70 q-4 8 -10 8"/><path d="M44 74 q-2 8 -6 9"/><path d="M70 70 q4 8 10 8"/><path d="M56 74 q2 8 6 9"/></g>${face(50,56,{dx:5})}`,
-    // ---------- 生命观察 3-4 年级 ----------
-    can_bao:c=>`<g class="c-wig" style="transform-origin:50px 58px"><circle cx="26" cy="58" r="11" fill="${E}" stroke="${K}" stroke-width="1.8"/><circle cx="44" cy="56" r="12" fill="${E}" stroke="${K}" stroke-width="1.8"/><circle cx="64" cy="56" r="12" fill="${E}" stroke="${K}" stroke-width="1.8"/></g><circle cx="80" cy="54" r="13" fill="${E}" stroke="${K}" stroke-width="2"/>${face(80,52,{dx:4})}<g fill="${c}" opacity=".6"><circle cx="26" cy="54" r="1.6"/><circle cx="44" cy="52" r="1.6"/><circle cx="64" cy="52" r="1.6"/><circle cx="80" cy="48" r="1.6"/></g>`,
-    ke_dou:c=>`<ellipse cx="58" cy="58" rx="28" ry="22" fill="#8fd18f" stroke="${K}" stroke-width="2"/><circle cx="34" cy="52" r="14" fill="${E}" stroke="${K}" stroke-width="2"/><circle cx="28" cy="42" r="6" fill="${E}" stroke="${K}" stroke-width="1.6"/><circle cx="40" cy="42" r="6" fill="${E}" stroke="${K}" stroke-width="1.6"/><circle cx="28" cy="42" r="2" fill="${K}"/><circle cx="40" cy="42" r="2" fill="${K}"/><path d="M30 50 q6 5 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M58 80 q4 10 0 14 q-4 -4 0 -14" stroke="#5fae5f" stroke-width="3" fill="none"/>`,
-    seed_sprite:c=>`<path d="M34 78 q16 8 32 0 l-3 -10 q-13 5 -26 0z" fill="#caa472"/><ellipse cx="50" cy="50" rx="18" ry="22" fill="#caa472" stroke="${K}" stroke-width="1.8"/><path d="M38 50 q12 -6 24 0" stroke="#a9824f" stroke-width="1.5" fill="none"/><path d="M50 30 q-10 -10 -4 -20 q10 6 4 20z" fill="#8fd18f" stroke="#5fae5f" stroke-width="1.4"/><path d="M50 30 q10 -10 4 -20 q-10 6 -4 20z" fill="#a7e3a7" stroke="#5fae5f" stroke-width="1.4"/>${face(50,52,{dx:4,blush:false})}`,
-    ant_worker:c=>`<g class="c-wig" style="transform-origin:50px 40px"><path d="M44 36 q-8 -10 -14 -8 M56 36 q8 -10 14 -8" stroke="${K}" stroke-width="2" fill="none"/><circle cx="30" cy="26" r="2.4" fill="${K}"/><circle cx="70" cy="26" r="2.4" fill="${K}"/></g><circle cx="34" cy="56" r="11" fill="${c}" stroke="${K}" stroke-width="1.8"/><circle cx="50" cy="48" r="13" fill="${c}" stroke="${K}" stroke-width="1.8"/><circle cx="68" cy="54" r="10" fill="${c}" stroke="${K}" stroke-width="1.8"/><g stroke="${K}" stroke-width="1.6" fill="none"><path d="M30 64 v10 M38 66 v10 M64 62 v10 M72 60 v10"/></g>${face(68,54,{dx:3.5,blush:false})}`,
-    snail:c=>`<path d="M18 76 q0 -12 16 -12 q15 0 15 13 l0 5 l-31 0z" fill="${E}" stroke="${K}" stroke-width="2"/><circle cx="64" cy="50" r="20" fill="${c}" stroke="${K}" stroke-width="2" opacity=".9"/><circle cx="64" cy="50" r="13" fill="none" stroke="${c}" stroke-width="3"/><circle cx="64" cy="50" r="6" fill="${c}" opacity=".6"/><line x1="34" y1="64" x2="30" y2="46" stroke="${K}" stroke-width="2"/><circle cx="30" cy="44" r="2.6" fill="${K}"/><circle cx="40" cy="68" r="2.4" fill="${K}"/><path d="M36 74 q5 4 10 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
-    butterfly:c=>`<g class="c-wig" style="transform-origin:50px 56px"><ellipse cx="34" cy="46" rx="18" ry="22" fill="${c}" opacity=".9"/><ellipse cx="66" cy="46" rx="18" ry="22" fill="${c}" opacity=".9"/></g><ellipse cx="38" cy="74" rx="13" ry="14" fill="#fff" stroke="${K}" stroke-width="1.6"/><ellipse cx="62" cy="74" rx="13" ry="14" fill="#fff" stroke="${K}" stroke-width="1.6"/><rect x="47" y="32" width="6" height="48" rx="3" fill="#fff" stroke="${K}" stroke-width="1.6"/><circle cx="50" cy="32" r="6" fill="#fff" stroke="${K}" stroke-width="1.6"/><circle cx="48" cy="31" r="1.8" fill="${K}"/><circle cx="52" cy="31" r="1.8" fill="${K}"/><path d="M50 26 q-4 -8 -10 -10 M50 26 q4 -8 10 -10" stroke="${K}" stroke-width="1.5" fill="none"/>`,
-    shy_plant:c=>`<path d="M36 82 h28 l-3 -12 h-22z" fill="#d8a06a" stroke="${K}" stroke-width="1.6"/><g class="c-wig" style="transform-origin:50px 64px"><path d="M50 70 q-16 -2 -20 -18 q14 -2 20 12z" fill="#a7e3a7"/><path d="M50 70 q16 -2 20 -18 q-14 -2 -20 12z" fill="#8fd18f"/><circle cx="50" cy="66" r="6" fill="#7fc97f"/></g><circle cx="50" cy="60" r="13" fill="#fff" stroke="${K}" stroke-width="1.8"/>${face(50,58,{dx:3.5,blush:false})}`,
-    sun_flower:c=>`<g class="c-wig" style="transform-origin:50px 50px">${Array.from({length:12}).map((_,i)=>{const a=i*30*Math.PI/180,x=50+26*Math.cos(a),y=50+26*Math.sin(a);return `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="8" ry="5" fill="${c}" stroke="#e0a93a" stroke-width="1" transform="rotate(${(i*30).toFixed(0)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`}).join('')}</g><circle cx="50" cy="50" r="16" fill="#6b4a2b" stroke="${K}" stroke-width="1.8"/>${face(50,50,{dx:4,blush:false})}`,
-    mushroom:c=>`<path d="M36 78 q14 6 28 0 l-2 -10 q-12 4 -24 0z" fill="#f3e9da" stroke="${K}" stroke-width="1.6"/><path d="M22 56 q28 -34 56 0 q-28 14 -56 0z" fill="${c}" stroke="${K}" stroke-width="2"/><circle cx="40" cy="48" r="4" fill="#fff" opacity=".8"/><circle cx="60" cy="46" r="3" fill="#fff" opacity=".8"/><circle cx="52" cy="56" r="2.6" fill="#fff" opacity=".8"/><circle cx="50" cy="64" r="13" fill="#f3e9da" stroke="${K}" stroke-width="1.8"/>${face(50,62,{dx:3.5})}`,
-    bamboo:c=>`<rect x="44" y="34" width="12" height="48" rx="4" fill="#8fd18f" stroke="#5fae5f" stroke-width="1.6"/><line x1="44" y1="50" x2="56" y2="50" stroke="#5fae5f" stroke-width="1.4"/><line x1="44" y1="66" x2="56" y2="66" stroke="#5fae5f" stroke-width="1.4"/><g class="c-wig" style="transform-origin:50px 34px"><path d="M56 40 q18 -6 22 -20 q-16 0 -22 14z" fill="#a7e3a7"/><path d="M44 46 q-18 -4 -22 -18 q16 0 22 14z" fill="#8fd18f"/></g><circle cx="50" cy="30" r="13" fill="#fff" stroke="${K}" stroke-width="1.8"/>${face(50,28,{dx:3.5,blush:false})}`,
-    crystal:c=>`<g class="c-wig" style="transform-origin:50px 50px"><polygon points="50,18 67,42 50,66 33,42" fill="${E}" stroke="${c}" stroke-width="3"/><polygon points="28,40 41,57 28,74 15,57" fill="${E}" stroke="${c}" stroke-width="2.5"/><polygon points="72,40 85,57 72,74 59,57" fill="${E}" stroke="${c}" stroke-width="2.5"/></g><circle cx="50" cy="42" r="3" fill="${K}"/><path d="M44 50 q6 5 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M50 6 l2 7 l7 -2 l-5 6" fill="${c}"/>`,
-    // ---------- 动漫原创 5-6 年级（元素精灵）----------
-    fire_sprite:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".16"/><path d="M50 22 q14 16 8 30 q10 -2 6 12 q14 -10 4 -28 q10 6 6 18 q12 -16 -4 -34 q-10 14 -22 8 q-8 18 0 30 q-12 -10 -8 -26 q-2 16 0 0z" fill="${c}" stroke="${K}" stroke-width="1.8" stroke-linejoin="round"/><circle cx="50" cy="60" r="14" fill="#fff" stroke="${K}" stroke-width="1.8"/>${face(50,58,{dx:4,blush:false})}`,
-    water_sprite:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".16"/><path d="M50 24 q22 26 0 50 q-22 -24 0 -50z" fill="${c}" stroke="${K}" stroke-width="2"/><circle cx="50" cy="58" r="14" fill="#fff" stroke="${K}" stroke-width="1.8"/>${face(50,56,{dx:4,blush:false})}`,
-    grass_sprite:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".16"/><path d="M50 80 q-10 -20 -16 -34 q12 6 16 22 q4 -16 16 -22 q-6 14 -16 34z" fill="${c}" stroke="#5fae5f" stroke-width="1.8"/><circle cx="50" cy="56" r="13" fill="#fff" stroke="${K}" stroke-width="1.8"/>${face(50,54,{dx:3.5,blush:false})}`,
-    thunder_sprite:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".16"/><path d="M56 22 L34 54 L48 54 L40 80 L66 46 L52 46Z" fill="${c}" stroke="${K}" stroke-width="2" stroke-linejoin="round"/><circle cx="50" cy="58" r="13" fill="#fff" stroke="${K}" stroke-width="1.8"/>${face(50,56,{dx:3.5,blush:false})}`,
-    star2:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".16"/><path d="M50 20 L60 44 L86 46 L65 62 L73 86 L50 70 L27 86 L35 62 L14 46 L40 44Z" fill="${c}" stroke="${K}" stroke-width="2" stroke-linejoin="round"/><circle cx="50" cy="56" r="13" fill="#fff" stroke="${K}" stroke-width="1.8"/>${face(50,54,{dx:3.5,blush:false})}`,
-    mech_eco:c=>`<rect x="32" y="34" width="36" height="34" rx="10" fill="${E}" stroke="${K}" stroke-width="2"/><rect x="38" y="44" width="24" height="10" rx="5" fill="${c}" stroke="${K}" stroke-width="1.4"/><circle cx="42" cy="49" r="2" fill="#fff"/><circle cx="58" cy="49" r="2" fill="#fff"/><line x1="50" y1="34" x2="50" y2="24" stroke="${K}" stroke-width="2"/><circle cx="50" cy="22" r="3" fill="${c}"/><rect x="36" y="68" width="8" height="10" rx="2" fill="${E}" stroke="${K}" stroke-width="1.6"/><rect x="56" y="68" width="8" height="10" rx="2" fill="${E}" stroke="${K}" stroke-width="1.6"/>`,
-    light_spirit:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".16"/><g class="c-wig" style="transform-origin:50px 50px"><path d="M50 24 v52 M24 50 h52 M32 32 l36 36 M68 32 l-36 36" stroke="${c}" stroke-width="4" stroke-linecap="round"/></g><circle cx="50" cy="50" r="13" fill="#fff" stroke="${K}" stroke-width="1.8"/>${face(50,48,{dx:3.5,blush:false})}`,
-    ice_spirit:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".16"/><g class="c-wig" style="transform-origin:50px 50px"><path d="M50 26 v48 M26 50 h48 M32 32 l36 36 M68 32 l-36 36 M50 30 l8 20 -8 0 -8 0z" fill="none" stroke="${c}" stroke-width="3.5" stroke-linecap="round"/></g><circle cx="50" cy="50" r="13" fill="#fff" stroke="${K}" stroke-width="1.8"/>${face(50,48,{dx:3.5,blush:false})}`,
-    wind_spirit:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".16"/><g class="c-wig" style="transform-origin:50px 54px"><path d="M24 46 q26 -14 46 2 q-10 -10 -22 -4 q14 -16 30 -2" fill="none" stroke="${c}" stroke-width="4" stroke-linecap="round"/><path d="M24 60 q26 14 46 -2 q-10 10 -22 4 q14 16 30 2" fill="none" stroke="${c}" stroke-width="4" stroke-linecap="round"/></g><circle cx="50" cy="54" r="12" fill="#fff" stroke="${K}" stroke-width="1.8"/>${face(50,52,{dx:3.5,blush:false})}`,
-    rock_spirit:c=>`<path d="M26 72 l10 -28 l16 8 l14 -16 l8 36z" fill="#b9a98f" stroke="${K}" stroke-width="2" stroke-linejoin="round"/><path d="M36 44 l16 8 l10 -10" fill="none" stroke="#8a7a60" stroke-width="1.4"/><circle cx="48" cy="60" r="12" fill="#f3e9da" stroke="${K}" stroke-width="1.8"/>${face(48,58,{dx:3.5,blush:false})}`,
-    dragon_spirit:c=>`<g class="c-wig" style="transform-origin:50px 46px"><path d="M30 40 q-14 -14 -22 -6 q12 2 16 12z" fill="${c}" stroke="${K}" stroke-width="1.6"/></g><path d="M34 40 q16 -10 32 0 q10 14 0 30 q-16 12 -32 0 q-10 -16 0 -30z" fill="${c}" stroke="${K}" stroke-width="2" opacity=".92"/><path d="M50 26 q4 -8 10 -6 q-2 8 -10 8z" fill="${c}" stroke="${K}" stroke-width="1.4"/><circle cx="46" cy="48" r="3" fill="${K}"/><circle cx="58" cy="48" r="3" fill="${K}"/><path d="M42 60 q8 7 16 0" stroke="${K}" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M40 34 q10 -4 20 0" stroke="${c}" stroke-width="3" fill="none" opacity=".6"/>`,
-    dark_spirit:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".16"/><circle cx="50" cy="54" r="24" fill="#3a3550" stroke="${K}" stroke-width="2"/><circle cx="42" cy="50" r="4" fill="${c}"/><circle cx="58" cy="50" r="4" fill="${c}"/><path d="M42 64 q8 6 16 0" stroke="${c}" stroke-width="2.5" fill="none" stroke-linecap="round"/><g class="c-wig" style="transform-origin:50px 18px"><circle cx="38" cy="18" r="2.5" fill="${c}"/><circle cx="62" cy="18" r="2.5" fill="${c}"/><circle cx="50" cy="12" r="2.5" fill="${c}"/></g>`,
-    // ---------- 恐龙系列（原创，dino_pack）----------
-    dino_saurus:c=>`<path d="M28 74 q-4 -16 4 -26 q8 -10 18 -10 q10 0 18 10 q8 10 4 26z" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M32 50 q-10 -2 -14 -10 M40 44 q-8 -8 -8 -16 M60 44 q8 -8 8 -16 M68 50 q10 -2 14 -10" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="42" cy="46" r="3" fill="${K}"/><circle cx="58" cy="46" r="3" fill="${K}"/><path d="M44 56 q6 4 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M46 62 q4 3 8 0" fill="${K}"/><g class="c-wig" style="transform-origin:50px 38px"><path d="M40 38 q4 -10 10 -8 q-2 8 -10 8z M60 38 q-4 -10 -10 -8 q2 8 10 8z" fill="${c}" stroke="${K}" stroke-width="1.4"/></g>`,
-    tricera:c=>`<path d="M22 58 q-10 -4 -12 -16 q8 0 12 8z M78 58 q10 -4 12 -16 q-8 0 -12 8z" fill="${c}" stroke="${K}" stroke-width="1.8"/><ellipse cx="50" cy="56" rx="24" ry="22" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M38 38 q12 -6 24 0" stroke="${K}" stroke-width="3" fill="none"/><path d="M44 36 q6 -14 12 -2 q-6 10 -12 2z" fill="${E}" stroke="${K}" stroke-width="1.6"/>${face(50,54,{dx:5,blush:false})}<path d="M46 64 q4 4 8 0 q-4 4 -8 0z" fill="${K}"/>`,
-    ptera:c=>`<g class="c-wig" style="transform-origin:50px 50px"><path d="M30 50 q-20 -8 -24 -20 q14 6 24 16z" fill="${c}" stroke="${K}" stroke-width="1.8"/><path d="M70 50 q20 -8 24 -20 q-14 6 -24 16z" fill="${c}" stroke="${K}" stroke-width="1.8"/></g><ellipse cx="50" cy="56" rx="16" ry="20" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M46 40 q4 -10 8 -4 q-4 6 -8 4z" fill="${c}" stroke="${K}" stroke-width="1.4"/>${face(50,54,{dx:4,blush:false})}<path d="M44 66 q6 4 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
-    // ---------- 星际精灵系列（原创，cosmo_pack）----------
-    meteor_spirit:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".12"/><g class="c-wig" style="transform-origin:50px 54px"><path d="M50 22 q8 12 0 22 q-8 -10 0 -22z" fill="${c}" stroke="${K}" stroke-width="1.8"/><circle cx="50" cy="56" r="14" fill="#fff" stroke="${K}" stroke-width="1.8"/></g><path d="M20 30 q20 6 24 18 M80 78 q-16 -6 -20 -18" stroke="${c}" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/>${face(50,54,{dx:4,blush:false})}<g fill="${c}" opacity=".6"><circle cx="24" cy="20" r="1.5"/><circle cx="76" cy="24" r="1.5"/><circle cx="70" cy="12" r="1"/></g>`,
-    nebula_beast:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".14"/><g class="c-wig" style="transform-origin:50px 50px"><circle cx="36" cy="44" r="14" fill="${c}" opacity=".4"/><circle cx="64" cy="44" r="14" fill="${c}" opacity=".4"/><circle cx="50" cy="60" r="18" fill="${c}" opacity=".3"/></g><ellipse cx="50" cy="52" rx="18" ry="16" fill="#fff" stroke="${K}" stroke-width="1.8"/><path d="M38 44 q12 -8 24 0" stroke="${c}" stroke-width="2" fill="none"/>${face(50,50,{dx:5,blush:false})}<g fill="${c}"><circle cx="20" cy="24" r="1.5"/><circle cx="80" cy="20" r="1.5"/><circle cx="74" cy="78" r="1.5"/></g>`,
-    void_spirit:c=>`<circle cx="50" cy="54" r="32" fill="${c}" opacity=".1"/><circle cx="50" cy="54" r="22" fill="#1a1a2e" stroke="${K}" stroke-width="2"/><circle cx="50" cy="54" r="16" fill="#000"/><circle cx="50" cy="54" r="22" fill="none" stroke="${c}" stroke-width="1.5" opacity=".8"/><g class="c-wig" style="transform-origin:50px 54px"><circle cx="50" cy="54" r="4" fill="${c}"/><circle cx="38" cy="48" r="2" fill="${c}"/><circle cx="62" cy="48" r="2" fill="${c}"/><circle cx="50" cy="38" r="1.5" fill="${c}"/><circle cx="50" cy="70" r="1.5" fill="${c}"/></g><path d="M42 40 q8 4 16 0" stroke="${c}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
-    // ---------- Xiaolong人系列（原创龙人，xiaolong_pack）----------
-    xiaolong_scholar:c=>`<path d="M34 80 q16 6 32 0 l-2 -8 q-14 4 -28 0z" fill="#5a4a3a"/><ellipse cx="50" cy="54" rx="20" ry="24" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M36 44 q14 -12 28 0" stroke="${K}" stroke-width="2" fill="none"/><path d="M42 42 q8 -8 8 -14 M58 42 q-8 -8 -8 -14" stroke="${K}" stroke-width="1.6" fill="none"/><g class="c-wig" style="transform-origin:50px 30px"><path d="M40 30 q10 -12 20 -2 q-8 8 -20 2z" fill="${c}" stroke="${K}" stroke-width="1.4"/></g><rect x="40" y="58" width="20" height="12" rx="2" fill="#f3e9da" stroke="${K}" stroke-width="1.4"/><line x1="44" y1="62" x2="56" y2="62" stroke="${K}" stroke-width="1"/><line x1="44" y1="66" x2="56" y2="66" stroke="${K}" stroke-width="1"/>${face(50,50,{dx:4,blush:false})}`,
-    xiaolong_warrior:c=>`<path d="M28 80 q22 4 44 0 l-2 -6 q-20 3 -40 0z" fill="#6a3a3a"/><ellipse cx="50" cy="54" rx="22" ry="24" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M34 40 q16 -14 32 0" stroke="${K}" stroke-width="2.5" fill="none"/><path d="M36 38 q14 -10 28 0 q-8 -16 -28 0z" fill="${c}" stroke="${K}" stroke-width="1.6"/><path d="M44 34 q6 -6 12 0" fill="${c}" stroke="${K}" stroke-width="1.4"/><rect x="42" y="62" width="16" height="14" rx="3" fill="#9a8a7a" stroke="${K}" stroke-width="1.6"/><path d="M46 64 h8 v4 h-8z" fill="${c}"/>${face(50,52,{dx:4,blush:false})}<path d="M30 50 q-8 4 -10 12 M70 50 q8 4 10 12" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
-    xiaolong_chef:c=>`<ellipse cx="50" cy="54" rx="20" ry="24" fill="${c}" stroke="${K}" stroke-width="2"/><path d="M34 42 q16 -10 32 0" stroke="${K}" stroke-width="2" fill="none"/><path d="M40 40 q10 -8 20 0 q-6 -14 -20 0z" fill="${c}" stroke="${K}" stroke-width="1.6"/><g class="c-wig" style="transform-origin:50px 26px"><ellipse cx="50" cy="24" rx="16" ry="8" fill="#fff" stroke="${K}" stroke-width="1.6"/><path d="M38 24 q12 6 24 0" fill="#f3e9da" stroke="${K}" stroke-width="1.4"/></g><path d="M36 62 q14 6 28 0 l-2 -4 q-12 4 -24 0z" fill="#fff" stroke="${K}" stroke-width="1.6"/>${face(50,52,{dx:4,blush:false})}<circle cx="58" cy="62" r="2" fill="#ff6b6b"/>`,
+    // 慢慢龟：渐变龟壳 + 立体头 + 高光
+    slow_turtle:c=>`<g class="c-wig" style="transform-origin:50px 56px"><path d="M30 56 q-12 -4 -14 4 q10 4 16 0z" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/><path d="M70 56 q12 -4 14 4 q-10 4 -16 0z" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/></g><path d="M50 30 l16 14 l-4 30 l-24 0 l-4 -30z" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(44,40,8,5)}<path d="M50 30 v44 M34 44 h32 M36 58 h28" stroke="#5fae5f" stroke-width="1.4" fill="none"/><circle cx="50" cy="74" r="14" fill="url(#${G.belly})" stroke="${K}" stroke-width="2"/>${hi(46,68,5,4)}${face(50,74,{dx:4})}`,
+    // 蓝蓝鲸：渐变身体 + 腹部高光 + 立体眼
+    blue_whale:c=>`<path d="M30 58 L14 46 L20 58 L14 70Z" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/><ellipse cx="56" cy="56" rx="34" ry="24" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(46,44,14,7)}<path d="M50 32 q3 -8 9 -7" stroke="${K}" stroke-width="2" fill="none"/><circle class="c-eye" cx="44" cy="54" r="3" fill="url(#${G.eye})"/><circle cx="43.2" cy="52.8" r="1.3" fill="#fff"/><path d="M68 60 q6 4 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M40 72 q16 8 34 0" stroke="${c}" stroke-width="3" fill="none" opacity=".6"/>`,
+    // 小螃蟹：渐变钳+身体，高光
+    little_crab:c=>`<g class="c-wig" style="transform-origin:50px 50px"><path d="M20 46 q-14 -10 -18 2 q12 8 20 2z" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/><path d="M80 46 q14 -10 18 2 q-12 8 -20 2z" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/></g><ellipse cx="50" cy="58" rx="26" ry="18" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(42,50,10,5)}<g stroke="${K}" stroke-width="2" fill="none"><path d="M30 70 q-4 8 -10 8"/><path d="M44 74 q-2 8 -6 9"/><path d="M70 70 q4 8 10 8"/><path d="M56 74 q2 8 6 9"/></g>${face(50,56,{dx:5})}`,
+    // ============ 自然生灵包：生命观察类 ============
+    // 蚕宝：立体节段 + 高光 + 渐变
+    can_bao:c=>`<g class="c-wig" style="transform-origin:50px 58px"><circle cx="26" cy="58" r="11" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(23,54,4,3)}<circle cx="44" cy="56" r="12" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(41,52,4,3)}<circle cx="64" cy="56" r="12" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(61,52,4,3)}</g><circle cx="80" cy="54" r="13" fill="url(#${G.belly})" stroke="${K}" stroke-width="2"/>${hi(76,48,5,4)}${face(80,52,{dx:4})}<g fill="${c}" opacity=".6"><circle cx="26" cy="54" r="1.6"/><circle cx="44" cy="52" r="1.6"/><circle cx="64" cy="52" r="1.6"/><circle cx="80" cy="48" r="1.6"/></g>`,
+    // 蝌蚪：渐变身+大头，立体眼
+    ke_dou:c=>`<ellipse cx="58" cy="58" rx="28" ry="22" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(50,48,10,5)}<circle cx="34" cy="52" r="14" fill="url(#${G.belly})" stroke="${K}" stroke-width="2"/>${hi(30,46,5,4)}<circle cx="28" cy="42" r="6" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/><circle cx="40" cy="42" r="6" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/><circle class="c-eye" cx="28" cy="42" r="2.2" fill="url(#${G.eye})"/><circle class="c-eye" cx="40" cy="42" r="2.2" fill="url(#${G.eye})"/><circle cx="27.4" cy="41" r="0.9" fill="#fff"/><circle cx="39.4" cy="41" r="0.9" fill="#fff"/><path d="M30 50 q6 5 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M58 80 q4 10 0 14 q-4 -4 0 -14" stroke="#5fae5f" stroke-width="3" fill="none"/>`,
+    // 种子精：渐变种子身 + 立体嫩芽
+    seed_sprite:c=>`<path d="M34 78 q16 8 32 0 l-3 -10 q-13 5 -26 0z" fill="#caa472"/>${hi(46,72,8,3)}<ellipse cx="50" cy="50" rx="18" ry="22" fill="url(#${G.body})" stroke="${K}" stroke-width="1.8"/>${hi(44,40,7,6)}<path d="M38 50 q12 -6 24 0" stroke="#a9824f" stroke-width="1.5" fill="none"/><path d="M50 30 q-10 -10 -4 -20 q10 6 4 20z" fill="url(#${G.body})"/><path d="M50 30 q10 -10 4 -20 q-10 6 -4 20z" fill="url(#${G.body})" opacity=".85"/>${face(50,52,{dx:4,blush:false})}`,
+    // 蚂蚁工蚁：渐变三节身+高光
+    ant_worker:c=>`<g class="c-wig" style="transform-origin:50px 40px"><path d="M44 36 q-8 -10 -14 -8 M56 36 q8 -10 14 -8" stroke="${K}" stroke-width="2" fill="none"/><circle cx="30" cy="26" r="2.4" fill="${K}"/><circle cx="70" cy="26" r="2.4" fill="${K}"/></g><circle cx="34" cy="56" r="11" fill="url(#${G.body})" stroke="${K}" stroke-width="1.8"/>${hi(31,52,4,3)}<circle cx="50" cy="48" r="13" fill="url(#${G.body})" stroke="${K}" stroke-width="1.8"/>${hi(46,42,5,4)}<circle cx="68" cy="54" r="10" fill="url(#${G.body})" stroke="${K}" stroke-width="1.8"/>${hi(65,50,4,3)}<g stroke="${K}" stroke-width="1.6" fill="none"><path d="M30 64 v10 M38 66 v10 M64 62 v10 M72 60 v10"/></g>${face(68,54,{dx:3.5,blush:false})}`,
+    // 蜗牛：渐变壳+螺旋纹+立体身
+    snail:c=>`<path d="M18 76 q0 -12 16 -12 q15 0 15 13 l0 5 l-31 0z" fill="url(#${G.belly})" stroke="${K}" stroke-width="2"/>${hi(30,70,8,3)}<circle cx="64" cy="50" r="20" fill="url(#${G.body})" stroke="${K}" stroke-width="2" opacity=".9"/>${hi(58,42,8,5)}<circle cx="64" cy="50" r="13" fill="none" stroke="${c}" stroke-width="3"/><circle cx="64" cy="50" r="6" fill="${c}" opacity=".6"/><line x1="34" y1="64" x2="30" y2="46" stroke="${K}" stroke-width="2"/><circle class="c-eye" cx="30" cy="44" r="2.8" fill="url(#${G.eye})"/><circle cx="29.4" cy="43" r="1.2" fill="#fff"/><circle cx="40" cy="68" r="2.4" fill="${K}"/><path d="M36 74 q5 4 10 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    // 蝴蝶：渐变翅膀+高光+立体身
+    butterfly:c=>`<g class="c-wig" style="transform-origin:50px 56px"><ellipse cx="34" cy="46" rx="18" ry="22" fill="url(#${G.body})" opacity=".9"/>${hi(30,40,6,5)}<ellipse cx="66" cy="46" rx="18" ry="22" fill="url(#${G.body})" opacity=".9"/>${hi(62,40,6,5)}</g><ellipse cx="38" cy="74" rx="13" ry="14" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/><ellipse cx="62" cy="74" rx="13" ry="14" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/><rect x="47" y="32" width="6" height="48" rx="3" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/><circle cx="50" cy="32" r="6" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/><circle class="c-eye" cx="48" cy="31" r="2" fill="url(#${G.eye})"/><circle class="c-eye" cx="52" cy="31" r="2" fill="url(#${G.eye})"/><circle cx="47.6" cy="30.2" r="0.8" fill="#fff"/><circle cx="51.6" cy="30.2" r="0.8" fill="#fff"/><path d="M50 26 q-4 -8 -10 -10 M50 26 q4 -8 10 -10" stroke="${K}" stroke-width="1.5" fill="none"/>`,
+    // 含羞草：渐变叶+立体花盆+头
+    shy_plant:c=>`<path d="M36 82 h28 l-3 -12 h-22z" fill="#d8a06a"/>${hi(48,76,8,3)}<g class="c-wig" style="transform-origin:50px 64px"><path d="M50 70 q-16 -2 -20 -18 q14 -2 20 12z" fill="url(#${G.body})"/><path d="M50 70 q16 -2 20 -18 q-14 -2 -20 12z" fill="url(#${G.body})" opacity=".85"/><circle cx="50" cy="66" r="6" fill="#7fc97f"/></g><circle cx="50" cy="60" r="13" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(46,54,5,4)}${face(50,58,{dx:3.5,blush:false})}`,
+    // 向日葵：渐变花瓣+立体花心
+    sun_flower:c=>`<g class="c-wig" style="transform-origin:50px 50px">${Array.from({length:12}).map((_,i)=>{const a=i*30*Math.PI/180,x=50+26*Math.cos(a),y=50+26*Math.sin(a);return `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="8" ry="5" fill="url(#${G.body})" stroke="#e0a93a" stroke-width="1" transform="rotate(${(i*30).toFixed(0)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`}).join('')}</g><circle cx="50" cy="50" r="16" fill="url(#${G.body})" stroke="${K}" stroke-width="1.8" opacity=".7"/>${hi(46,44,6,4)}${face(50,50,{dx:4,blush:false})}`,
+    // 蘑菇：渐变伞盖+白点+立体柄
+    mushroom:c=>`<path d="M36 78 q14 6 28 0 l-2 -10 q-12 4 -24 0z" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/>${hi(48,72,8,3)}<path d="M22 56 q28 -34 56 0 q-28 14 -56 0z" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(44,44,10,4)}<circle cx="40" cy="48" r="4" fill="#fff" opacity=".8"/><circle cx="60" cy="46" r="3" fill="#fff" opacity=".8"/><circle cx="52" cy="56" r="2.6" fill="#fff" opacity=".8"/><circle cx="50" cy="64" r="13" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${face(50,62,{dx:3.5})}`,
+    // 竹精灵：渐变竹身+立体叶+头
+    bamboo:c=>`<rect x="44" y="34" width="12" height="48" rx="4" fill="url(#${G.body})" stroke="#5fae5f" stroke-width="1.6"/>${hi(48,44,4,12)}<line x1="44" y1="50" x2="56" y2="50" stroke="#5fae5f" stroke-width="1.4"/><line x1="44" y1="66" x2="56" y2="66" stroke="#5fae5f" stroke-width="1.4"/><g class="c-wig" style="transform-origin:50px 34px"><path d="M56 40 q18 -6 22 -20 q-16 0 -22 14z" fill="url(#${G.body})"/><path d="M44 46 q-18 -4 -22 -18 q16 0 22 14z" fill="url(#${G.body})" opacity=".85"/></g><circle cx="50" cy="30" r="13" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(46,24,5,4)}${face(50,28,{dx:3.5,blush:false})}`,
+    // 晶簇：渐变晶体+高光折射
+    crystal:c=>`<g class="c-wig" style="transform-origin:50px 50px"><polygon points="50,18 67,42 50,66 33,42" fill="url(#${G.belly})" stroke="${c}" stroke-width="3"/>${hi(48,28,5,8)}<polygon points="28,40 41,57 28,74 15,57" fill="url(#${G.belly})" stroke="${c}" stroke-width="2.5"/><polygon points="72,40 85,57 72,74 59,57" fill="url(#${G.belly})" stroke="${c}" stroke-width="2.5"/></g><circle class="c-eye" cx="50" cy="42" r="3.2" fill="url(#${G.eye})"/><circle cx="49.2" cy="40.8" r="1.3" fill="#fff"/><path d="M44 50 q6 5 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M50 6 l2 7 l7 -2 l-5 6" fill="${c}"/>`,
+    // ============ 动漫原创包：元素精灵（立体渐变+光晕+大眼）============
+    // 火灵：渐变火苗+光晕+立体脸
+    fire_sprite:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".2"/><path d="M50 22 q14 16 8 30 q10 -2 6 12 q14 -10 4 -28 q10 6 6 18 q12 -16 -4 -34 q-10 14 -22 8 q-8 18 0 30 q-12 -10 -8 -26 q-2 16 0 0z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.8" stroke-linejoin="round"/>${hi(42,40,7,10)}<circle cx="50" cy="60" r="14" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(46,54,5,4)}${face(50,58,{dx:4,blush:false})}`,
+    // 水灵：渐变水滴+光晕+立体脸
+    water_sprite:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".2"/><path d="M50 24 q22 26 0 50 q-22 -24 0 -50z" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(42,40,7,12)}<circle cx="50" cy="58" r="14" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(46,52,5,4)}${face(50,56,{dx:4,blush:false})}`,
+    // 草灵：渐变草叶+光晕+立体脸
+    grass_sprite:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".2"/><path d="M50 80 q-10 -20 -16 -34 q12 6 16 22 q4 -16 16 -22 q-6 14 -16 34z" fill="url(#${G.body})" stroke="#5fae5f" stroke-width="1.8"/>${hi(42,48,6,10)}<circle cx="50" cy="56" r="13" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(46,50,5,4)}${face(50,54,{dx:3.5,blush:false})}`,
+    // 电灵：渐变闪电+光晕+立体脸
+    thunder_sprite:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".2"/><path d="M56 22 L34 54 L48 54 L40 80 L66 46 L52 46Z" fill="url(#${G.body})" stroke="${K}" stroke-width="2" stroke-linejoin="round"/>${hi(44,40,5,8)}<circle cx="50" cy="58" r="13" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(46,52,5,4)}${face(50,56,{dx:3.5,blush:false})}`,
+    // 星灵：渐变星+光晕+立体脸
+    star2:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".2"/><path d="M50 20 L60 44 L86 46 L65 62 L73 86 L50 70 L27 86 L35 62 L14 46 L40 44Z" fill="url(#${G.body})" stroke="${K}" stroke-width="2" stroke-linejoin="round"/>${hi(42,34,7,7)}<circle cx="50" cy="56" r="13" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(46,50,5,4)}${face(50,54,{dx:3.5,blush:false})}`,
+    // 机械生态：渐变机身+立体屏幕
+    mech_eco:c=>`<rect x="32" y="34" width="36" height="34" rx="10" fill="url(#${G.belly})" stroke="${K}" stroke-width="2"/>${hi(42,42,12,5)}<rect x="38" y="44" width="24" height="10" rx="5" fill="url(#${G.body})" stroke="${K}" stroke-width="1.4"/>${hi(44,47,8,2)}<circle class="c-eye" cx="42" cy="49" r="2.2" fill="url(#${G.eye})"/><circle class="c-eye" cx="58" cy="49" r="2.2" fill="url(#${G.eye})"/><circle cx="41.4" cy="48.2" r="0.9" fill="#fff"/><circle cx="57.4" cy="48.2" r="0.9" fill="#fff"/><line x1="50" y1="34" x2="50" y2="24" stroke="${K}" stroke-width="2"/><circle cx="50" cy="22" r="3" fill="url(#${G.body})"/><rect x="36" y="68" width="8" height="10" rx="2" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/><rect x="56" y="68" width="8" height="10" rx="2" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/>`,
+    // 光灵：渐变光线+光晕+立体脸
+    light_spirit:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".2"/><g class="c-wig" style="transform-origin:50px 50px"><path d="M50 24 v52 M24 50 h52 M32 32 l36 36 M68 32 l-36 36" stroke="url(#${G.body})" stroke-width="4" stroke-linecap="round"/></g><circle cx="50" cy="50" r="13" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(46,44,5,4)}${face(50,48,{dx:3.5,blush:false})}`,
+    // 冰灵：渐变冰晶+光晕+立体脸
+    ice_spirit:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".2"/><g class="c-wig" style="transform-origin:50px 50px"><path d="M50 26 v48 M26 50 h48 M32 32 l36 36 M68 32 l-36 36 M50 30 l8 20 -8 0 -8 0z" fill="none" stroke="url(#${G.body})" stroke-width="3.5" stroke-linecap="round"/></g><circle cx="50" cy="50" r="13" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(46,44,5,4)}${face(50,48,{dx:3.5,blush:false})}`,
+    // 风灵：渐变风线+光晕+立体脸
+    wind_spirit:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".2"/><g class="c-wig" style="transform-origin:50px 54px"><path d="M24 46 q26 -14 46 2 q-10 -10 -22 -4 q14 -16 30 -2" fill="none" stroke="url(#${G.body})" stroke-width="4" stroke-linecap="round"/><path d="M24 60 q26 14 46 -2 q-10 10 -22 4 q14 16 30 2" fill="none" stroke="url(#${G.body})" stroke-width="4" stroke-linecap="round"/></g><circle cx="50" cy="54" r="12" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(46,48,5,4)}${face(50,52,{dx:3.5,blush:false})}`,
+    // 岩灵：渐变岩石+立体脸
+    rock_spirit:c=>`<path d="M26 72 l10 -28 l16 8 l14 -16 l8 36z" fill="url(#${G.body})" stroke="${K}" stroke-width="2" stroke-linejoin="round"/>${hi(40,50,8,8)}<path d="M36 44 l16 8 l10 -10" fill="none" stroke="#8a7a60" stroke-width="1.4"/><circle cx="48" cy="60" r="12" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(44,54,5,4)}${face(48,58,{dx:3.5,blush:false})}`,
+    // 龙灵：渐变龙身+立体翅膀+大眼
+    dragon_spirit:c=>`<g class="c-wig" style="transform-origin:50px 46px"><path d="M30 40 q-14 -14 -22 -6 q12 2 16 12z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.6"/></g><path d="M34 40 q16 -10 32 0 q10 14 0 30 q-16 12 -32 0 q-10 -16 0 -30z" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(42,40,8,10)}<path d="M50 26 q4 -8 10 -6 q-2 8 -10 8z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.4"/><circle class="c-eye" cx="46" cy="48" r="3.4" fill="url(#${G.eye})"/><circle class="c-eye" cx="58" cy="48" r="3.4" fill="url(#${G.eye})"/><circle cx="45.2" cy="46.8" r="1.4" fill="#fff"/><circle cx="57.2" cy="46.8" r="1.4" fill="#fff"/><path d="M42 60 q8 7 16 0" stroke="${K}" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M40 34 q10 -4 20 0" stroke="${c}" stroke-width="3" fill="none" opacity=".6"/>`,
+    // 暗灵：渐变暗球+光晕+立体眼
+    dark_spirit:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".2"/><circle cx="50" cy="54" r="24" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(42,44,8,8)}<circle class="c-eye" cx="42" cy="50" r="4.4" fill="url(#${G.eye})"/><circle class="c-eye" cx="58" cy="50" r="4.4" fill="url(#${G.eye})"/><circle cx="41" cy="48.5" r="1.8" fill="#fff"/><circle cx="57" cy="48.5" r="1.8" fill="#fff"/><path d="M42 64 q8 6 16 0" stroke="${c}" stroke-width="2.5" fill="none" stroke-linecap="round"/><g class="c-wig" style="transform-origin:50px 18px"><circle cx="38" cy="18" r="2.5" fill="${c}"/><circle cx="62" cy="18" r="2.5" fill="${c}"/><circle cx="50" cy="12" r="2.5" fill="${c}"/></g>`,
+    // ============ 恐龙系列（原创，dino_pack）— R76 立体渐变 + 扩充 ============
+    // 小雷龙：渐变身+背棘+立体头
+    dino_saurus:c=>`<path d="M28 74 q-4 -16 4 -26 q8 -10 18 -10 q10 0 18 10 q8 10 4 26z" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(42,48,10,12)}<path d="M32 50 q-10 -2 -14 -10 M40 44 q-8 -8 -8 -16 M60 44 q8 -8 8 -16 M68 50 q10 -2 14 -10" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><circle class="c-eye" cx="42" cy="46" r="3.4" fill="url(#${G.eye})"/><circle class="c-eye" cx="58" cy="46" r="3.4" fill="url(#${G.eye})"/><circle cx="41.2" cy="44.8" r="1.4" fill="#fff"/><circle cx="57.2" cy="44.8" r="1.4" fill="#fff"/><path d="M44 56 q6 4 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M46 62 q4 3 8 0" fill="${K}"/><g class="c-wig" style="transform-origin:50px 38px"><path d="M40 38 q4 -10 10 -8 q-2 8 -10 8z M60 38 q-4 -10 -10 -8 q2 8 10 8z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.4"/></g>`,
+    // 三角龙：渐变身+头盾+立体角
+    tricera:c=>`<path d="M22 58 q-10 -4 -12 -16 q8 0 12 8z M78 58 q10 -4 12 -16 q-8 0 -12 8z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.8"/><ellipse cx="50" cy="56" rx="24" ry="22" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(42,46,10,8)}<path d="M38 38 q12 -6 24 0" stroke="${K}" stroke-width="3" fill="none"/><path d="M44 36 q6 -14 12 -2 q-6 10 -12 2z" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/>${face(50,54,{dx:5,blush:false})}<path d="M46 64 q4 4 8 0 q-4 4 -8 0z" fill="${K}"/>`,
+    // 翼龙：渐变翅膀+立体头
+    ptera:c=>`<g class="c-wig" style="transform-origin:50px 50px"><path d="M30 50 q-20 -8 -24 -20 q14 6 24 16z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.8"/>${hi(22,46,6,4)}<path d="M70 50 q20 -8 24 -20 q-14 6 -24 16z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.8"/>${hi(78,46,6,4)}</g><ellipse cx="50" cy="56" rx="16" ry="20" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(44,46,6,8)}<path d="M46 40 q4 -10 8 -4 q-4 6 -8 4z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.4"/>${face(50,54,{dx:4,blush:false})}<path d="M44 66 q6 4 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    // 腕龙宝（新）：长脖子+圆身+立体渐变
+    brachio:c=>`<path d="M40 78 q-8 -4 -8 -12 q0 -8 8 -12 q4 -8 4 -16 q0 -10 -6 -14" fill="none" stroke="${K}" stroke-width="2"/><path d="M40 78 q-8 -4 -8 -12 q0 -8 8 -12 q4 -8 4 -16 q0 -10 -6 -14" fill="url(#${G.body})"/><ellipse cx="56" cy="64" rx="20" ry="16" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(50,56,8,5)}<circle cx="34" cy="28" r="10" fill="url(#${G.body})" stroke="${K}" stroke-width="1.8"/>${hi(30,24,4,3)}<path d="M28 30 q-6 2 -6 6 q4 2 6 -1z" fill="#5fae5f" stroke="${K}" stroke-width="1"/><circle class="c-eye" cx="32" cy="27" r="2.6" fill="url(#${G.eye})"/><circle cx="31.4" cy="26" r="1" fill="#fff"/><path d="M30 34 q4 3 8 0" stroke="${K}" stroke-width="1.6" fill="none" stroke-linecap="round"/><g class="c-wig" style="transform-origin:56px 52px"><path d="M46 50 l4 -8 M56 50 l0 -8 M66 50 l-4 -8" stroke="${c}" stroke-width="2" fill="none" stroke-linecap="round"/></g>`,
+    // 剑龙仔（新）：背板+渐变身+立体尾
+    stego:c=>`<path d="M22 70 q-10 -2 -12 -8 q6 -2 10 4z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.6"/><ellipse cx="50" cy="60" rx="24" ry="18" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(42,52,10,6)}<g class="c-wig" style="transform-origin:50px 44px"><path d="M36 46 l4 -10 l4 8z M46 44 l4 -12 l4 10z M56 46 l4 -10 l4 8z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.4"/></g><circle cx="40" cy="60" r="10" fill="url(#${G.body})" stroke="${K}" stroke-width="1.8"/>${hi(36,56,4,3)}${face(40,60,{dx:3.2,blush:false})}<path d="M72 64 q8 0 12 -4 q-4 8 -10 8z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.6"/>`,
+    // 迅猛龙（新）：渐变身+爪+立体头
+    raptor:c=>`<path d="M30 76 q-2 -16 6 -24 q8 -8 18 -6 q10 2 14 12 q4 10 0 18z" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(40,54,8,10)}<path d="M30 76 q-4 4 -8 2 M58 74 q6 2 8 6" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="42" cy="52" r="3.2" fill="url(#${G.eye})"/><circle cx="41.4" cy="51" r="1.3" fill="#fff"/><path d="M44 58 q4 3 8 -1" stroke="${K}" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M48 62 l2 4 l2 -2z" fill="${K}"/><g class="c-wig" style="transform-origin:50px 40px"><path d="M38 40 q4 -8 10 -6 M62 40 q-4 -8 -10 -6" stroke="${c}" stroke-width="2" fill="none" stroke-linecap="round"/></g>`,
+    // ============ 星际精灵系列（原创，cosmo_pack）— R76 立体渐变 + 扩充 ============
+    // 流星精灵：渐变流星+光尾+立体脸
+    meteor_spirit:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".16"/><g class="c-wig" style="transform-origin:50px 54px"><path d="M50 22 q8 12 0 22 q-8 -10 0 -22z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.8"/><circle cx="50" cy="56" r="14" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(46,50,5,4)}</g><path d="M20 30 q20 6 24 18 M80 78 q-16 -6 -20 -18" stroke="url(#${G.body})" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/>${face(50,54,{dx:4,blush:false})}<g fill="${c}" opacity=".6"><circle cx="24" cy="20" r="1.5"/><circle cx="76" cy="24" r="1.5"/><circle cx="70" cy="12" r="1"/></g>`,
+    // 星云兽：渐变星云团+立体脸
+    nebula_beast:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".18"/><g class="c-wig" style="transform-origin:50px 50px"><circle cx="36" cy="44" r="14" fill="url(#${G.body})" opacity=".4"/><circle cx="64" cy="44" r="14" fill="url(#${G.body})" opacity=".4"/><circle cx="50" cy="60" r="18" fill="url(#${G.body})" opacity=".3"/></g><ellipse cx="50" cy="52" rx="18" ry="16" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.8"/>${hi(46,46,6,5)}<path d="M38 44 q12 -8 24 0" stroke="${c}" stroke-width="2" fill="none"/>${face(50,50,{dx:5,blush:false})}<g fill="${c}"><circle cx="20" cy="24" r="1.5"/><circle cx="80" cy="20" r="1.5"/><circle cx="74" cy="78" r="1.5"/></g>`,
+    // 黑洞精灵：渐变黑洞环+吸积盘
+    void_spirit:c=>`<circle cx="50" cy="54" r="32" fill="${c}" opacity=".12"/><circle cx="50" cy="54" r="22" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(42,44,8,8)}<circle cx="50" cy="54" r="16" fill="#000"/><circle cx="50" cy="54" r="22" fill="none" stroke="${c}" stroke-width="1.5" opacity=".8"/><g class="c-wig" style="transform-origin:50px 54px"><circle cx="50" cy="54" r="4" fill="${c}"/><circle cx="38" cy="48" r="2" fill="${c}"/><circle cx="62" cy="48" r="2" fill="${c}"/><circle cx="50" cy="38" r="1.5" fill="${c}"/><circle cx="50" cy="70" r="1.5" fill="${c}"/></g><path d="M42 40 q8 4 16 0" stroke="${c}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    // 彗星精灵（新）：渐变核+长光尾
+    comet_tail:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".14"/><g class="c-wig" style="transform-origin:50px 54px"><path d="M20 70 q30 -10 30 -30 q0 -10 -8 -10 q-6 0 -6 8 q0 6 6 8" fill="none" stroke="url(#${G.body})" stroke-width="3" stroke-linecap="round" opacity=".6"/></g><circle cx="58" cy="44" r="10" fill="url(#${G.body})" stroke="${K}" stroke-width="1.8"/>${hi(54,38,4,3)}${face(58,44,{dx:3.2,blush:false})}<g fill="${c}" opacity=".5"><circle cx="30" cy="20" r="1.5"/><circle cx="80" cy="30" r="1.5"/><circle cx="70" cy="78" r="1"/></g>`,
+    // 脉冲星精灵（新）：渐变星+脉冲环
+    pulsar_star:c=>`<circle cx="50" cy="54" r="30" fill="${c}" opacity=".16"/><g class="c-wig" style="transform-origin:50px 50px"><circle cx="50" cy="50" r="22" fill="none" stroke="${c}" stroke-width="1.5" opacity=".5"/><circle cx="50" cy="50" r="28" fill="none" stroke="${c}" stroke-width="1" opacity=".3"/></g><path d="M50 28 L58 46 L76 48 L62 60 L66 78 L50 68 L34 78 L38 60 L24 48 L42 46Z" fill="url(#${G.body})" stroke="${K}" stroke-width="2" stroke-linejoin="round"/>${hi(44,40,6,6)}<circle cx="50" cy="54" r="10" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/>${face(50,54,{dx:3,blush:false})}`,
+    // ============ Xiaolong人系列（原创龙人，xiaolong_pack）— R76 重做 ============
+    // 龙人学者：圆润立体头+渐变长袍+书卷
+    xiaolong_scholar:c=>`<path d="M34 80 q16 6 32 0 l-2 -8 q-14 4 -28 0z" fill="#5a4a3a"/>${hi(48,74,10,3)}<ellipse cx="50" cy="54" rx="20" ry="24" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(42,40,8,10)}<path d="M36 44 q14 -12 28 0" stroke="${K}" stroke-width="2" fill="none"/><path d="M42 42 q8 -8 8 -14 M58 42 q-8 -8 -8 -14" stroke="${K}" stroke-width="1.6" fill="none"/><g class="c-wig" style="transform-origin:50px 30px"><path d="M40 30 q10 -12 20 -2 q-8 8 -20 2z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.4"/></g><rect x="40" y="58" width="20" height="12" rx="2" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.4"/>${hi(46,62,6,2)}<line x1="44" y1="62" x2="56" y2="62" stroke="${K}" stroke-width="1"/><line x1="44" y1="66" x2="56" y2="66" stroke="${K}" stroke-width="1"/>${face(50,50,{dx:4,blush:false})}`,
+    // 龙人勇士：渐变身+头盔+盾牌
+    xiaolong_warrior:c=>`<path d="M28 80 q22 4 44 0 l-2 -6 q-20 3 -40 0z" fill="#6a3a3a"/>${hi(48,74,10,3)}<ellipse cx="50" cy="54" rx="22" ry="24" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(42,40,9,10)}<path d="M34 40 q16 -14 32 0" stroke="${K}" stroke-width="2.5" fill="none"/><path d="M36 38 q14 -10 28 0 q-8 -16 -28 0z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.6"/>${hi(44,30,6,4)}<path d="M44 34 q6 -6 12 0" fill="url(#${G.body})" stroke="${K}" stroke-width="1.4"/><rect x="42" y="62" width="16" height="14" rx="3" fill="#9a8a7a" stroke="${K}" stroke-width="1.6"/><path d="M46 64 h8 v4 h-8z" fill="${c}"/>${face(50,52,{dx:4,blush:false})}<path d="M30 50 q-8 4 -10 12 M70 50 q8 4 10 12" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    // 龙人厨师：渐变身+厨师帽+围裙
+    xiaolong_chef:c=>`<ellipse cx="50" cy="54" rx="20" ry="24" fill="url(#${G.body})" stroke="${K}" stroke-width="2"/>${hi(42,40,8,10)}<path d="M34 42 q16 -10 32 0" stroke="${K}" stroke-width="2" fill="none"/><path d="M40 40 q10 -8 20 0 q-6 -14 -20 0z" fill="url(#${G.body})" stroke="${K}" stroke-width="1.6"/><g class="c-wig" style="transform-origin:50px 26px"><ellipse cx="50" cy="24" rx="16" ry="8" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/>${hi(46,22,6,2)}<ellipse cx="50" cy="18" rx="12" ry="6" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.4"/></g><path d="M36 62 q14 6 28 0 l-2 -4 q-12 4 -24 0z" fill="url(#${G.belly})" stroke="${K}" stroke-width="1.6"/>${face(50,52,{dx:4,blush:false})}<circle cx="58" cy="62" r="2" fill="#ff6b6b"/>`,
     // 兜底
-    _fallback:c=>`<ellipse cx="50" cy="60" rx="22" ry="26" fill="${E}" stroke="${K}" stroke-width="2"/><path d="M50 40 l4 -10 l4 10z" fill="${c}"/><circle cx="43" cy="58" r="3" fill="${K}"/><circle cx="57" cy="58" r="3" fill="${K}"/><path d="M44 66 q6 5 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`
+    _fallback:c=>`<ellipse cx="50" cy="60" rx="22" ry="26" fill="url(#${G.belly})" stroke="${K}" stroke-width="2"/>${hi(42,48,9,8)}<path d="M50 40 l4 -10 l4 10z" fill="${c}"/><circle class="c-eye" cx="43" cy="58" r="3.4" fill="url(#${G.eye})"/><circle class="c-eye" cx="57" cy="58" r="3.4" fill="url(#${G.eye})"/><circle cx="42.2" cy="56.8" r="1.4" fill="#fff"/><circle cx="56.2" cy="56.8" r="1.4" fill="#fff"/><path d="M44 66 q6 5 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`
   };
   const key = DRAW[type] ? type : '_fallback';
-  return `<svg class="crt" viewBox="0 0 100 100" aria-hidden="true">${DRAW[key](c)}</svg>`;
+  return `<svg class="crt" viewBox="0 0 100 100" aria-hidden="true">${defs}${DRAW[key](c)}</svg>`;
 }
 function decorSVG(kind){
   if(kind==='leaf') return `<svg viewBox="0 0 24 24"><path d="M12 22 C4 16 4 6 12 2 C20 6 20 16 12 22Z" fill="#8fd18f" stroke="#5fae5f" stroke-width="1"/><line x1="12" y1="22" x2="12" y2="8" stroke="#5fae5f" stroke-width="1"/></svg>`;
@@ -1051,17 +1128,30 @@ function renderVines(){
 }
 
 function switchClass(id){
-  // R50: 切班永远需 PIN 验证（不论是否授课中）—— 防学生自行切班；仅未登录（纯本机模式）时跳过
-  const needPin = GP_CLOUD && GP.lessonToken;
-  if(needPin){
-    GP.pinPrompt('📚 切换班级需验证本课 PIN（仅老师操作）').then(input=>{
-      if(input===null){ toast('已取消切班'); return; }
-      if(String(input).trim()!==String(GP.lessonPin)){ GP.pinShake(); toast('❌ PIN 不正确，已取消切班'); return; }
-      doSwitchClass(id);
-    });
+  // R70: 切班验证改为 switch_code（老师自设固定码），不再用 lessonPin
+  // 已登录老师 → 调后端验证 switch_code；未登录（纯本机模式）→ 直接切
+  if(!GP_CLOUD || !GP.token){ doSwitchClass(id); return; }
+
+  const targetCls = CLASSES[id] || {};
+  // 先查目标班是否设了切班码（通过 switch_code_set 字段判断）
+  if(!targetCls.switch_code_set){
+    // 未设切班码：已登录老师直接切
+    doSwitchClass(id);
     return;
   }
-  doSwitchClass(id);
+  // 已设切班码：弹出输入面板验证
+  GP.pinPrompt('🔒 切换到「'+targetCls.name+'」需输入切班码').then(input=>{
+    if(input===null){ toast('已取消切班'); return; }
+    // 调后端验证
+    fetch('/api/classes/'+id+'/verify-switch',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+GP.token},
+      body:JSON.stringify({switch_code:input})
+    }).then(r=>r.json()).then(d=>{
+      if(d.ok){ doSwitchClass(id); }
+      else{ GP.pinShake(); toast('❌ 切班码不正确'); }
+    }).catch(()=>{ toast('网络异常，切班失败'); });
+  });
 }
 function doSwitchClass(id){
   currentClass=id; selectedId=null;
@@ -1266,9 +1356,10 @@ function renderJoinBox(){
   const c=CLASSES[currentClass]||{};
   const codeEl=$('joinCode'), hintEl=$('joinHint');
   if(!codeEl) return;
+  // R70: 大屏不再显示入班码明文，防学生看到后切班
   if(c.code){
-    codeEl.textContent=String(c.code).toUpperCase(); codeEl.style.opacity='1';
-    if(hintEl) hintEl.textContent='学生打开链接即自动带入班级码；也可手动输入 '+String(c.code).toUpperCase()+' → 选自己名字 → 领养伙伴';
+    codeEl.textContent='🔒 已生成（不公开展示）'; codeEl.style.opacity='.7';
+    if(hintEl) hintEl.textContent='入班码不公开展示，防止学生看到后自行切班。老师可在下方「复制入班链接」分发给学生。';
   }else{
     codeEl.textContent='——'; codeEl.style.opacity='.45';
     if(hintEl) hintEl.textContent='当前是纯本机班级：登录后再点「➕ 建班」才会生成入班码';
@@ -1298,6 +1389,39 @@ function openStudentDaily(){
   // 学生日常入口：不带 fresh，直接进上次认领的伙伴主页（课间答题/交作业）
   const url=joinURL();
   window.open(url,'_blank');
+}
+
+// R70: 设置切班码（需验证老师登录密码）
+function setSwitchCode(){
+  if(!GP_CLOUD || !GP.token){ toast('请先登录'); return; }
+  if(!currentClass){ toast('请先选择一个班级'); return; }
+  const c=CLASSES[currentClass]||{};
+  const status = c.switch_code_set ? '当前已设切班码' : '当前未设切班码（未设时已登录可直接切班）';
+  // 两步：先输新切班码，再输登录密码验证
+  GP.pinPrompt('🔒 设置「'+c.name+'」切班码\n'+status+'\n输入新切班码（4-12位字母数字）').then(code=>{
+    if(code===null) return;
+    const sc=String(code).trim();
+    if(sc.length<4){ toast('切班码至少 4 位'); return; }
+    if(sc.length>12){ toast('切班码最多 12 位'); return; }
+    if(!/^[A-Za-z0-9]+$/.test(sc)){ toast('切班码只能用字母和数字'); return; }
+    GP.pinPrompt('🔐 验证身份：请输入你的登录密码').then(pwd=>{
+      if(pwd===null) return;
+      fetch('/api/classes/'+currentClass+'/switch-code',{
+        method:'PUT',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+GP.token},
+        body:JSON.stringify({password:pwd, switch_code:sc})
+      }).then(r=>r.json()).then(d=>{
+        if(d.ok){
+          toast('✅ 切班码已设置，切换本班需输入此码');
+          if(CLASSES[currentClass]) CLASSES[currentClass].switch_code_set=true;
+          renderJoinBox();
+        }else{
+          toast('❌ '+(d.error||'设置失败'));
+          GP.pinShake && GP.pinShake();
+        }
+      }).catch(()=>{ toast('网络异常'); });
+    });
+  });
 }
 
 /* 新建班级 */
@@ -1593,7 +1717,7 @@ const GP={
       order.push(lid);
       map[lid]={remoteId:rc.id,ids:[]};
       CLASSES[lid]={id:lid,name:rc.name,theme:rc.theme||'科学班生态',stagePct:0,eco:0,tidy:80,students:[],
-        remoteId:rc.id, code:rc.class_code||''};
+        remoteId:rc.id, code:rc.class_code||'', switch_code_set: !!rc.switch_code_set};
     }
     CLASS_ORDER.length=0; order.forEach(id=>CLASS_ORDER.push(id));
     Object.keys(CLASSES).forEach(k=>{ if(!map[k]) delete CLASSES[k]; });
@@ -1610,6 +1734,7 @@ const GP={
     const c=CLASSES[localId];
     c.name=data.class.name; c.theme=data.class.theme||c.theme;
     c.eco=data.class.eco_value; c.stagePct=data.class.stage.progress; c.tidy=data.board.tidiness;
+    if(data.class.switch_code_set!==undefined) c.switch_code_set=!!data.class.switch_code_set;
     const idx={}; data.students.forEach((s,i)=>{ idx[s.id]=i; });
     m.ids=data.students.map(s=>s.id);
     c.students=data.students.map((s,i)=>({
@@ -1839,6 +1964,7 @@ function bindControls(){
   bind('copyLinkBtn', copyJoinLink);
   bind('openStuBtn', openStudentPage);
   bind('openStuDailyBtn', openStudentDaily);
+  bind('setSwitchCodeBtn', setSwitchCode);
   bind('quizBtn', openQuizPanel);       // R33 录题入口
   bind('partnerReqBtn', openPartnerRequests); // R46 换伙伴审批入口
   bind('myClassesBtn', openMyClasses);  // R48 带班记录入口

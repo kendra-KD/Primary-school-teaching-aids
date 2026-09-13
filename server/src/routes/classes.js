@@ -1,5 +1,6 @@
+import bcrypt from 'bcryptjs';
 import { query, queryOne } from '../db.js';
-import { assertOwnsClass, assertText, assertInt, assertUuid, badRequest, notFound } from '../util.js';
+import { assertOwnsClass, assertText, assertInt, assertUuid, badRequest, notFound, unauthorized } from '../util.js';
 
 const THEME_PACKS = ['cute_nature', 'life_obs', 'anime_original'];
 
@@ -8,6 +9,7 @@ function rowToClass(row, extra = {}) {
     id: row.id,
     name: row.name,
     class_code: row.class_code || null,
+    switch_code_set: !!row.switch_code,   // R70: 只返回是否已设置，不返回明文
     grade: row.grade,
     theme: row.theme,
     theme_pack: row.theme_pack,
@@ -60,7 +62,6 @@ export default async function classRoutes(fastify) {
     if (themePack) {
       if (!THEME_PACKS.includes(themePack)) throw badRequest(`theme_pack 只能是 ${THEME_PACKS.join(' / ')}`);
     } else if (grade !== null) {
-      // 按年级自动匹配主题包：1-2 萌系自然 / 3-4 生命观察 / 5-6 动漫原创
       themePack = grade <= 2 ? 'cute_nature' : grade <= 4 ? 'life_obs' : 'anime_original';
     }
 
@@ -69,7 +70,6 @@ export default async function classRoutes(fastify) {
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [req.user.sub, name, grade, theme, themePack]
     );
-    // 班级码：取 id 前 6 位十六进制，唯一且无需额外随机源
     await query(`UPDATE classes SET class_code = LEFT(REPLACE(id::text, '-', ''), 6) WHERE id = $1`, [row.id]);
     const full = await queryOne('SELECT * FROM classes WHERE id = $1', [row.id]);
     return reply.code(201).send({ class: rowToClass(full, { student_count: 0 }) });
@@ -95,6 +95,43 @@ export default async function classRoutes(fastify) {
       [name, grade, theme, themePack, id, req.user.sub]
     );
     return { class: rowToClass(row) };
+  });
+
+  // R70: 设置/修改切班码（需验证老师登录密码）
+  // body: { password: '登录密码', switch_code: '新切班码（4-12位）' }
+  fastify.put('/api/classes/:id/switch-code', auth, async (req, reply) => {
+    const id = assertUuid(req.params.id, 'id');
+    await assertOwnsClass(req.user.sub, id);
+
+    const password = String(req.body?.password || '');
+    const newCode = String(req.body?.switch_code || '').trim();
+
+    if (!password) throw badRequest('请输入登录密码以验证身份');
+    if (newCode.length < 4) throw badRequest('切班码至少 4 位');
+    if (newCode.length > 12) throw badRequest('切班码最多 12 位');
+    if (!/^[A-Za-z0-9]+$/.test(newCode)) throw badRequest('切班码只能用字母和数字');
+
+    // 验证登录密码
+    const teacher = await queryOne('SELECT password_hash FROM teachers WHERE id = $1', [req.user.sub]);
+    if (!teacher) throw unauthorized('账号异常');
+    const ok = await bcrypt.compare(password, teacher.password_hash);
+    if (!ok) throw badRequest('登录密码不正确，切班码未修改');
+
+    await query('UPDATE classes SET switch_code = $1 WHERE id = $2 AND teacher_id = $3', [newCode, id, req.user.sub]);
+    return { ok: true, switch_code_set: true };
+  });
+
+  // R70: 验证切班码（已登录老师验证码是否正确）
+  // body: { switch_code: '切班码' } → { ok: true/false }
+  fastify.post('/api/classes/:id/verify-switch', auth, async (req, reply) => {
+    const id = assertUuid(req.params.id, 'id');
+    const cls = await assertOwnsClass(req.user.sub, id);
+    const input = String(req.body?.switch_code || '').trim();
+    if (!cls.switch_code) {
+      // 未设置切班码：已登录老师直接放行
+      return { ok: true, reason: 'no_code' };
+    }
+    return { ok: input.toLowerCase() === String(cls.switch_code).toLowerCase() };
   });
 
   // 重生成班级码（老师端一键换码，原码立即失效）

@@ -12,7 +12,17 @@ const PARTNER_KINDS = [
   'crystal', 'minnow',
   'fire_sprite', 'water_sprite', 'grass_sprite', 'thunder_sprite', 'star2',
   'mech_eco', 'light_spirit', 'ice_spirit', 'wind_spirit', 'rock_spirit',
-  'dragon_spirit', 'dark_spirit'
+  'dragon_spirit', 'dark_spirit',
+  // R60 扩充：恐龙系列
+  'dino_saurus', 'tricera', 'ptera',
+  // R76 扩充：恐龙系列追加（腕龙/剑龙/迅猛龙）
+  'brachio', 'stego', 'raptor',
+  // R60 扩充：星际精灵系列
+  'meteor_spirit', 'nebula_beast', 'void_spirit',
+  // R76 扩充：星际精灵追加（彗星/脉冲星）
+  'comet_tail', 'pulsar_star',
+  // R60 扩充：Xiaolong人系列
+  'xiaolong_scholar', 'xiaolong_warrior', 'xiaolong_chef'
 ];
 
 // 每日互动上限（防刷分）
