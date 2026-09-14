@@ -20,6 +20,13 @@ for f in "teacher-dashboard.html" "index.html" "partner-demo.html"; do
 done
 echo "✓ 前端已构建到 $OUT （GP_API_BASE='${API_BASE:-同域}'）"
 
+# ── 复制静态资源（伙伴 3D 形象 PNG 等）到构建产物，Nginx 从 root 直接静态服务 ──
+if [ -d "$SRC/assets" ]; then
+  mkdir -p "$OUT/assets"
+  cp -r "$SRC/assets/." "$OUT/assets/"
+  echo "✓ 静态资源已同步到 $OUT/assets"
+fi
+
 # ── 构建后自动体检：script 标签配对 + JS 语法。坏了直接中止，绝不发布「打不开」的页面 ──
 for f in teacher-dashboard.html partner-demo.html index.html; do
   [ -f "$OUT/$f" ] && bash deploy/check-frontend.sh "$OUT/$f"

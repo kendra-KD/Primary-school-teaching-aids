@@ -177,6 +177,8 @@ body::before{
 .partner .blob{transition:transform .2s ease;}
 .partner .blob svg, .selava svg, .gava svg, .ravi svg{display:block;width:100%;height:100%;overflow:visible;}
 .crt{animation:breathe 3.6s ease-in-out infinite;transform-origin:50% 82%;}
+.pimg{width:100%;height:100%;object-fit:contain;display:block;animation:breathe 3.6s ease-in-out infinite;transform-origin:50% 82%;}
+.pimg.hop{animation:hop .55s cubic-bezier(.3,1.6,.5,1);}
 @keyframes breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-2px) scale(1.018)}}
 .c-eye{transform-box:fill-box;transform-origin:center;animation:blink 5.5s infinite;}
 @keyframes blink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.08)}}
@@ -190,8 +192,10 @@ body::before{
 .crt.hop{animation:hop .55s cubic-bezier(.3,1.6,.5,1);}
 @keyframes hop{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-9px) scale(1.12)}60%{transform:translateY(0) scale(.96)}100%{transform:translateY(0) scale(1)}}
 .partner.sel .crt{filter:drop-shadow(0 0 5px color-mix(in srgb,var(--c) 70%,transparent));}
+.partner.sel .pimg{filter:drop-shadow(0 0 5px color-mix(in srgb,var(--c) 70%,transparent));}
 /* 状态视觉：受伤发抖已存在；爱护发光；蔫了下垂 */
 .partner.loved .crt{filter:drop-shadow(0 0 7px #ff9ec9);}
+.partner.loved .pimg{filter:drop-shadow(0 0 7px #ff9ec9);}
 .partner.loved .crt::after{content:"";position:absolute;}
 .partner.wilt .crt{transform:rotate(-8deg) translateY(4px);transform-origin:50% 90%;}
 /* 爱护态飘心 */
@@ -627,9 +631,27 @@ const TAG_GROUPS=[
 ];
 
 /* =====================================================================
-   伙伴 SVG 图鉴（36 种独立形象，按 partner_kind 一一映射）
-   统一治愈发光体 + 学生主色点缀；每种有可辨识轮廓与性格动作
+   伙伴形象（R98-v5：改为预渲染 3D PNG，assets/partners/{kind}_{state}.png）
+   每种含 10 个交互帧；生态态 active/loved/wilt/injured 映射到对应帧
    ===================================================================== */
+const PARTNER_FRAMES = ['normal','talking','blinking','happy','surprised','waving','thinking','loving','crying','sleeping'];
+
+// 生态态 → 形象帧：活跃 normal / 被爱护 loving / 蔫了 crying / 受伤 surprised
+function ecoFrame(st){
+  return st==='loved' ? 'loving' : st==='wilt' ? 'crying' : st==='injured' ? 'surprised' : 'normal';
+}
+
+// 返回一张伙伴 <img>；kind 不存在时回退到 kitty，避免破图
+function partnerImg(kind, frame, color){
+  kind = kind || 'kitty';
+  frame = frame || 'normal';
+  if(kind==='worm' || kind==='') kind='kitty'; // 历史缺省值兜底
+  const src = 'assets/partners/' + kind + '_' + frame + '.png';
+  const ring = color ? ' style="--c:' + color + '"' : '';
+  return '<img class="pimg" src="' + src + '" alt="' + kind + '"' + ring +
+    ' onerror="this.onerror=null;this.src=\'assets/partners/kitty_normal.png\'">';
+}
+
 function creature(type,color){
   const E='#F4EFE7', K='#3A3550', c=color||'#8be9d4';
   // R97 第二轮重做：借鉴 Duolingo 设计语言 —— 扁平鲜艳 + 巨眼 + 统一豆形
@@ -792,8 +814,8 @@ function creature(type,color){
     // 兜底
     _fallback:c=>`<ellipse cx="50" cy="60" rx="22" ry="26" fill="url(#${G.belly})" stroke="${K}" stroke-width="2"/>${hi(42,48,9,8)}<path d="M50 40 l4 -10 l4 10z" fill="${c}"/><circle class="c-eye" cx="43" cy="58" r="3.4" fill="url(#${G.eye})"/><circle class="c-eye" cx="57" cy="58" r="3.4" fill="url(#${G.eye})"/><circle cx="42.2" cy="56.8" r="1.4" fill="#fff"/><circle cx="56.2" cy="56.8" r="1.4" fill="#fff"/><path d="M44 66 q6 5 12 0" stroke="${K}" stroke-width="2" fill="none" stroke-linecap="round"/>`
   };
-  const key = DRAW[type] ? type : '_fallback';
-  return `<svg class="crt" viewBox="0 0 100 100" aria-hidden="true">${defs}${DRAW[key](c)}</svg>`;
+  // R98-v5: 形象改为预渲染 3D PNG（assets/partners/{kind}_{state}.png），不再内联 SVG
+  return partnerImg(type, 'normal', color);
 }
 function decorSVG(kind){
   if(kind==='leaf') return `<svg viewBox="0 0 24 24"><path d="M12 22 C4 16 4 6 12 2 C20 6 20 16 12 22Z" fill="#8fd18f" stroke="#5fae5f" stroke-width="1"/><line x1="12" y1="22" x2="12" y2="8" stroke="#5fae5f" stroke-width="1"/></svg>`;
@@ -893,7 +915,7 @@ function renderPlanet(){
     return `<div class="partner ${stateCls} ${selectedId===i?'sel':''}" data-i="${i}" style="--c:${s.color}">
       <div class="score">${s.score}</div>
       ${badge?`<div class="badge">${badge}</div>`:''}
-      <div class="blob">${creature(s.type,s.color)}
+      <div class="blob">${partnerImg(s.type, ecoFrame(s.state), s.color)}
         <div class="${decorCls}">${decor}</div>
         ${wearLayer}
       </div>
@@ -1015,7 +1037,7 @@ function updateSelPanel(){
   }
   const s=cls.students[selectedId];
   card.className='selcard';
-  card.innerHTML=`<div class="selava" style="--c:${s.color}">${creature(s.type,s.color)}</div>
+  card.innerHTML=`<div class="selava" style="--c:${s.color}">${partnerImg(s.type, ecoFrame(s.state), s.color)}</div>
     <div><div class="sn">${esc(s.n)}</div>
     <div class="ss">所属小队 ${GROUPS[selectedId%4]} · ${stateText(s.state)} · ${s.score}生态值</div></div>`;
   btn.disabled=clr.disabled=false; btn.style.opacity=clr.style.opacity=1;
@@ -1253,7 +1275,7 @@ function openGrowthCard(i){
 
   $('growthCard').innerHTML=`
     <div class="ghead">
-      <div class="gava" style="--c:${s.color}">${creature(s.type,s.color)}</div>
+      <div class="gava" style="--c:${s.color}">${partnerImg(s.type, ecoFrame(s.state), s.color)}</div>
       <div><div class="gn">${esc(s.n)}</div>
         <div class="gm">${cls.name} · 小队 ${GROUPS[i%4]} · ${cls.theme}</div>
         <div class="gstate" style="background:${stColor}22;color:${stColor}">${stTxt} · ${s.score} 生态值</div>
@@ -1455,7 +1477,7 @@ function renderRoster(){
   $('rosterCount').textContent=`${cls.students.length} 位伙伴`;
   $('rosterList').innerHTML = cls.students.map((s,i)=>`
     <div class="ritem" style="--c:${s.color}">
-      <div class="ravi">${creature(s.type,s.color)}</div>
+      <div class="ravi">${partnerImg(s.type, ecoFrame(s.state), s.color)}</div>
       <input value="${escAttr(s.n)}" data-i="${i}" maxlength="12" />
       <button class="rdel" data-i="${i}">🗑 删除</button>
     </div>`).join('');
@@ -2017,7 +2039,7 @@ async function pollState(){
     const after=CLASSES[currentClass].students.map(s=>s.score);
     before.forEach((b,i)=>{
       if(after[i]!==b){                 // 生态值增加 → 伙伴快乐跳一跳
-        const el=document.querySelector('.partner[data-i="'+i+'"] .crt');
+        const el=document.querySelector('.partner[data-i="'+i+'"] .pimg');
         if(el){ el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop'); }
       }
     });

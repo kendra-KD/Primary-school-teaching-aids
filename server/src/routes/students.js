@@ -2,27 +2,17 @@ import { query, queryOne, withTx } from '../db.js';
 import { assertOwnsClass, assertOwnsStudent, assertText, assertUuid, assertInt, badRequest, notFound } from '../util.js';
 import { assertDeviceToken, generateDeviceToken } from '../middleware.js';
 
-// 伙伴种类（原创形象，无 IP 风险）。与前端自选页图鉴保持一致。
+// 伙伴种类（原创 3D 形象，无 IP 风险）。与前端图鉴 LIB + assets/partners/{kind}_{state}.png 一一对应。
+// R98-v5：扩至 20 种（动物 8 + 载具 3 + 幻想动漫风 3 + 新增动物 6），每种含 10 交互帧。
 const PARTNER_KINDS = [
-  'tuan_tuan', 'ya_ya', 'cloud_sheep', 'star_kid',
-  'bunny', 'duckling', 'piggy', 'kitty', 'puppy', 'hug_bear',
-  'bub_fish', 'slow_turtle', 'blue_whale', 'little_crab',
-  'can_bao', 'ke_dou', 'seed_sprite', 'ant_worker', 'snail',
-  'butterfly', 'shy_plant', 'sun_flower', 'mushroom', 'bamboo',
-  'crystal', 'minnow',
-  'fire_sprite', 'water_sprite', 'grass_sprite', 'thunder_sprite', 'star2',
-  'mech_eco', 'light_spirit', 'ice_spirit', 'wind_spirit', 'rock_spirit',
-  'dragon_spirit', 'dark_spirit',
-  // R60 扩充：恐龙系列
-  'dino_saurus', 'tricera', 'ptera',
-  // R76 扩充：恐龙系列追加（腕龙/剑龙/迅猛龙）
-  'brachio', 'stego', 'raptor',
-  // R60 扩充：星际精灵系列
-  'meteor_spirit', 'nebula_beast', 'void_spirit',
-  // R76 扩充：星际精灵追加（彗星/脉冲星）
-  'comet_tail', 'pulsar_star',
-  // R60 扩充：Xiaolong人系列
-  'xiaolong_scholar', 'xiaolong_warrior', 'xiaolong_chef'
+  // 经典萌宠
+  'kitty', 'puppy', 'bear', 'bunny', 'piggy', 'redpanda',
+  // 恐龙 / 载具
+  'dino', 'car', 'train', 'plane', 'rocket',
+  // 动物园扩展
+  'lion', 'panda', 'tiger', 'frog', 'penguin', 'monkey',
+  // 幻想 / 动漫原创
+  'robot', 'ghost', 'dragon'
 ];
 
 // 每日互动上限（防刷分）
