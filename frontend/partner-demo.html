@@ -310,14 +310,15 @@ const PACK_OF = {1:"all",2:"all",3:"all",4:"all",5:"all",6:"all"};
    每种形象含 10 个交互帧，汤姆猫式多帧切换。 */
 const PARTNER_FRAMES = ['normal','talking','blinking','happy','surprised','waving','thinking','loving','crying','sleeping'];
 
-// 返回一张伙伴 <img>；frame 缺帧时 onerror 回退到 normal 帧
+// 返回一张伙伴 <img>；frame 缺帧时 onerror 先回退到同 kind 的 normal，再回退 kitty
 function partnerImg(kind, frame, color){
   kind = kind || 'kitty';
   frame = frame || 'normal';
   const src = 'assets/partners/' + kind + '_' + frame + '.png';
+  const fallback = 'assets/partners/' + kind + '_normal.png';
   const ring = color ? ' style="--c:' + color + '"' : '';
   return '<img class="pimg" src="' + src + '" alt="' + kind + '"' + ring +
-    ' onerror="this.onerror=null;this.src=\'assets/partners/kitty_normal.png\'">';
+    ' onerror="var fb=&quot;' + fallback + '&quot;;if(this.src.indexOf(fb)===-1){this.onerror=null;this.src=fb;}else{this.onerror=null;this.src=&quot;assets/partners/kitty_normal.png&quot;;}">';
 }
 
 // 汤姆猫式多帧切换：管理某个容器内伙伴 <img> 的状态与动画

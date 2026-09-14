@@ -647,9 +647,10 @@ function partnerImg(kind, frame, color){
   frame = frame || 'normal';
   if(kind==='worm' || kind==='') kind='kitty'; // 历史缺省值兜底
   const src = 'assets/partners/' + kind + '_' + frame + '.png';
+  const fallback = 'assets/partners/' + kind + '_normal.png';
   const ring = color ? ' style="--c:' + color + '"' : '';
   return '<img class="pimg" src="' + src + '" alt="' + kind + '"' + ring +
-    ' onerror="this.onerror=null;this.src=\'assets/partners/kitty_normal.png\'">';
+    ' onerror="var fb=&quot;' + fallback + '&quot;;if(this.src.indexOf(fb)===-1){this.onerror=null;this.src=fb;}else{this.onerror=null;this.src=&quot;assets/partners/kitty_normal.png&quot;;}">';
 }
 
 function creature(type,color){
