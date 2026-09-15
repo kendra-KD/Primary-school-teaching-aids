@@ -94,9 +94,15 @@
   .success .big{font-size:90px;animation:pop .6s ease;}
   /* 真实伙伴生物（与老师大屏同款 SVG） */
   .ava{width:56px;height:56px;margin:0 auto;display:block;}
-  .ava-big{width:120px;height:120px;margin:6px auto;display:block;animation:floaty 3.5s ease-in-out infinite;}
+  .ava-big{width:120px;height:120px;margin:6px auto;display:block;animation:floaty 3.5s ease-in-out infinite;position:relative;}
+  .ava-big::after{content:"";position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
+    width:70px;height:14px;border-radius:50%;
+    background:radial-gradient(ellipse, color-mix(in srgb,var(--c,#C4A7FF) 45%,transparent) 0%, transparent 70%);
+    filter:blur(2px);z-index:0;pointer-events:none;}
   .crt{width:100%;height:100%;display:block;overflow:visible;animation:breathe 3.6s ease-in-out infinite;transform-origin:50% 82%;}
-  .pimg{width:100%;height:100%;object-fit:contain;display:block;overflow:visible;}
+  .pimg{width:100%;height:100%;object-fit:contain;display:block;overflow:visible;
+    filter:drop-shadow(0 0 8px color-mix(in srgb,var(--c,transparent) 50%,transparent));}
+  .pimg[style*="--c"]{filter:drop-shadow(0 0 10px color-mix(in srgb,var(--c) 60%,transparent)) drop-shadow(0 2px 4px color-mix(in srgb,var(--c) 30%,transparent));}
   @keyframes breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-2px) scale(1.02)}}
   .c-eye{transform-box:fill-box;transform-origin:center;animation:blink 5.5s infinite;}
   @keyframes blink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.08)}}
@@ -108,7 +114,11 @@
   @keyframes hop{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-10px) scale(1.12)}60%{transform:translateY(0) scale(.96)}100%{transform:translateY(0) scale(1)}}
 
   /* R43: 伙伴点击互动 — 部位反馈 */
-  .ava-home{position:relative;}
+  .ava-home{position:relative;width:128px;height:128px;}
+  .ava-home::after{content:"";position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);
+    width:80px;height:16px;border-radius:50%;
+    background:radial-gradient(ellipse, color-mix(in srgb,var(--c,#C4A7FF) 50%,transparent) 0%, transparent 70%);
+    filter:blur(3px);z-index:0;pointer-events:none;}
   .ava-home .pimg{cursor:pointer;touch-action:manipulation;}
   .ava-home svg{cursor:pointer;touch-action:manipulation;}
   .ava-home .hot-zone{fill:transparent;stroke:none;cursor:pointer;}
@@ -587,6 +597,11 @@ function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('sho
       deviceToken=saved.deviceToken;
       restoreHome(saved.classCode, saved.studentId);
     }
+  }else{
+    // URL 带了 student_id 但本地无记录 → 自动加载班级并预选该学生
+    const sidMatch=location.search.match(/[?&]student_id=([^&]+)/);
+    const urlSid = sidMatch ? sidMatch[1].trim() : '';
+    if(urlCode && urlSid){ loadClass(urlSid); }
   }
 })();
 
@@ -606,7 +621,7 @@ async function restoreHome(code, studentId){
   }catch(e){}
 }
 
-async function loadClass(){
+async function loadClass(presetStudentId){
   const code=$('codeInput').value.trim().toLowerCase();
   $('codeErr').textContent='';
   if(!code){ $('codeErr').textContent='请输入班级码'; return; }
@@ -617,6 +632,11 @@ async function loadClass(){
     CLASS=data.class; STUDENTS=data.students||[];
     if(!STUDENTS.length) throw new Error('这个班级还没有学生，请老师先在花名册导入');
     renderStudents();
+    // URL 带 student_id → 自动选定该学生，跳过"选自己"
+    if(presetStudentId){
+      const st=STUDENTS.find(s=>s.id===presetStudentId);
+      if(st){ pickStudent(st, null); return; }
+    }
     $('stepCode').classList.add('hidden');
     $('stepWho').classList.remove('hidden');
   }catch(err){ $('codeErr').textContent=err.message; }
@@ -826,6 +846,7 @@ function drawHome(v){
   // R98-v5: 用 PartnerActor 管理主页伙伴的 10 帧切换（待机眨眼 + 点击反应 + 答题反馈）
   if(!homeActor){ homeActor = new PartnerActor($('homeAva'), v.student.partner_kind, color); }
   else { homeActor.setKind(v.student.partner_kind, color); }
+  $('homeAva').style.setProperty('--c', color || '#C4A7FF');
   homeActor.startIdle();
   setupHomePet();
   $('homeName').textContent=(v.student.nickname||k.name)+' · Lv'+stage;
