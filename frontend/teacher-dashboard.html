@@ -68,6 +68,13 @@ body::before{
 .chip .dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 8px currentColor;}
 .chip .ct{font-weight:800;font-size:13px;white-space:nowrap;}
 .chip .cs{font-size:11px;color:var(--txt2);white-space:nowrap;}
+/* A减法重构：班级 chip 旁 ⚙ 图标按钮 */
+.chip .chip-settings{
+  width:26px;height:26px;border-radius:8px;border:1px solid var(--line);background:var(--glass);
+  display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;
+  flex-shrink:0;margin-left:4px;transition:.15s;
+}
+.chip .chip-settings:hover{background:var(--glass-strong);border-color:var(--accent);}
 .spacer{flex:1;}
 .stage-pill{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:14px;background:var(--glass);}
 .stage-pill b{font-size:14px;}
@@ -292,6 +299,18 @@ body::before{
 .modal .close{position:absolute;top:14px;right:16px;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);
   background:var(--glass);color:var(--txt);font-size:18px;cursor:pointer;}
 .modal h2{font-size:17px;font-weight:900;margin-bottom:14px;}
+/* A减法重构：工具箱抽屉 */
+.toolbox-drawer{border-radius:24px 0 0 24px !important;}
+.toolbox-list{display:flex;flex-direction:column;gap:10px;}
+.toolbox-item{
+  display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;
+  background:var(--glass);border:1px solid var(--line);cursor:pointer;transition:.15s;text-align:left;width:100%;
+}
+.toolbox-item:hover{background:var(--glass-strong);border-color:var(--accent);}
+.toolbox-item .tb-icon{font-size:22px;flex-shrink:0;width:32px;text-align:center;}
+.toolbox-item .tb-title{font-weight:800;font-size:14px;color:var(--txt);}
+.toolbox-item .tb-sub{font-size:11px;color:var(--txt2);margin-top:2px;}
+.toolbox-placeholder{pointer-events:none;}
 /* 花名册 */
 .roster-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
 .roster-tools input,.modal input{font:inherit;font-size:13px;padding:9px 11px;border-radius:12px;border:1px solid var(--line);
@@ -387,25 +406,30 @@ hidden{display:none!important;}
 </head>
 <body>
 <div class="app">
-  <!-- 顶部栏 -->
+  <!-- 顶部栏：A减法重构 3区+兜底，按钮7→5 -->
   <header class="topbar">
     <div class="brand"><span class="logo"></span>成长星球</div>
-    <div class="chips" id="classChips"></div>
-    <div class="stage-pill">阶段 <b id="stageTxt">—</b></div>
+    <!-- 区1 课堂操作 -->
     <div class="timer">
       <span class="clock" id="timerTxt">00:00</span>
       <button id="tStart" title="课堂计时器">⏱ 计时</button>
       <button id="tReset">重置</button>
       <button id="tFsBtn" title="全屏放大计时（考试/做题用）">⛶</button>
+      <button class="btn" id="lessonBtn" style="display:none">📚 开始上课</button>
     </div>
-    <button class="btn" id="gearBtn">⚙ 花名册</button>
-    <button class="btn" id="reportBtn">📊 周报</button>
-    <button class="btn" id="newClassBtn">➕ 建班</button>
-    <button class="btn" id="lessonBtn" style="display:none">📚 开始上课</button>
+    <!-- 区2 班级切换 -->
+    <div class="chips" id="classChips"></div>
+    <button class="btn" id="newClassBtn" title="新建班级">➕ 建班</button>
+    <div class="stage-pill">阶段 <b id="stageTxt">—</b></div>
     <div class="stage-pill" id="lessonPill" style="display:none">
       <span style="font-size:12px;color:var(--accent)">授课中</span>
       <b id="lessonPinTxt" style="font-size:13px;color:var(--accent)">PIN:----</b>
     </div>
+    <!-- 区3 工具箱 -->
+    <button class="btn" id="toolboxBtn" title="教师工具箱（录题/审批/带班记录）">🧰 工具箱</button>
+    <!-- 兜底 -->
+    <button class="btn" id="gearBtn" title="花名册（兜底入口）">⚙ 花名册</button>
+    <button class="btn" id="reportBtn" title="班级周报/成长报告">📊 周报</button>
   </header>
 
   <!-- 主区 -->
@@ -461,7 +485,7 @@ hidden{display:none!important;}
     <h2>📒 花名册 · <span id="rosterClass"></span></h2>
     <div style="font-size:12px;color:var(--txt2);margin-bottom:10px" id="rosterCount"></div>
 
-    <!-- 学生入班：班级码 + 入班链接 -->
+    <!-- 学生入班：班级码 + 入班链接（A减法重构：双入口合并为单按钮） -->
     <div class="joinbox">
       <div class="join-code">
         <div class="jc-label">📱 学生入班码</div>
@@ -469,11 +493,9 @@ hidden{display:none!important;}
       </div>
       <div class="join-acts">
         <button class="btn primary" id="copyLinkBtn">🔗 复制入班链接</button>
-        <button class="btn" id="openStuBtn">🎒 学生自选页（首次认领）</button>
-        <button class="btn" id="openStuDailyBtn">📱 学生互动入口（课间答题/交作业）</button>
         <button class="btn" id="setSwitchCodeBtn">🔒 设置切班码</button>
       </div>
-      <div class="join-hint" id="joinHint">登录并建班后自动生成入班码</div>
+      <div class="join-hint" id="joinHint">登录并建班后自动生成入班码；学生打开链接自动识别认领状态</div>
     </div>
 
     <div class="roster-tools">
@@ -487,15 +509,73 @@ hidden{display:none!important;}
     </div>
     <div class="import-note" id="importHint"></div>
 
-    <!-- 老师工具区：录题 + 换伙伴审批 + 带班记录 -->
-    <div class="roster-tools" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
-      <button class="btn" id="quizBtn" style="white-space:nowrap">📝 录题/题库</button>
-      <button class="btn" id="partnerReqBtn" style="white-space:nowrap">🔄 换伙伴审批</button>
-      <button class="btn" id="myClassesBtn" style="white-space:nowrap">📋 带班记录</button>
-      <span id="partnerReqBadge" style="display:none;font-size:12px;color:var(--warn);font-weight:800;padding:4px 8px;background:rgba(255,214,165,.15);border-radius:8px"></span>
-    </div>
+    <!-- A减法重构：录题/审批/带班记录 移至工具箱抽屉，此处不保留 -->
 
     <div id="rosterList" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- 班级设置浮层（A减法重构：从花名册拆出班级级配置） -->
+<div class="overlay" id="classSettings">
+  <div class="modal" style="position:relative;max-width:420px">
+    <button class="close" id="classSettingsClose">×</button>
+    <h2>⚙ 班级设置 · <span id="csClassName"></span></h2>
+    <div style="font-size:12px;color:var(--txt2);margin-bottom:12px">班级属性配置（与花名册学生名单分离）</div>
+    <div class="nc-field">
+      <label for="csName">班级名称</label>
+      <input id="csName" placeholder="例如：三(1)班" maxlength="20">
+    </div>
+    <div class="nc-field">
+      <label for="csGrade">年级（1-6）</label>
+      <select id="csGrade">
+        <option value="1">一年级</option>
+        <option value="2">二年级</option>
+        <option value="3">三年级</option>
+        <option value="4">四年级</option>
+        <option value="5">五年级</option>
+        <option value="6">六年级</option>
+      </select>
+    </div>
+    <div class="nc-field">
+      <label for="csTheme">班级主题</label>
+      <input id="csTheme" placeholder="例如：春蚕工坊" maxlength="20">
+    </div>
+    <div class="roster-tools" style="margin-top:8px">
+      <button class="btn primary" id="csSave">保存设置</button>
+      <button class="btn" id="csExportReport">📊 导出周报</button>
+    </div>
+    <div class="roster-tools" style="margin-top:8px;padding-top:10px;border-top:1px solid var(--line)">
+      <button class="btn" id="csDelete" style="color:var(--bad);border-color:rgba(255,158,158,.4)">🗑 删除班级</button>
+    </div>
+    <div class="import-note" id="csHint"></div>
+  </div>
+</div>
+
+<!-- 教师工具箱抽屉（A减法重构：右侧抽屉，录题/审批/带班记录迁入） -->
+<div class="overlay" id="toolbox" style="justify-content:flex-end">
+  <div class="modal toolbox-drawer" style="position:relative;max-width:360px;width:90%;margin-right:0">
+    <button class="close" id="toolboxClose">×</button>
+    <h2>🧰 教师工具箱</h2>
+    <div style="font-size:12px;color:var(--txt2);margin-bottom:14px">录题/审批/带班记录集中于此</div>
+    <div class="toolbox-list">
+      <button class="btn toolbox-item" id="tbQuizBtn">
+        <span class="tb-icon">📝</span>
+        <div><div class="tb-title">录题 / 题库</div><div class="tb-sub">手工录题 + 批量导入</div></div>
+      </button>
+      <button class="btn toolbox-item" id="tbPartnerReqBtn">
+        <span class="tb-icon">🔄</span>
+        <div><div class="tb-title">换伙伴审批</div><div class="tb-sub">学生换伙伴申请</div></div>
+        <span id="tbPartnerReqBadge" style="display:none;font-size:11px;color:var(--warn);font-weight:800;padding:2px 7px;background:rgba(255,214,165,.15);border-radius:8px"></span>
+      </button>
+      <button class="btn toolbox-item" id="tbMyClassesBtn">
+        <span class="tb-icon">📋</span>
+        <div><div class="tb-title">带班记录</div><div class="tb-sub">历史班级归档</div></div>
+      </button>
+      <div class="toolbox-item toolbox-placeholder" style="opacity:.5;cursor:not-allowed">
+        <span class="tb-icon">✨</span>
+        <div><div class="tb-title">AI 出题</div><div class="tb-sub">B 闭环预留，暂未开放</div></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -906,9 +986,17 @@ function renderTopbar(){
     return `<div class="chip ${id===currentClass?'active':''}" data-c="${id}">
       <span class="dot" style="color:${st.color};background:${st.color}"></span>
       <div><div class="ct">${c.name}</div><div class="cs">${c.theme}·${st.short}</div></div>
+      <span class="chip-settings" data-cs="${id}" title="班级设置">⚙</span>
     </div>`;
   }).join('');
-  document.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>switchClass(ch.dataset.c));
+  document.querySelectorAll('.chip').forEach(ch=>ch.onclick=(e)=>{
+    if(e.target.classList.contains('chip-settings')) return; // ⚙ 不触发切班
+    switchClass(ch.dataset.c);
+  });
+  document.querySelectorAll('.chip-settings').forEach(s=>s.onclick=(e)=>{
+    e.stopPropagation();
+    openClassSettings(s.dataset.cs);
+  });
 
   const st=stageInfo(cls.stagePct);
   $('stageTxt').textContent=st.short;
@@ -1996,12 +2084,20 @@ function bindControls(){
   bind('ncOk', createClass);
   bind('newClass', e=>{ if(e.target===$('newClass')) closeNewClass(); });
   bind('copyLinkBtn', copyJoinLink);
-  bind('openStuBtn', openStudentPage);
-  bind('openStuDailyBtn', openStudentDaily);
   bind('setSwitchCodeBtn', setSwitchCode);
-  bind('quizBtn', openQuizPanel);       // R33 录题入口
-  bind('partnerReqBtn', openPartnerRequests); // R46 换伙伴审批入口
-  bind('myClassesBtn', openMyClasses);  // R48 带班记录入口
+  // A减法重构：录题/审批/带班记录 迁至工具箱抽屉
+  bind('tbQuizBtn', openQuizPanel);
+  bind('tbPartnerReqBtn', openPartnerRequests);
+  bind('tbMyClassesBtn', openMyClasses);
+  // A减法重构：工具箱抽屉 + 班级设置浮层
+  bind('toolboxBtn', openToolbox);
+  bind('toolboxClose', closeToolbox);
+  bind('toolbox', e=>{ if(e.target===$('toolbox')) closeToolbox(); });
+  bind('classSettingsClose', closeClassSettings);
+  bind('classSettings', e=>{ if(e.target===$('classSettings')) closeClassSettings(); });
+  bind('csSave', saveClassSettings);
+  bind('csDelete', deleteCurrentClass);
+  bind('csExportReport', ()=>{ closeClassSettings(); openReport(); });
   bind('lessonBtn', ()=>{ GP.lessonActive()? GP.endLesson() : GP.startLesson(); }); // R49/R51
   const ncName=$('ncName');
   if(ncName) ncName.onkeydown=e=>{ if(e.key==='Enter') createClass(); };
@@ -2413,9 +2509,64 @@ async function GP_checkPartnerRequests(){
   try{
     const data=await GP.api('/api/classes/'+remoteClassId()+'/partner-requests');
     const n=(data.requests||[]).length;
-    const badge=$('partnerReqBadge');
+    const badge=$('tbPartnerReqBadge');
     if(badge){ badge.style.display=n?'':'none'; badge.textContent=n?('待审批 '+n):''; }
   }catch(e){ /* 忽略 */ }
+}
+
+/* ============================================================
+   A减法重构：工具箱抽屉 + 班级设置浮层
+   ============================================================ */
+function openToolbox(){
+  $('toolbox').classList.add('show');
+}
+function closeToolbox(){
+  $('toolbox').classList.remove('show');
+}
+function openClassSettings(cid){
+  const id=cid||currentClass;
+  const c=CLASSES[id];
+  if(!c) return;
+  $('csClassName').textContent=c.name;
+  $('csName').value=c.name||'';
+  $('csGrade').value=String(c.grade||3);
+  $('csTheme').value=c.theme||'';
+  $('csHint').textContent='';
+  $('classSettings').classList.add('show');
+}
+function closeClassSettings(){
+  $('classSettings').classList.remove('show');
+}
+function saveClassSettings(){
+  const c=CLASSES[currentClass];
+  if(!c) return;
+  const name=$('csName').value.trim();
+  const theme=$('csTheme').value.trim();
+  if(!name){ $('csHint').textContent='班级名称不能为空'; return; }
+  c.name=name;
+  c.theme=theme||c.theme;
+  c.grade=parseInt($('csGrade').value,10)||c.grade;
+  renderTopbar(); renderRoster();
+  if(GP.enabled()&&remoteClassId()){
+    GP.api('/api/classes/'+remoteClassId(),{
+      method:'PUT',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:c.name,theme:c.theme,grade:c.grade})
+    }).catch(()=>{});
+  }
+  $('csHint').style.color='var(--good)';
+  $('csHint').textContent='已保存';
+  setTimeout(closeClassSettings,600);
+}
+function deleteCurrentClass(){
+  if(!confirm('确认删除当前班级？此操作不可撤销。')) return;
+  if(GP.enabled()&&remoteClassId()){
+    GP.api('/api/classes/'+remoteClassId(),{method:'DELETE'}).catch(()=>{});
+  }
+  delete CLASSES[currentClass];
+  CLASS_ORDER=CLASS_ORDER.filter(x=>x!==currentClass);
+  currentClass=CLASS_ORDER[0]||'';
+  closeClassSettings();
+  if(currentClass){ switchClass(currentClass); } else { openNewClass(); }
 }
 
 
