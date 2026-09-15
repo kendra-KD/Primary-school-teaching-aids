@@ -27,9 +27,12 @@ DECLARE
   v_count INT;
 BEGIN
   -- 未认领（partner_kind IS NULL）的学生保持 NULL，认领时再从新 20 种里选。
+  -- md5 前 8 位是十六进制串（含 a-f），用 to_number(..., 'XXXXXXXX') 会报错：
+  -- PG 的 to_number 不支持 'X' 模板（那是 to_char 的十六进制用法），且对字母输入
+  -- 会返回空格。正确做法：'x' || hex8 ::bit(32) ::bigint，把 8 位 hex 转 bigint。
   UPDATE students s
   SET partner_kind = new_kinds[
-        1 + ( (to_number(substr(md5(s.id::text), 1, 8), 'XXXXXXXX'))::bigint % 20 )::int
+        1 + ( ('x' || substr(md5(s.id::text), 1, 8))::bit(32)::bigint % 20 )::int
      ]
   WHERE s.partner_kind IS NOT NULL
     AND s.partner_kind <> ALL(new_kinds);
