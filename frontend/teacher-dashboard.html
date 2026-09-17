@@ -1260,14 +1260,12 @@ function switchClass(id){
     // 调后端验证
     const rid=remoteIdOf(id);
     if(!rid){ toast('目标班级尚未同步，切班失败'); return; }
-    fetch('/api/classes/'+rid+'/verify-switch',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+GP.token},
-      body:JSON.stringify({switch_code:input})
-    }).then(r=>r.json()).then(d=>{
-      if(d.ok){ doSwitchClass(id); }
-      else{ GP.pinShake(); toast('❌ 切班码不正确'); }
-    }).catch(()=>{ toast('网络异常，切班失败'); });
+    GP.api('/api/classes/'+rid+'/verify-switch',{method:'POST',body:JSON.stringify({switch_code:input})})
+      .then(d=>{
+        if(d && d.ok){ doSwitchClass(id); }
+        else{ GP.pinShake(); toast('❌ 切班码不正确'); }
+      })
+      .catch(()=>{ toast('网络异常，切班失败'); });
   });
 }
 function doSwitchClass(id){
@@ -1514,37 +1512,24 @@ function setSwitchCode(){
   if(!GP_CLOUD || !GP.token){ toast('请先登录'); return; }
   if(!currentClass){ toast('请先选择一个班级'); return; }
   const c=CLASSES[currentClass]||{};
-  const status = c.switch_code_set ? '当前已设切班码' : '当前未设切班码（未设时已登录可直接切班）';
-  // 两步：先输新切班码，再输登录密码验证
+  const status = c.switch_code_set ? '当前已设切班码（重新设置将覆盖旧码）' : '当前未设切班码（未设时已登录可直接切班）';
   GP.pinPrompt('🔑 设置「'+c.name+'」切班码\n'+status+'\n输入新切班码（4-12位字母数字）', {
-    type:'password', maxlength:12, icon:'🔑', hint:'隐式输入，防学生偷看', okText:'下一步'
+    type:'password', maxlength:12, icon:'🔑', hint:'隐式输入，防学生偷看', okText:'确认设置'
   }).then(code=>{
     if(code===null) return;
     const sc=String(code).trim();
     if(sc.length<4){ toast('切班码至少 4 位'); return; }
     if(sc.length>12){ toast('切班码最多 12 位'); return; }
     if(!/^[A-Za-z0-9]+$/.test(sc)){ toast('切班码只能用字母和数字'); return; }
-    GP.pinPrompt('🔐 验证身份：请输入你的登录密码', {
-      type:'password', maxlength:64, icon:'🔐', hint:'验证是本人操作', okText:'确认设置'
-    }).then(pwd=>{
-      if(pwd===null) return;
-      const rid=remoteIdOf(currentClass);
-      if(!rid){ toast('班级尚未同步到云端，无法设置切班码'); return; }
-      fetch('/api/classes/'+rid+'/switch-code',{
-        method:'PUT',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+GP.token},
-        body:JSON.stringify({password:pwd, switch_code:sc})
-      }).then(r=>r.json()).then(d=>{
-        if(d.ok){
-          toast('✅ 切班码已设置，切换本班需输入此码');
-          if(CLASSES[currentClass]) CLASSES[currentClass].switch_code_set=true;
-          renderJoinBox();
-        }else{
-          toast('❌ '+(d.error||'设置失败'));
-          GP.pinShake && GP.pinShake();
-        }
-      }).catch(()=>{ toast('网络异常'); });
-    });
+    const rid=remoteIdOf(currentClass);
+    if(!rid){ toast('班级尚未同步，正在刷新…'); GP.pullAll().then(setSwitchCode).catch(()=>toast('同步失败，请刷新页面重试')); return; }
+    GP.api('/api/classes/'+rid+'/switch-code',{method:'PUT',body:JSON.stringify({switch_code:sc})})
+      .then(d=>{
+        toast('✅ 切班码已设置，切换本班需输入此码');
+        if(CLASSES[currentClass]) CLASSES[currentClass].switch_code_set=true;
+        renderJoinBox();
+      })
+      .catch(e=>{ toast('❌ '+(e&&e.message||'设置失败')); GP.pinShake && GP.pinShake(); });
   });
 }
 

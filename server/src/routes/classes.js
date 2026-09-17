@@ -1,6 +1,5 @@
-import bcrypt from 'bcryptjs';
 import { query, queryOne } from '../db.js';
-import { assertOwnsClass, assertText, assertInt, assertUuid, badRequest, notFound, unauthorized } from '../util.js';
+import { assertOwnsClass, assertText, assertInt, assertUuid, badRequest, notFound } from '../util.js';
 
 const THEME_PACKS = ['cute_nature', 'life_obs', 'anime_original'];
 
@@ -109,25 +108,17 @@ export default async function classRoutes(fastify) {
     return { class: rowToClass(row) };
   });
 
-  // R70: 设置/修改切班码（需验证老师登录密码）
-  // body: { password: '登录密码', switch_code: '新切班码（4-12位）' }
+  // R70: 设置/修改切班码
+  // 鉴权已由 Bearer token + assertOwnsClass 完成，无需二次输入登录密码（避免老师混淆导致 400）
+  // body: { switch_code: '新切班码（4-12位）' }
   fastify.put('/api/classes/:id/switch-code', auth, async (req, reply) => {
     const id = assertUuid(req.params.id, 'id');
     await assertOwnsClass(req.user.sub, id);
 
-    const password = String(req.body?.password || '');
     const newCode = String(req.body?.switch_code || '').trim();
-
-    if (!password) throw badRequest('请输入登录密码以验证身份');
     if (newCode.length < 4) throw badRequest('切班码至少 4 位');
     if (newCode.length > 12) throw badRequest('切班码最多 12 位');
     if (!/^[A-Za-z0-9]+$/.test(newCode)) throw badRequest('切班码只能用字母和数字');
-
-    // 验证登录密码
-    const teacher = await queryOne('SELECT password_hash FROM teachers WHERE id = $1', [req.user.sub]);
-    if (!teacher) throw unauthorized('账号异常');
-    const ok = await bcrypt.compare(password, teacher.password_hash);
-    if (!ok) throw badRequest('登录密码不正确，切班码未修改');
 
     await query('UPDATE classes SET switch_code = $1 WHERE id = $2 AND teacher_id = $3', [newCode, id, req.user.sub]);
     return { ok: true, switch_code_set: true };
