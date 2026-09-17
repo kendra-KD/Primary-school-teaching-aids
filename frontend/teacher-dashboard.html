@@ -693,6 +693,11 @@ const CLASSES={
 const CLASS_ORDER=['c1','c2','c3','c4'];
 let currentClass='c1';
 let selectedId=null;
+// 穿戴持久化：按远端学生 id 存装饰钥匙，避免 pullState 重建学生对象时丢失（R74 闭环）
+let GP_WEAR={};
+try{ GP_WEAR=JSON.parse(localStorage.getItem('gp_wear')||'{}'); }catch(e){ GP_WEAR={}; }
+function saveWear(){ try{ localStorage.setItem('gp_wear',JSON.stringify(GP_WEAR)); }catch(e){} }
+function setWear(remoteId,key){ if(key) GP_WEAR[remoteId]=key; else delete GP_WEAR[remoteId]; saveWear(); }
 
 /* =====================================================================
    科学点评标签（预置，按学科分组）
@@ -1424,8 +1429,9 @@ function openGrowthCard(i){
     el.onclick=()=>{
       const key=el.dataset.wear;
       const s2=CLASSES[currentClass].students[growthCardId];
-      if(s2.wearing===key){ s2.wearing=null; toast('已卸下装扮'); }
-      else{ s2.wearing=key; toast('已穿戴：'+(DECORS.find(d=>d[0]===key)||[])[2]||'装扮'); }
+      const rid=GP.clsMap[currentClass] ? GP.clsMap[currentClass].ids[growthCardId] : null;
+      if(s2.wearing===key){ s2.wearing=null; if(rid) setWear(rid,null); toast('已卸下装扮'); }
+      else{ s2.wearing=key; if(rid) setWear(rid,key); toast('已穿戴：'+(DECORS.find(d=>d[0]===key)||[])[2]||'装扮'); }
       saveClass(currentClass);
       openGrowthCard(growthCardId); // 刷新卡片
       renderPlanet(); // 刷新星球上的穿戴效果
@@ -1937,6 +1943,7 @@ const GP={
       color:s.color||PALETTE[i%PALETTE.length],
       state:s.hurt?'injured':(s.loved?'loved':(s.status==='droop'?'wilt':'active')),
       score:s.growth, today:s.today_score||0, ask:s.ask, acts:s.activities||[],
+      wearing: GP_WEAR[s.id] || null,
       vines:(data.vines||[]).filter(v=>v.a_id===s.id||v.b_id===s.id)
               .map(v=>idx[v.a_id===s.id?v.b_id:v.a_id]).filter(x=>x!==undefined),
       decor:[]
