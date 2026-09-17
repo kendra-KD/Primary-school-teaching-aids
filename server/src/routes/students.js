@@ -98,8 +98,19 @@ export default async function studentRoutes(fastify) {
   // R45: 学生端认领伙伴 — 入班只带班级码，先选自己，认领后签发设备令牌
   fastify.post('/api/students/:id/claim', async (req, reply) => {
     const studentId = assertUuid(req.params.id, 'id');
-    const kind = req.body?.partner_kind;
-    if (!kind || !PARTNER_KINDS.includes(kind)) throw badRequest('partner_kind 非法');
+    const existing = await queryOne('SELECT * FROM students WHERE id=$1', [studentId]);
+    if (!existing) throw notFound('学生不存在');
+
+    // 未带 partner_kind：学生已认领过的「重新进入」场景（教室共享设备 / 换设备打开），
+    // 仅刷新设备令牌、不改画像，避免互动/签到因本设备缺令牌报 401。
+    let kind = req.body?.partner_kind;
+    const isRefresh = !kind;
+    if (isRefresh) {
+      if (!existing.partner_kind) throw badRequest('partner_kind 非法');
+      kind = existing.partner_kind;
+    } else if (!PARTNER_KINDS.includes(kind)) {
+      throw badRequest('partner_kind 非法');
+    }
     const nickname = req.body?.nickname ? assertText(req.body.nickname, '昵称', { max: 20 }) : null;
     const color = req.body?.color
       ? (() => {
@@ -119,7 +130,7 @@ export default async function studentRoutes(fastify) {
       [kind, nickname, color, deviceToken, studentId]
     );
     if (!row) throw notFound('学生不存在');
-    await query('INSERT INTO partner_claims (student_id, kind) VALUES ($1, $2)', [studentId, kind]);
+    if (!isRefresh) await query('INSERT INTO partner_claims (student_id, kind) VALUES ($1, $2)', [studentId, kind]);
     return { student: row, device_token: deviceToken };
   });
 

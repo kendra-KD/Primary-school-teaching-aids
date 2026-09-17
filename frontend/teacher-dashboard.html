@@ -1254,7 +1254,7 @@ function switchClass(id){
   }
   // 已设切班码：弹出输入面板验证
   GP.pinPrompt('🔄 切换到「'+targetCls.name+'」需输入切班码', {
-    type:'text', maxlength:12, icon:'🔄', hint:'输入切班码后按 Enter', okText:'切换'
+    type:'password', maxlength:12, icon:'🔄', hint:'输入切班码后按 Enter（隐式输入）', okText:'切换'
   }).then(input=>{
     if(input===null){ toast('已取消切班'); return; }
     // 调后端验证
@@ -1517,7 +1517,7 @@ function setSwitchCode(){
   const status = c.switch_code_set ? '当前已设切班码' : '当前未设切班码（未设时已登录可直接切班）';
   // 两步：先输新切班码，再输登录密码验证
   GP.pinPrompt('🔑 设置「'+c.name+'」切班码\n'+status+'\n输入新切班码（4-12位字母数字）', {
-    type:'text', maxlength:12, icon:'🔑', hint:'输入后点确认', okText:'下一步'
+    type:'password', maxlength:12, icon:'🔑', hint:'隐式输入，防学生偷看', okText:'下一步'
   }).then(code=>{
     if(code===null) return;
     const sc=String(code).trim();

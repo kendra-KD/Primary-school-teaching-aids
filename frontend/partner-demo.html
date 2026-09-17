@@ -278,7 +278,7 @@
   style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,340px);z-index:50;background:rgba(255,255,255,.96);border:2px solid #E6DBF5;">
   <div style="font-weight:800;margin-bottom:8px">班级设备 · 切换班级</div>
   <p class="muted" style="font-size:13px">本设备已绑定到对应班级。如需换到其它班级，请输入该班级的切班码。</p>
-  <input id="devResetCode" placeholder="输入切班码" maxlength="12"
+  <input id="devResetCode" type="password" placeholder="输入切班码" maxlength="12"
     style="width:100%;padding:10px;border-radius:10px;border:1px solid #ccc;font:inherit;margin:8px 0;box-sizing:border-box">
   <div class="err" id="devResetErr"></div>
   <div style="display:flex;gap:10px;margin-top:6px">
@@ -587,47 +587,47 @@ function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('sho
 (function init(){
   const m=location.search.match(/[?&]code=([^&]+)/);
   const urlCode = m ? m[1].trim() : '';
-  // 班级设备绑定：优先用设备锁定的班级码（防共享设备上随意切班 / 串到上一位同学）
+  const sidMatch=location.search.match(/[?&]student_id=([^&]+)/);
+  const urlSid = sidMatch ? sidMatch[1].trim() : '';
+  const fresh=/[?&]fresh=1/.test(location.search); // 老师端"打开学生自选页"进入：强制重新认领
+
+  // 设备绑定班级（教室设备长期挂某班时锁定），作为「链接无参数」时的默认班
   let devClass='';
   try{ devClass=localStorage.getItem('gp_device_class')||''; }catch(e){}
-  const activeCode = devClass || urlCode;
+
+  // 【链接优先】URL 带的班级码优先于设备绑定：保证老师分发的入班链接 / 专属链接
+  // 一定打开它指向的班级，不被本设备的历史绑定覆盖。
+  const activeCode = urlCode || devClass;
   if(activeCode) $('codeInput').value=activeCode;
+
   // R36: 首次访问展示隐私提示
   if(!localStorage.getItem('gp_privacy_ok')){
     $('privacyBanner').style.display='block';
   }
 
-  if(devClass){
-    // 设备已绑定班级：直接进入本班墙（不跳个人主页），同学点自己进互动
+  // 本设备上次认领的学生与令牌（个人手机 / 教室设备轮流认领均适用）
+  let saved=null;
+  try{ saved=JSON.parse(localStorage.getItem('gp_me')||'null'); }catch(e){}
+
+  // 记忆班级与当前目标班级不一致 → 清旧记录，避免串号
+  if(saved && saved.classCode && activeCode && saved.classCode.toLowerCase()!==activeCode.toLowerCase()){
+    localStorage.removeItem('gp_me'); saved=null;
+  }
+  // 同班记忆 → 恢复设备令牌（修复互动/签到缺令牌导致的 401）
+  if(saved && saved.deviceToken && saved.classCode && activeCode && saved.classCode.toLowerCase()===activeCode.toLowerCase()){
+    deviceToken=saved.deviceToken;
+  }
+
+  if(activeCode){
+    // 专属链接（带 student_id）：定位到指定学生
+    if(urlSid){ loadClass(urlSid); return; }
+    // 带 ?code= 且本设备已认领同班学生（个人手机日常）→ 直接进主页
+    if(urlCode && saved && saved.deviceToken && !fresh){ restoreHome(saved.classCode, saved.studentId); return; }
+    // 其余（教室设备无码进入 / 老师发的认领链接 / fresh）→ 进「选自己」页，学生点自己
     loadClass();
     return;
   }
-
-  // 未绑定：兼容个人端（学生自己的手机）认领记忆
-  let saved=null;
-  try{ saved=JSON.parse(localStorage.getItem('gp_me')||'null'); }catch(e){}
-  const fresh=/[?&]fresh=1/.test(location.search); // 老师端"打开学生自选页"进入：强制重新认领
-
-  // 个人端切班（链接班级码与已认领不一致）→ 清旧记录
-  if(saved && saved.classCode && urlCode && saved.classCode.toLowerCase() !== urlCode.toLowerCase()){
-    localStorage.removeItem('gp_me');
-    saved = null;
-  }
-
-  if(saved && saved.classCode && saved.studentId && saved.deviceToken){
-    deviceToken=saved.deviceToken;
-    if(fresh || !urlCode){
-      $('codeInput').value=saved.classCode; loadClass();
-    }else{
-      // 学生日常入口（课间答题/交作业）：直接进上次伙伴主页
-      restoreHome(saved.classCode, saved.studentId);
-    }
-  }else{
-    // URL 带了 student_id 但本地无记录 → 自动加载班级并预选该学生
-    const sidMatch=location.search.match(/[?&]student_id=([^&]+)/);
-    const urlSid = sidMatch ? sidMatch[1].trim() : '';
-    if(urlCode && urlSid){ loadClass(urlSid); }
-  }
+  // 无任何班级码：停留在输码页
 })();
 
 function acceptPrivacy(){
@@ -685,15 +685,35 @@ function pickStudent(s, el){
   document.querySelectorAll('#stuChips .chip').forEach(c=>c.classList.remove('sel'));
   if(el) el.classList.add('sel');
   me=s; selKind=null; selColor=s.color||SWATCHES[0];
-  // 已认领过 → 直接进入「我的伙伴」主页
+  // 已认领过 → 进入「我的伙伴」主页
+  // 本设备若无该生令牌（教室共享设备 / 换了设备），先静默刷新，修复签到/答题 401
   if(s.partner_kind){
-    loadHome();
+    ensureToken(s).then(()=>loadHome());
     return;
   }
   renderLib();
   $('stepWho').classList.add('hidden');
   $('stepPick').classList.remove('hidden');
   $('stepPick').scrollIntoView({behavior:'smooth'});
+}
+
+// 教室共享设备 / 换设备：学生已认领但本设备缺令牌时，凭学生ID静默换发新设备令牌
+async function ensureToken(s){
+  let saved=null;
+  try{ saved=JSON.parse(localStorage.getItem('gp_me')||'null'); }catch(e){}
+  if(deviceToken && saved && saved.studentId===s.id) return; // 本设备已持有该生令牌
+  try{
+    const res=await fetch('/api/students/'+s.id+'/claim',{
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({})
+    });
+    if(!res.ok) return;
+    const d=await res.json();
+    if(d.device_token){ deviceToken=d.device_token; saveMe(s); }
+  }catch(e){ /* 网络异常不阻断进主页，互动时再提示 */ }
+}
+
+function saveMe(s){
+  try{ localStorage.setItem('gp_me', JSON.stringify({classCode:CLASS.class_code||CLASS.id, studentId:s.id, deviceToken:deviceToken})); }catch(e){}
 }
 
 function renderLib(){
