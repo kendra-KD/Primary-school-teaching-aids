@@ -271,6 +271,22 @@
   </div>
 </div>
 
+<!-- 班级设备绑定：隐蔽换班入口（角落小圆点，点击输入切班码解绑） -->
+<button id="devResetDot" onclick="openDevReset()" title="班级设备设置"
+  style="position:fixed;right:8px;bottom:8px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(150,140,180,.18);color:rgba(120,110,150,.5);font-size:14px;cursor:pointer;z-index:40;line-height:1">•</button>
+<div id="devResetPanel" class="panel hidden"
+  style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,340px);z-index:50;background:rgba(255,255,255,.96);border:2px solid #E6DBF5;">
+  <div style="font-weight:800;margin-bottom:8px">班级设备 · 切换班级</div>
+  <p class="muted" style="font-size:13px">本设备已绑定到对应班级。如需换到其它班级，请输入该班级的切班码。</p>
+  <input id="devResetCode" placeholder="输入切班码" maxlength="12"
+    style="width:100%;padding:10px;border-radius:10px;border:1px solid #ccc;font:inherit;margin:8px 0;box-sizing:border-box">
+  <div class="err" id="devResetErr"></div>
+  <div style="display:flex;gap:10px;margin-top:6px">
+    <button style="flex:1;padding:9px" onclick="closeDevReset()">取消</button>
+    <button style="flex:1;padding:9px;background:linear-gradient(135deg,#C4A7FF,#8FC7FF)" onclick="confirmDevReset()">验证并换班</button>
+  </div>
+</div>
+
 <!-- 隐私政策首次提示 -->
 <div id="privacyBanner" class="panel" style="background:rgba(255,255,255,.85);border:2px solid #E6DBF5;font-size:13px;text-align:center;display:none;">
   <p style="margin:0 0 10px;color:#6f6691;">我们重视你的隐私，本工具只采集必要的课堂互动数据，不采集个人隐私信息。</p>
@@ -571,30 +587,39 @@ function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('sho
 (function init(){
   const m=location.search.match(/[?&]code=([^&]+)/);
   const urlCode = m ? m[1].trim() : '';
-  if(urlCode) $('codeInput').value=urlCode;
+  // 班级设备绑定：优先用设备锁定的班级码（防共享设备上随意切班 / 串到上一位同学）
+  let devClass='';
+  try{ devClass=localStorage.getItem('gp_device_class')||''; }catch(e){}
+  const activeCode = devClass || urlCode;
+  if(activeCode) $('codeInput').value=activeCode;
   // R36: 首次访问展示隐私提示
   if(!localStorage.getItem('gp_privacy_ok')){
     $('privacyBanner').style.display='block';
   }
+
+  if(devClass){
+    // 设备已绑定班级：直接进入本班墙（不跳个人主页），同学点自己进互动
+    loadClass();
+    return;
+  }
+
+  // 未绑定：兼容个人端（学生自己的手机）认领记忆
   let saved=null;
   try{ saved=JSON.parse(localStorage.getItem('gp_me')||'null'); }catch(e){}
   const fresh=/[?&]fresh=1/.test(location.search); // 老师端"打开学生自选页"进入：强制重新认领
 
-  // 修复：URL code 与 localStorage classCode 不一致 → 切班了，清旧记录
+  // 个人端切班（链接班级码与已认领不一致）→ 清旧记录
   if(saved && saved.classCode && urlCode && saved.classCode.toLowerCase() !== urlCode.toLowerCase()){
     localStorage.removeItem('gp_me');
     saved = null;
   }
 
   if(saved && saved.classCode && saved.studentId && saved.deviceToken){
-    if(fresh){
-      // 老师端入口（首次认领新学生）：直接进选伙伴流程，不再弹二选一
-      // 自动用 URL code 加载班级名单
-      if(urlCode){ loadClass(); }
-      else { $('codeInput').value=saved.classCode; loadClass(); }
+    deviceToken=saved.deviceToken;
+    if(fresh || !urlCode){
+      $('codeInput').value=saved.classCode; loadClass();
     }else{
-      // 学生日常入口（课间答题/交作业）：直接进上次伙伴主页，不弹窗
-      deviceToken=saved.deviceToken;
+      // 学生日常入口（课间答题/交作业）：直接进上次伙伴主页
       restoreHome(saved.classCode, saved.studentId);
     }
   }else{
@@ -630,6 +655,8 @@ async function loadClass(presetStudentId){
     if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'班级码无效'); }
     const data=await res.json();
     CLASS=data.class; STUDENTS=data.students||[];
+    // 班级设备绑定：首次成功加载即锁定本班（防共享设备上随意切班）
+    try{ localStorage.setItem('gp_device_class', code); }catch(e){}
     if(!STUDENTS.length) throw new Error('这个班级还没有学生，请老师先在花名册导入');
     renderStudents();
     // URL 带 student_id → 自动选定该学生，跳过"选自己"
@@ -753,6 +780,37 @@ function done(nick){
   // 记住已认领，刷新后直接进主页
   try{ localStorage.setItem('gp_me', JSON.stringify({classCode:CLASS.class_code||CLASS.id, studentId:me.id, deviceToken:deviceToken})); }catch(e){}
   setTimeout(loadHome, 1800);
+}
+
+// 班级设备：隐蔽入口解除绑定（需目标班切班码）
+function openDevReset(){
+  $('devResetCode').value=''; $('devResetErr').textContent='';
+  $('devResetPanel').classList.remove('hidden');
+}
+function closeDevReset(){ $('devResetPanel').classList.add('hidden'); }
+async function confirmDevReset(){
+  const code=$('devResetCode').value.trim();
+  if(!code){ $('devResetErr').textContent='请输入切班码'; return; }
+  const dc=localStorage.getItem('gp_device_class')||'';
+  $('devResetErr').textContent='验证中…';
+  try{
+    const res=await fetch('/api/join/'+encodeURIComponent(dc)+'/switch-verify',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({switch_code:code})
+    });
+    const d=await res.json().catch(()=>({}));
+    if(d.ok){
+      localStorage.removeItem('gp_device_class');
+      localStorage.removeItem('gp_me');
+      closeDevReset();
+      document.querySelectorAll('.panel').forEach(p=>p.classList.add('hidden'));
+      $('stepCode').classList.remove('hidden');
+      $('codeInput').value='';
+      toast('已解除绑定，请重新输入班级码');
+    }else{
+      $('devResetErr').textContent=d.error||'切班码不正确';
+    }
+  }catch(err){ $('devResetErr').textContent='网络异常，请重试'; }
 }
 
 // 进入「我的伙伴」主页：拉取活动与生态值

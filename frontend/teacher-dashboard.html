@@ -1258,7 +1258,9 @@ function switchClass(id){
   }).then(input=>{
     if(input===null){ toast('已取消切班'); return; }
     // 调后端验证
-    fetch('/api/classes/'+id+'/verify-switch',{
+    const rid=remoteIdOf(id);
+    if(!rid){ toast('目标班级尚未同步，切班失败'); return; }
+    fetch('/api/classes/'+rid+'/verify-switch',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+GP.token},
       body:JSON.stringify({switch_code:input})
@@ -1449,6 +1451,7 @@ function spawnPartner(name, idx){
    否则退回纯本地 localStorage，行为与原型一致。
    ===================================================================== */
 function remoteClassId(){ const m=GP.clsMap&&GP.clsMap[currentClass]; return m?m.remoteId:null; }
+function remoteIdOf(id){ const m=GP.clsMap&&GP.clsMap[id]; return m?m.remoteId:null; }
 function remoteStudentId(i){ const m=GP.clsMap&&GP.clsMap[currentClass]; return (m&&m.ids)?m.ids[i]:null; }
 function cloudSync(){ return GP.enabled() && !!remoteClassId(); }
 async function refreshFromCloud(){
@@ -1525,7 +1528,9 @@ function setSwitchCode(){
       type:'password', maxlength:64, icon:'🔐', hint:'验证是本人操作', okText:'确认设置'
     }).then(pwd=>{
       if(pwd===null) return;
-      fetch('/api/classes/'+currentClass+'/switch-code',{
+      const rid=remoteIdOf(currentClass);
+      if(!rid){ toast('班级尚未同步到云端，无法设置切班码'); return; }
+      fetch('/api/classes/'+rid+'/switch-code',{
         method:'PUT',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+GP.token},
         body:JSON.stringify({password:pwd, switch_code:sc})

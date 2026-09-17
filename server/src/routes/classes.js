@@ -38,6 +38,18 @@ export default async function classRoutes(fastify) {
     return { class: rowToClass(cls), students: rows };
   });
 
+  // 学生端班级设备：按班级码验证切班码（免登录；班级码本就公开，切班码是密码）
+  // body: { switch_code } → { ok: true/false }
+  fastify.post('/api/join/:code/switch-verify', async (req, reply) => {
+    const code = String(req.params.code || '').trim().toLowerCase();
+    if (!code) throw badRequest('请提供班级码');
+    const cls = await queryOne('SELECT * FROM classes WHERE class_code = $1', [code]);
+    if (!cls) throw notFound('班级码无效');
+    if (!cls.switch_code) return { ok: true, reason: 'no_code' }; // 未设切班码：放行
+    const input = String(req.body?.switch_code || '').trim();
+    return { ok: input.toLowerCase() === String(cls.switch_code).toLowerCase() };
+  });
+
   // 班级列表：卡片墙，带学生数
   fastify.get('/api/classes', auth, async (req) => {
     const { rows } = await query(
