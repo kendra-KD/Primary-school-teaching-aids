@@ -135,16 +135,18 @@ body::before{
 .partner:nth-child(3n){animation-delay:-2.4s;}
 .partner:hover{transform:translateY(-3px);background:var(--glass-strong);}
 .partner.sel{border-color:var(--c);box-shadow:0 0 22px color-mix(in srgb,var(--c) 55%,transparent);transform:translateY(-3px) scale(1.03);}
-.partner .score{position:absolute;top:8px;right:10px;font-size:12px;font-weight:900;color:var(--c);
-  background:rgba(0,0,0,.25);border-radius:10px;padding:1px 7px;}
-.partner .blob{width:74px;height:74px;position:relative;display:grid;place-items:center;
-  filter:drop-shadow(0 0 7px color-mix(in srgb,var(--c) 60%,transparent));}
+/* 分数徽章：深色玻璃胶囊 + 彩色描边 + 白字（任意伙伴色下都清晰，满足 AA 对比度） */
+.partner .score{position:absolute;top:8px;right:9px;font-size:12.5px;font-weight:900;color:#fff;
+  background:rgba(18,14,32,.82);border:1.5px solid var(--c);border-radius:11px;padding:1.5px 8px;
+  line-height:1.35;box-shadow:0 2px 10px rgba(0,0,0,.45);z-index:7;}
+.partner .blob{width:84px;height:84px;position:relative;display:grid;place-items:center;
+  filter:drop-shadow(0 0 14px color-mix(in srgb,var(--c) 55%,transparent));}
 .partner .blob::after{content:"";position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
   width:50px;height:10px;border-radius:50%;
   background:radial-gradient(ellipse, color-mix(in srgb,var(--c) 45%,transparent) 0%, transparent 70%);
   filter:blur(2px);z-index:0;pointer-events:none;}
-@media(max-width:1366px){.partner .blob{width:62px;height:62px;}}
-@media(max-width:768px){.partner .blob{width:52px;height:52px;}}
+@media(max-width:1366px){.partner .blob{width:72px;height:72px;}}
+@media(max-width:768px){.partner .blob{width:60px;height:60px;}}
 .partner .blob svg{width:100%;height:100%;}
 .partner .blob.glow{animation:pop .9s ease;}
 .partner .fx{position:absolute;inset:0;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:1px;padding-top:2px;}
@@ -188,12 +190,12 @@ body::before{
 .ditem.wearing .dn::before{content:'✓ 穿戴中 ';color:var(--accent);font-size:10px;}
 .ditem .wear-btn{font-size:10px;padding:3px 8px;border-radius:6px;background:var(--glass-strong);color:var(--accent);border:1px solid var(--line);cursor:pointer;margin-top:4px;}
 .ditem.lock .wear-btn{display:none;}
-.wear-layer{position:absolute;top:-8px;left:50%;width:28px;height:28px;transform:translateX(-50%);pointer-events:none;z-index:6;}
-/* 面部装饰（眼镜）：下移到眼睛高度，而不是顶在头上 */
-.wear-layer.wear-face{top:calc(50% - 14px);}
-/* 围巾/披风等贴身装饰：落到身体下部而不是头顶 */
-.wear-layer.wear-body{top:auto;bottom:6px;}
-.wear-layer .wear-svg{width:100%;height:100%;}
+.wear-layer{position:absolute;top:-6%;left:50%;width:34%;height:34%;transform:translateX(-50%);pointer-events:none;z-index:6;}
+/* 面部装饰（眼镜）：铺满整个伙伴容器，用"与图片同比例"的相对坐标精确对齐眼睛高度与瞳距 */
+.wear-layer.wear-face{top:0;left:0;width:100%;height:100%;transform:none;}
+/* 围巾/披风等贴身装饰：落到颈肩（百分比定位，随伙伴大小自适应） */
+.wear-layer.wear-body{top:auto;bottom:4%;left:50%;width:58%;height:50%;transform:translateX(-50%);}
+.wear-layer .wear-svg{width:100%;height:100%;display:block;overflow:visible;}
 /* 点评装饰永久佩戴 —— 星球墙上的花/叶更大更明显 */
 .partner .fx{position:absolute;inset:0;pointer-events:none;display:flex;gap:3px;justify-content:center;align-items:flex-end;padding-bottom:2px;}
 .partner .fx span{width:20px;height:20px;display:block;}
@@ -205,7 +207,10 @@ body::before{
 .partner .blob svg, .selava svg, .gava svg, .ravi svg{display:block;width:100%;height:100%;overflow:visible;}
 .crt{animation:breathe 3.6s ease-in-out infinite;transform-origin:50% 82%;}
 .pimg{width:100%;height:100%;object-fit:contain;display:block;animation:breathe 3.6s ease-in-out infinite;transform-origin:50% 82%;
-  filter:drop-shadow(0 0 5px color-mix(in srgb,var(--c,#C4A7FF) 45%,transparent));}
+  filter:drop-shadow(0 8px 10px rgba(0,0,0,.38));
+  /* 原图是带影棚底色+水印的方图：长渐变椭圆遮罩把底色/水印柔化淡出，配合 .aura 暖光晕读作"自带光环" */
+  -webkit-mask-image:radial-gradient(ellipse 41% 50% at 50% 50%, #000 0 66%, rgba(0,0,0,.62) 80%, rgba(0,0,0,.26) 90%, transparent 98%);
+  mask-image:radial-gradient(ellipse 41% 50% at 50% 50%, #000 0 66%, rgba(0,0,0,.62) 80%, rgba(0,0,0,.26) 90%, transparent 98%);}
 .pimg.hop{animation:hop .55s cubic-bezier(.3,1.6,.5,1);}
 @keyframes breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-2px) scale(1.018)}}
 .c-eye{transform-box:fill-box;transform-origin:center;animation:blink 5.5s infinite;}
@@ -230,6 +235,52 @@ body::before{
 .partner.loved .blob::before{content:"💗";position:absolute;top:-4px;right:6px;font-size:14px;
   animation:heartUp 2.4s ease-in-out infinite;pointer-events:none;}
 @keyframes heartUp{0%,100%{transform:translateY(0);opacity:.85}50%{transform:translateY(-6px);opacity:1}}
+
+/* ===== 伙伴"活起来"：待机摇摆 + 戳一戳果冻反馈 + 飘心粒子 + 台词气泡 ===== */
+.pwrap{position:relative;z-index:1;width:100%;height:100%;display:grid;place-items:center;animation:sway 7.5s ease-in-out infinite;will-change:transform;}
+/* 伙伴自带暖光晕：让素材的浅色残影读成"刻意的光"，而不是脏方块 */
+.aura{position:absolute;inset:-12%;border-radius:50%;pointer-events:none;z-index:0;
+  background:radial-gradient(circle at 50% 48%, rgba(255,178,200,.36) 0%, rgba(255,178,200,.16) 46%, transparent 73%);
+  filter:blur(7px);}
+@keyframes sway{0%,100%{transform:rotate(-1.2deg) translateX(-1px)}50%{transform:rotate(1.2deg) translateX(1px)}}
+.partner:nth-child(2n) .pwrap{animation-delay:-2.3s;}
+.partner:nth-child(3n) .pwrap{animation-delay:-4.6s;}
+.pokable{cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;}
+.pimg.poke{animation:jelly .62s cubic-bezier(.34,1.56,.64,1);}
+@keyframes jelly{0%{transform:scale(1)}18%{transform:scale(1.13,.87) translateY(3px)}40%{transform:scale(.9,1.15) translateY(-7px)}60%{transform:scale(1.07,.95)}78%{transform:scale(.98,1.02)}100%{transform:scale(1)}}
+.pimg.hug{animation:hugSqueeze 1.05s cubic-bezier(.34,1.56,.64,1);}
+@keyframes hugSqueeze{0%{transform:scale(1)}22%{transform:scale(.87,1.07) translateY(4px)}52%{transform:scale(1.11,.91) translateY(-5px)}74%{transform:scale(.98,1.02)}100%{transform:scale(1)}}
+.pimg.spin2{animation:spinFun .95s cubic-bezier(.45,0,.25,1);}
+@keyframes spinFun{0%{transform:rotate(0) scale(1)}40%{transform:rotate(160deg) scale(1.09)}72%{transform:rotate(300deg) scale(.97)}100%{transform:rotate(360deg) scale(1)}}
+.pfx{position:absolute;left:50%;top:50%;line-height:1;pointer-events:none;z-index:9;
+  animation:pfxUp 1.2s cubic-bezier(.2,.75,.35,1) forwards;will-change:transform,opacity;}
+@keyframes pfxUp{0%{opacity:0;transform:translate(-50%,-50%) scale(.35) rotate(0)}
+  16%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(calc(var(--rot,0deg)*.3))}
+  100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),calc(-50% + var(--dy,-80px))) scale(1.25) rotate(var(--rot,0deg))}}
+.gbubble{position:absolute;left:50%;bottom:calc(100% - 6px);transform-origin:50% 100%;background:rgba(24,19,42,.94);
+  border:1px solid var(--line);color:var(--txt);font-size:13.5px;font-weight:800;padding:8px 13px;border-radius:15px;
+  white-space:nowrap;pointer-events:none;z-index:14;box-shadow:0 10px 30px rgba(0,0,0,.45);
+  animation:bubbleIn 2.3s cubic-bezier(.34,1.56,.64,1) forwards;}
+.gbubble::after{content:"";position:absolute;left:50%;top:100%;margin-left:-6px;border:6px solid transparent;border-top-color:rgba(24,19,42,.94);}
+@keyframes bubbleIn{0%{opacity:0;transform:translateX(-50%) scale(.5)}10%{opacity:1;transform:translateX(-50%) scale(1.08)}
+  18%{transform:translateX(-50%) scale(1)}84%{opacity:1;transform:translateX(-50%) scale(1)}
+  100%{opacity:0;transform:translateX(-50%) translateY(-14px) scale(.94)}}
+/* 成长卡互动区（摸摸头 / 逗它玩 / 抱抱它） */
+.gplay{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px;}
+.gpbtn{font:inherit;font-size:13px;font-weight:900;padding:9px 14px;border-radius:13px;cursor:pointer;
+  background:var(--glass-strong);border:1px solid var(--line);color:var(--txt);
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1),border-color .18s,box-shadow .18s;}
+.gpbtn:hover{border-color:var(--accent);transform:translateY(-2px) scale(1.05);box-shadow:0 8px 22px rgba(0,0,0,.35);}
+.gpbtn:active{transform:scale(.95);}
+.gpbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.gpoke-hint{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);font-size:11px;font-weight:800;
+  color:var(--txt2);background:rgba(10,8,20,.45);border-radius:9px;padding:2px 10px;pointer-events:none;
+  animation:hintFloat 2.2s ease-in-out infinite;}
+@keyframes hintFloat{0%,100%{transform:translateX(-50%) translateY(0);opacity:.7}50%{transform:translateX(-50%) translateY(-4px);opacity:1}}
+.gbig.dragging .pimg{filter:drop-shadow(0 14px 18px rgba(0,0,0,.5));}
+@media(prefers-reduced-motion:reduce){
+  .pwrap,.partner,.pimg,.crt,.gpoke-hint{animation:none !important;}
+}
 
 /* 侧栏 */
 .side{display:flex;flex-direction:column;gap:16px;}
@@ -361,12 +412,10 @@ body::before{
 .ghero{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:14px;padding:16px 12px 14px;border-radius:20px;
   background:radial-gradient(circle at 50% 22%, color-mix(in srgb,var(--gc) 24%,transparent), transparent 72%), var(--glass);
   border:1px solid var(--line);}
-.ghero .gbig{width:132px;height:132px;position:relative;display:grid;place-items:center;
-  background:radial-gradient(circle at 50% 62%, color-mix(in srgb,var(--gc) 48%,transparent) 0%, transparent 66%);}
+.ghero .gbig{width:168px;height:168px;position:relative;display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 48%, rgba(255,178,200,.30) 0%, transparent 62%),
+             radial-gradient(circle at 50% 62%, color-mix(in srgb,var(--gc) 48%,transparent) 0%, transparent 66%);}
 .ghero .gbig .pimg{position:relative;z-index:1;}
-.ghero .gbig .wear-layer{width:46px;height:46px;}
-.ghero .gbig .wear-layer.wear-face{top:calc(50% - 23px);}
-.ghero .gbig .wear-layer.wear-body{bottom:14px;}
 .ghero .gname{font-size:21px;font-weight:900;}
 .ghero .gmeta{font-size:12px;color:var(--txt2);}
 .ghero .gquick{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:10px;max-width:100%;}
@@ -378,7 +427,7 @@ body::before{
 .gjump{font:inherit;font-size:13px;font-weight:900;padding:10px 22px;border-radius:14px;cursor:pointer;border:none;
   background:linear-gradient(135deg,var(--accent),var(--accent2));color:#1b1536;margin-top:12px;box-shadow:0 6px 18px rgba(0,0,0,.35);}
 .gjump:hover{filter:brightness(1.08);}
-@media(max-width:768px){.ghero .gbig{width:110px;height:110px;}.ghero .gbig .wear-layer{width:38px;height:38px;}.ghero .gbig .wear-layer.wear-face{top:calc(50% - 19px);}}
+@media(max-width:768px){.ghero .gbig{width:136px;height:136px;}}
 .sec{margin-bottom:14px;}
 .sect{font-size:13px;font-weight:900;margin-bottom:8px;color:var(--accent);}
 .timeline{display:flex;align-items:flex-start;gap:0;}
@@ -973,7 +1022,19 @@ function wearSVG(key){
   if(key==='bow') return M+`<path d="M6 6 L12 10 L6 14 Z M18 6 L12 10 L18 14 Z" fill="#FFB3C6" stroke="#FF8FB0" stroke-width="1"/><circle cx="12" cy="10" r="2" fill="#FF8FB0"/></svg>`;
   if(key==='scarf') return M+`<path d="M4 14 Q12 18 20 14 L20 17 Q12 21 4 17 Z" fill="#C75D5D"/><path d="M18 16 L20 22 L16 20 Z" fill="#A04848"/></svg>`;
   if(key==='hat') return M+`<path d="M4 16 Q12 4 20 16 Z" fill="#8B6F47" stroke="#6B5237" stroke-width="1"/><rect x="3" y="15" width="18" height="3" rx="1" fill="#6B5237"/></svg>`;
-  if(key==='glasses') return M+`<circle cx="8" cy="10" r="3.5" fill="rgba(255,229,160,.5)" stroke="#E0B84a" stroke-width="1.5"/><circle cx="16" cy="10" r="3.5" fill="rgba(255,229,160,.5)" stroke="#E0B84a" stroke-width="1.5"/><line x1="11" y1="10" x2="13" y2="10" stroke="#E0B84a" stroke-width="1.5"/></svg>`;
+  // 眼镜：细金属框 + 半透明冷调镜片 + 高光，按伙伴原图真实瞳距（约 37% / 65%）与眼睛高度（约 40%）对位
+  if(key==='glasses') return M+`<defs>
+      <linearGradient id="gpLens" x1="0" y1="0" x2=".75" y2="1"><stop offset="0" stop-color="#F4F9FF" stop-opacity=".72"/><stop offset=".55" stop-color="#C8DEF6" stop-opacity=".24"/><stop offset="1" stop-color="#8DB2D8" stop-opacity=".42"/></linearGradient>
+      <linearGradient id="gpFrame" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#9E92B4"/><stop offset=".45" stop-color="#4C4460"/><stop offset="1" stop-color="#2B2637"/></linearGradient>
+    </defs>
+    <path d="M7.32 9.28 L5.8 8.58" fill="none" stroke="url(#gpFrame)" stroke-width=".4" stroke-linecap="round"/>
+    <path d="M17.08 9.28 L18.6 8.58" fill="none" stroke="url(#gpFrame)" stroke-width=".4" stroke-linecap="round"/>
+    <path d="M10.3 9.35 Q12.2 8.4 14.1 9.35" fill="none" stroke="url(#gpFrame)" stroke-width=".4" stroke-linecap="round"/>
+    <circle cx="8.8" cy="9.55" r="1.5" fill="url(#gpLens)" stroke="url(#gpFrame)" stroke-width=".4"/>
+    <circle cx="15.6" cy="9.55" r="1.5" fill="url(#gpLens)" stroke="url(#gpFrame)" stroke-width=".4"/>
+    <path d="M7.85 9.02 A1.5 1.5 0 0 1 9.38 8.65" fill="none" stroke="#fff" stroke-opacity=".78" stroke-width=".3" stroke-linecap="round"/>
+    <path d="M14.65 9.02 A1.5 1.5 0 0 1 16.18 8.65" fill="none" stroke="#fff" stroke-opacity=".78" stroke-width=".3" stroke-linecap="round"/>
+    </svg>`;
   if(key==='crown') return M+`<path d="M4 14 L6 6 L9 10 L12 4 L15 10 L18 6 L20 14 Z" fill="#FFD700" stroke="#E0B84a" stroke-width="1"/><circle cx="12" cy="8" r="1.5" fill="#FF4081"/></svg>`;
   if(key==='cape') return M+`<path d="M6 6 Q12 20 18 6 L16 18 Q12 22 8 18 Z" fill="url(#capeGrad)"/><defs><linearGradient id="capeGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF8FB0"/><stop offset="0.5" stop-color="#A8E6CF"/><stop offset="1" stop-color="#A0D2FF"/></linearGradient></defs></svg>`;
   return '';
@@ -993,6 +1054,8 @@ function ding(kind){
     else if(kind==='evolve'){f=660;dur=.8;type='triangle';}
     else if(kind==='love'){f=784;dur=.7;}
     else if(kind==='neg'){f=233;dur=.5;type='sine';}
+    else if(kind==='poke'){f=1046.5;dur=.24;type='triangle';}
+    else if(kind==='tickle'){f=1318.5;dur=.3;type='sine';}
     o.type=type; o.frequency.value=f;
     g.gain.setValueAtTime(.0001,actx.currentTime);
     g.gain.exponentialRampToValueAtTime(.22,actx.currentTime+.02);
@@ -1000,6 +1063,160 @@ function ding(kind){
     o.start(); o.stop(actx.currentTime+dur+.02);
   }catch(e){}
 }
+
+/* =====================================================================
+   伙伴互动引擎（让预渲染的静态形象"活"起来，纯前端）
+   - reactPartner：戳一戳 / 摸摸头 / 逗它玩 / 抱抱它（果冻变形 + 飘心 + 台词气泡 + 音效）
+   - makeDraggable：按住拖走、松手弹回（汤姆猫式手感）
+   - startAmbient：大屏上每隔一阵随机一个小伙伴轻轻动一下，整面墙不再是静态图
+   - 台词全部正向，符合教育红线（不出现负面评价）
+   ===================================================================== */
+const REACT_LINES={
+  touch:['咕噜噜～好舒服','再摸摸头嘛～','嘿嘿，有点痒呀','谢谢你摸我！'],
+  play:['哈哈，我还要玩！','看我的转圈圈～','耶！好开心 ✨','再来一次好不好'],
+  hug:['谢谢你抱抱我 💗','被抱住啦，好暖～','我记住你啦！','抱一抱，能量满格 ⚡'],
+  poke:['嘿嘿，被摸到啦～','我今天又长大一点点！','老师好呀 🌞','我会继续加油的 ✨','咕噜～好痒哦','我要长成最亮的星星 ⭐']
+};
+const FX_EMOJI=['💗','✨','⭐','🌸','🍀','🎈','💫','🌈'];
+function randOf(a){ return a[Math.floor(Math.random()*a.length)]; }
+
+/* 素材自带 10 个表情帧（normal/loving/crying/surprised/happy/blinking/talking/waving/thinking/sleeping），
+   前端原先只用 4 个。这里把剩下的用起来：反应时切真表情（大笑/挥手/眨眼），而不是干晃一下。 */
+const EXTRA_FRAMES=['happy','blinking','talking','waving','surprised','loving'];
+const __preloaded={};
+function preloadFrames(img){
+  if(!img) return;
+  const base=img.getAttribute('src'); if(!base) return;
+  const stem=base.replace(/_[a-z]+\.png$/,'');
+  if(__preloaded[stem]) return; __preloaded[stem]=1;
+  EXTRA_FRAMES.forEach(f=>{ const i=new Image(); i.src=stem+'_'+f+'.png'; });
+}
+function swapFrame(img, frame, hold){
+  if(!img) return;
+  const cur=img.getAttribute('src')||'';
+  if(!img.__base) img.__base=cur;
+  img.setAttribute('src', img.__base.replace(/_[a-z]+\.png$/,'_'+frame+'.png'));
+  clearTimeout(img.__ft);
+  img.__ft=setTimeout(()=>{ if(img.__base && document.body.contains(img)) img.setAttribute('src', img.__base); }, hold||900);
+}
+let __blinkT=null;
+function startBlink(stage){
+  stopBlink();
+  __blinkT=setInterval(()=>{
+    if(document.hidden) return;
+    if(!document.body.contains(stage)){ stopBlink(); return; }
+    if(stage.querySelector('.gbubble')) return;      // 正在说话时不抢戏
+    swapFrame(stage.querySelector('.pimg'), 'blinking', 190);
+  }, 4200);
+}
+function stopBlink(){ if(__blinkT){ clearInterval(__blinkT); __blinkT=null; } }
+
+function spawnFx(stage, n, emoji){
+  if(!stage) return;
+  n=n||6;
+  for(let i=0;i<n;i++){
+    const s=document.createElement('span');
+    s.className='pfx';
+    s.textContent = emoji || randOf(FX_EMOJI);
+    s.style.setProperty('--dx', (Math.random()*130-65).toFixed(0)+'px');
+    s.style.setProperty('--dy', (-70-Math.random()*80).toFixed(0)+'px');
+    s.style.setProperty('--rot', (Math.random()*140-70).toFixed(0)+'deg');
+    s.style.fontSize = (16+Math.random()*14).toFixed(0)+'px';
+    s.style.animationDelay = (i*55)+'ms';
+    stage.appendChild(s);
+    setTimeout(()=>{ if(s.parentNode) s.parentNode.removeChild(s); }, 1500+i*55);
+  }
+}
+function sayBubble(stage, text){
+  if(!stage) return;
+  const old=stage.querySelector('.gbubble'); if(old&&old.parentNode) old.parentNode.removeChild(old);
+  const b=document.createElement('div');
+  b.className='gbubble';
+  b.textContent=text||randOf(REACT_LINES.poke);
+  stage.appendChild(b);
+  setTimeout(()=>{ if(b.parentNode) b.parentNode.removeChild(b); }, 2400);
+}
+function playAnim(img, cls, ms){
+  if(!img) return;
+  img.classList.remove('poke','hug','spin2','hop');
+  void img.offsetWidth;
+  img.classList.add(cls);
+  setTimeout(()=>img.classList.remove(cls), ms||1200);
+}
+function reactPartner(stage, kind){
+  if(!stage) return;
+  const img=stage.querySelector('.pimg');
+  const C={
+    touch:{cls:'poke', ms:700,  n:5,  emoji:'💗', sound:'poke',   lines:REACT_LINES.touch,   frame:'happy'},
+    play: {cls:'spin2',ms:1000, n:9,  emoji:'✨', sound:'tickle', lines:REACT_LINES.play,    frame:'waving'},
+    hug:  {cls:'hug',  ms:1100, n:11, emoji:'💗', sound:'love',   lines:REACT_LINES.hug,     frame:'happy'},
+    poke: {cls:'poke', ms:700,  n:6,  emoji:null, sound:'poke',   lines:REACT_LINES.poke,    frame:'surprised'}
+  };
+  const cfg=C[kind]||C.poke;
+  playAnim(img, cfg.cls, cfg.ms);
+  swapFrame(img, cfg.frame, cfg.ms);          // 切真表情帧：惊/笑/挥手，而不是干晃
+  spawnFx(stage, cfg.n, cfg.emoji);
+  sayBubble(stage, randOf(cfg.lines));
+  ding(cfg.sound);
+  try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
+  const hint=stage.querySelector('.gpoke-hint'); if(hint) hint.style.opacity='0';
+}
+function makeDraggable(stage){
+  if(!stage || stage.__drag) return;
+  stage.__drag=true;
+  stage.classList.add('pokable');
+  let sx=0, sy=0, dx=0, dy=0, down=false, moved=false;
+  const img=stage.querySelector('.pimg');
+  const pt=e=>{ const t=e.touches&&e.touches[0]; return t||e; };
+  const onDown=e=>{
+    if(e.button!=null && e.button!==0) return;
+    const p=pt(e); sx=p.clientX; sy=p.clientY; down=true; moved=false;
+    if(img){ img.style.animation='none'; img.style.transition='none'; }
+    stage.classList.add('dragging');
+    try{ stage.setPointerCapture(e.pointerId); }catch(err){}   // 捕获指针：拖出边界也不丢
+  };
+  const onMove=e=>{
+    if(!down) return;
+    const p=pt(e); dx=p.clientX-sx; dy=p.clientY-sy;
+    if(!moved && (Math.abs(dx)>6||Math.abs(dy)>6)) moved=true;
+    if(moved && img){
+      img.style.transform='translate('+dx.toFixed(0)+'px,'+dy.toFixed(0)+'px) rotate('+(dx*0.05).toFixed(1)+'deg)';
+      if(e.cancelable) e.preventDefault();
+    }
+  };
+  const onUp=()=>{
+    if(!down) return;
+    down=false; stage.classList.remove('dragging');
+    if(moved && img){
+      img.style.transition='transform .6s cubic-bezier(.34,1.56,.64,1)';
+      img.style.transform='';
+      setTimeout(()=>{ img.style.transition=''; img.style.transform=''; img.style.animation=''; }, 660);
+    }else{
+      if(img){ img.style.transition=''; img.style.transform=''; img.style.animation=''; }
+      reactPartner(stage,'poke');
+    }
+  };
+  stage.addEventListener('pointerdown', onDown);
+  stage.addEventListener('pointermove', onMove, {passive:false});
+  stage.addEventListener('pointerup', onUp);
+  stage.addEventListener('pointercancel', onUp);
+}
+/* 大屏待机：每隔一阵随机一个小伙伴轻轻动一下，整面墙"活着" */
+function startAmbient(){
+  if(window.__gpAmbient) return; window.__gpAmbient=true;
+  setInterval(()=>{
+    if(document.hidden) return;
+    if(document.querySelector('#overlay.show')) return;   // 成长卡打开时不打扰
+    const imgs=document.querySelectorAll('.partner .blob .pimg');
+    if(!imgs.length) return;
+    const img=imgs[Math.floor(Math.random()*imgs.length)];
+    playAnim(img,'hop',600);
+    const blob=img.closest('.blob');
+    if(blob) spawnFx(blob,2,null);
+  },7000);
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', startAmbient);
+else startAmbient();
 
 /* =====================================================================
    渲染：班级切换 / 顶部 / 星球 / 光荣榜 / 点评面板
@@ -1075,7 +1292,7 @@ function renderPlanet(){
       <div class="score">${s.score}</div>
       <div class="jump-hint">🎮 进互动</div>
       ${badge?`<div class="badge">${badge}</div>`:''}
-      <div class="blob">${partnerImg(s.type, ecoFrame(s.state), s.color)}
+      <div class="blob"><div class="aura"></div><div class="pwrap">${partnerImg(s.type, ecoFrame(s.state), s.color)}</div>
         <div class="${decorCls}">${decor}</div>
         ${wearLayer}
       </div>
@@ -1217,8 +1434,8 @@ function stateText(st){return st==='active'?'活力满满':st==='wilt'?'想晒�
 function selectPartner(i){
   selectedId=i;
   document.querySelectorAll('.partner').forEach(el=>el.classList.toggle('sel',+el.dataset.i===i));
-  const s=document.querySelector(`.partner[data-i="${i}"] .blob svg`);
-  if(s){ s.classList.remove('hop'); void s.offsetWidth; s.classList.add('hop'); setTimeout(()=>s.classList.remove('hop'),600); }
+  const img=document.querySelector(`.partner[data-i="${i}"] .pimg`);
+  if(img) playAnim(img,'hop',600);
   updateSelPanel();
   ding('bloom');
 }
@@ -1259,7 +1476,7 @@ function applyTag(gi,ti){
 }
 
 function flash(blob,clsName){blob.classList.add(clsName);setTimeout(()=>blob.classList.remove(clsName),2200);
-  const svg=blob.querySelector('svg'); if(svg){ svg.classList.remove('hop'); void svg.offsetWidth; svg.classList.add('hop'); setTimeout(()=>svg.classList.remove('hop'),800); }}
+  const img=blob.querySelector('.pimg'); if(img) playAnim(img,'hop',800);}
 function spawnSpark(el,emo){
   // 粒子更大更多、持续 2.5 秒，大屏投影也看得清
   for(let k=0;k<5;k++){
@@ -1372,7 +1589,7 @@ function onClearSel(){selectedId=null;document.querySelectorAll('.partner').forE
 function onOpenCard(){ if(selectedId!==null) openGrowthCard(selectedId); }
 
 /* 浮层 */
-function closeGrowth(){ $('overlay').classList.remove('show'); growthCardId=null; }
+function closeGrowth(){ stopBlink(); $('overlay').classList.remove('show'); growthCardId=null; }
 function onOverlayClick(e){ if(e.target===$('overlay')) closeGrowth(); }
 
 /* Toast */
@@ -1448,10 +1665,15 @@ function openGrowthCard(i){
   });});
   $('growthCard').innerHTML=`
     <div class="ghero" style="--gc:${s.color}">
-      <div class="gbig">${partnerImg(s.type, ecoFrame(s.state), s.color)}${gwear}</div>
+      <div class="gbig"><div class="pwrap">${partnerImg(s.type, ecoFrame(s.state), s.color)}</div>${gwear}<div class="gpoke-hint">👆 戳一戳我</div></div>
       <div class="gname">${esc(s.n)}</div>
       <div class="gmeta">${cls.name} · ${cls.theme}</div>
       <div class="gstate" style="background:${stColor}22;color:${stColor}">${stTxt} · ${s.score} 生态值</div>
+      <div class="gplay">
+        <button class="gpbtn" data-react="touch">👋 摸摸头</button>
+        <button class="gpbtn" data-react="play">🎾 逗它玩</button>
+        <button class="gpbtn" data-react="hug">🤗 抱抱它</button>
+      </div>
       <div class="gquick">${gq}</div>
       <button class="gjump">🎮 带它去互动</button>
     </div>
@@ -1474,6 +1696,31 @@ function openGrowthCard(i){
       renderPlanet(); // 刷新星球上的穿戴效果
     };
   });
+
+  // ===== 伙伴互动绑定（纯前端，不依赖后端） =====
+  const gstage=$('growthCard').querySelector('.gbig');
+  if(gstage){
+    makeDraggable(gstage);          // 按住拖走、松手弹回；轻点 = 戳一戳
+    preloadFrames(gstage.querySelector('.pimg'));  // 预载表情帧，反应零延迟
+    startBlink(gstage);             // 待机时每隔一阵眨眨眼，像活物
+  }
+  const ghint=gstage?gstage.querySelector('.gpoke-hint'):null;
+  if(ghint) setTimeout(()=>{ ghint.style.opacity='0'; }, 6000);
+  document.querySelectorAll('#growthCard .gpbtn').forEach(b=>{
+    b.onclick=()=>{ if(gstage) reactPartner(gstage, b.dataset.react); };
+  });
+  // 卡内快速点评：直接就地点评当前学生（卡片不关，分数/装饰/时间轴即时刷新）
+  document.querySelectorAll('#growthCard .gqbtn').forEach(b=>{
+    b.onclick=()=>{
+      const gi=+b.dataset.g, ti=+b.dataset.t;
+      if(selectedId!==growthCardId) selectedId=growthCardId;
+      applyTag(gi,ti);
+      if(gstage) reactPartner(gstage,'play');   // 点评后伙伴开心转圈
+      openGrowthCard(growthCardId);             // 刷新卡片数据
+    };
+  });
+  const gj=$('growthCard').querySelector('.gjump');
+  if(gj) gj.onclick=()=>openStudentInteraction(growthCardId);
 }
 
 /* =====================================================================
