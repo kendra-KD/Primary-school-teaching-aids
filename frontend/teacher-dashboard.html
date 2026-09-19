@@ -236,51 +236,7 @@ body::before{
   animation:heartUp 2.4s ease-in-out infinite;pointer-events:none;}
 @keyframes heartUp{0%,100%{transform:translateY(0);opacity:.85}50%{transform:translateY(-6px);opacity:1}}
 
-/* ===== 伙伴"活起来"：待机摇摆 + 戳一戳果冻反馈 + 飘心粒子 + 台词气泡 ===== */
-.pwrap{position:relative;z-index:1;width:100%;height:100%;display:grid;place-items:center;animation:sway 7.5s ease-in-out infinite;will-change:transform;}
-/* 伙伴自带暖光晕：让素材的浅色残影读成"刻意的光"，而不是脏方块 */
-.aura{position:absolute;inset:-12%;border-radius:50%;pointer-events:none;z-index:0;
-  background:radial-gradient(circle at 50% 48%, rgba(255,178,200,.36) 0%, rgba(255,178,200,.16) 46%, transparent 73%);
-  filter:blur(7px);}
-@keyframes sway{0%,100%{transform:rotate(-1.2deg) translateX(-1px)}50%{transform:rotate(1.2deg) translateX(1px)}}
-.partner:nth-child(2n) .pwrap{animation-delay:-2.3s;}
-.partner:nth-child(3n) .pwrap{animation-delay:-4.6s;}
-.pokable{cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;}
-.pimg.poke{animation:jelly .62s cubic-bezier(.34,1.56,.64,1);}
-@keyframes jelly{0%{transform:scale(1)}18%{transform:scale(1.13,.87) translateY(3px)}40%{transform:scale(.9,1.15) translateY(-7px)}60%{transform:scale(1.07,.95)}78%{transform:scale(.98,1.02)}100%{transform:scale(1)}}
-.pimg.hug{animation:hugSqueeze 1.05s cubic-bezier(.34,1.56,.64,1);}
-@keyframes hugSqueeze{0%{transform:scale(1)}22%{transform:scale(.87,1.07) translateY(4px)}52%{transform:scale(1.11,.91) translateY(-5px)}74%{transform:scale(.98,1.02)}100%{transform:scale(1)}}
-.pimg.spin2{animation:spinFun .95s cubic-bezier(.45,0,.25,1);}
-@keyframes spinFun{0%{transform:rotate(0) scale(1)}40%{transform:rotate(160deg) scale(1.09)}72%{transform:rotate(300deg) scale(.97)}100%{transform:rotate(360deg) scale(1)}}
-.pfx{position:absolute;left:50%;top:50%;line-height:1;pointer-events:none;z-index:9;
-  animation:pfxUp 1.2s cubic-bezier(.2,.75,.35,1) forwards;will-change:transform,opacity;}
-@keyframes pfxUp{0%{opacity:0;transform:translate(-50%,-50%) scale(.35) rotate(0)}
-  16%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(calc(var(--rot,0deg)*.3))}
-  100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),calc(-50% + var(--dy,-80px))) scale(1.25) rotate(var(--rot,0deg))}}
-.gbubble{position:absolute;left:50%;bottom:calc(100% - 6px);transform-origin:50% 100%;background:rgba(24,19,42,.94);
-  border:1px solid var(--line);color:var(--txt);font-size:13.5px;font-weight:800;padding:8px 13px;border-radius:15px;
-  white-space:nowrap;pointer-events:none;z-index:14;box-shadow:0 10px 30px rgba(0,0,0,.45);
-  animation:bubbleIn 2.3s cubic-bezier(.34,1.56,.64,1) forwards;}
-.gbubble::after{content:"";position:absolute;left:50%;top:100%;margin-left:-6px;border:6px solid transparent;border-top-color:rgba(24,19,42,.94);}
-@keyframes bubbleIn{0%{opacity:0;transform:translateX(-50%) scale(.5)}10%{opacity:1;transform:translateX(-50%) scale(1.08)}
-  18%{transform:translateX(-50%) scale(1)}84%{opacity:1;transform:translateX(-50%) scale(1)}
-  100%{opacity:0;transform:translateX(-50%) translateY(-14px) scale(.94)}}
-/* 成长卡互动区（摸摸头 / 逗它玩 / 抱抱它） */
-.gplay{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px;}
-.gpbtn{font:inherit;font-size:13px;font-weight:900;padding:9px 14px;border-radius:13px;cursor:pointer;
-  background:var(--glass-strong);border:1px solid var(--line);color:var(--txt);
-  transition:transform .18s cubic-bezier(.34,1.56,.64,1),border-color .18s,box-shadow .18s;}
-.gpbtn:hover{border-color:var(--accent);transform:translateY(-2px) scale(1.05);box-shadow:0 8px 22px rgba(0,0,0,.35);}
-.gpbtn:active{transform:scale(.95);}
-.gpbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-.gpoke-hint{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);font-size:11px;font-weight:800;
-  color:var(--txt2);background:rgba(10,8,20,.45);border-radius:9px;padding:2px 10px;pointer-events:none;
-  animation:hintFloat 2.2s ease-in-out infinite;}
-@keyframes hintFloat{0%,100%{transform:translateX(-50%) translateY(0);opacity:.7}50%{transform:translateX(-50%) translateY(-4px);opacity:1}}
-.gbig.dragging .pimg{filter:drop-shadow(0 14px 18px rgba(0,0,0,.5));}
-@media(prefers-reduced-motion:reduce){
-  .pwrap,.partner,.pimg,.crt,.gpoke-hint{animation:none !important;}
-}
+/* 以下引擎样式（pwrap/aura/粒子/气泡/互动按钮/减少动效等）已抽到 frontend/partner-engine.css，两端共用 */
 
 /* 侧栏 */
 .side{display:flex;flex-direction:column;gap:16px;}
@@ -490,6 +446,8 @@ hidden{display:none!important;}
 .nc-ok{width:100%;padding:11px;font-size:14px;}
 .nc-tip{font-size:11px;color:var(--txt2);margin-top:10px;line-height:1.6;}
 </style>
+<link rel="stylesheet" href="partner-engine.css">
+<script src="partner-engine.js"></script>
 </head>
 <body>
 <div class="app">
@@ -1040,183 +998,9 @@ function wearSVG(key){
   return '';
 }
 
-/* =====================================================================
-   音效（Web Audio 简单"叮"）
-   ===================================================================== */
-let actx=null;
-function ding(kind){
-  try{
-    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
-    const o=actx.createOscillator(), g=actx.createGain();
-    o.connect(g); g.connect(actx.destination);
-    let f=523.25, dur=.6, type='sine';
-    if(kind==='bloom'){f=880;dur=.7;}
-    else if(kind==='evolve'){f=660;dur=.8;type='triangle';}
-    else if(kind==='love'){f=784;dur=.7;}
-    else if(kind==='neg'){f=233;dur=.5;type='sine';}
-    else if(kind==='poke'){f=1046.5;dur=.24;type='triangle';}
-    else if(kind==='tickle'){f=1318.5;dur=.3;type='sine';}
-    o.type=type; o.frequency.value=f;
-    g.gain.setValueAtTime(.0001,actx.currentTime);
-    g.gain.exponentialRampToValueAtTime(.22,actx.currentTime+.02);
-    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+dur);
-    o.start(); o.stop(actx.currentTime+dur+.02);
-  }catch(e){}
-}
-
-/* =====================================================================
-   伙伴互动引擎（让预渲染的静态形象"活"起来，纯前端）
-   - reactPartner：戳一戳 / 摸摸头 / 逗它玩 / 抱抱它（果冻变形 + 飘心 + 台词气泡 + 音效）
-   - makeDraggable：按住拖走、松手弹回（汤姆猫式手感）
-   - startAmbient：大屏上每隔一阵随机一个小伙伴轻轻动一下，整面墙不再是静态图
-   - 台词全部正向，符合教育红线（不出现负面评价）
-   ===================================================================== */
-const REACT_LINES={
-  touch:['咕噜噜～好舒服','再摸摸头嘛～','嘿嘿，有点痒呀','谢谢你摸我！'],
-  play:['哈哈，我还要玩！','看我的转圈圈～','耶！好开心 ✨','再来一次好不好'],
-  hug:['谢谢你抱抱我 💗','被抱住啦，好暖～','我记住你啦！','抱一抱，能量满格 ⚡'],
-  poke:['嘿嘿，被摸到啦～','我今天又长大一点点！','老师好呀 🌞','我会继续加油的 ✨','咕噜～好痒哦','我要长成最亮的星星 ⭐']
-};
-const FX_EMOJI=['💗','✨','⭐','🌸','🍀','🎈','💫','🌈'];
-function randOf(a){ return a[Math.floor(Math.random()*a.length)]; }
-
-/* 素材自带 10 个表情帧（normal/loving/crying/surprised/happy/blinking/talking/waving/thinking/sleeping），
-   前端原先只用 4 个。这里把剩下的用起来：反应时切真表情（大笑/挥手/眨眼），而不是干晃一下。 */
-const EXTRA_FRAMES=['happy','blinking','talking','waving','surprised','loving'];
-const __preloaded={};
-function preloadFrames(img){
-  if(!img) return;
-  const base=img.getAttribute('src'); if(!base) return;
-  const stem=base.replace(/_[a-z]+\.png$/,'');
-  if(__preloaded[stem]) return; __preloaded[stem]=1;
-  EXTRA_FRAMES.forEach(f=>{ const i=new Image(); i.src=stem+'_'+f+'.png'; });
-}
-function swapFrame(img, frame, hold){
-  if(!img) return;
-  const cur=img.getAttribute('src')||'';
-  if(!img.__base) img.__base=cur;
-  img.setAttribute('src', img.__base.replace(/_[a-z]+\.png$/,'_'+frame+'.png'));
-  clearTimeout(img.__ft);
-  img.__ft=setTimeout(()=>{ if(img.__base && document.body.contains(img)) img.setAttribute('src', img.__base); }, hold||900);
-}
-let __blinkT=null;
-function startBlink(stage){
-  stopBlink();
-  __blinkT=setInterval(()=>{
-    if(document.hidden) return;
-    if(!document.body.contains(stage)){ stopBlink(); return; }
-    if(stage.querySelector('.gbubble')) return;      // 正在说话时不抢戏
-    swapFrame(stage.querySelector('.pimg'), 'blinking', 190);
-  }, 4200);
-}
-function stopBlink(){ if(__blinkT){ clearInterval(__blinkT); __blinkT=null; } }
-
-function spawnFx(stage, n, emoji){
-  if(!stage) return;
-  n=n||6;
-  for(let i=0;i<n;i++){
-    const s=document.createElement('span');
-    s.className='pfx';
-    s.textContent = emoji || randOf(FX_EMOJI);
-    s.style.setProperty('--dx', (Math.random()*130-65).toFixed(0)+'px');
-    s.style.setProperty('--dy', (-70-Math.random()*80).toFixed(0)+'px');
-    s.style.setProperty('--rot', (Math.random()*140-70).toFixed(0)+'deg');
-    s.style.fontSize = (16+Math.random()*14).toFixed(0)+'px';
-    s.style.animationDelay = (i*55)+'ms';
-    stage.appendChild(s);
-    setTimeout(()=>{ if(s.parentNode) s.parentNode.removeChild(s); }, 1500+i*55);
-  }
-}
-function sayBubble(stage, text){
-  if(!stage) return;
-  const old=stage.querySelector('.gbubble'); if(old&&old.parentNode) old.parentNode.removeChild(old);
-  const b=document.createElement('div');
-  b.className='gbubble';
-  b.textContent=text||randOf(REACT_LINES.poke);
-  stage.appendChild(b);
-  setTimeout(()=>{ if(b.parentNode) b.parentNode.removeChild(b); }, 2400);
-}
-function playAnim(img, cls, ms){
-  if(!img) return;
-  img.classList.remove('poke','hug','spin2','hop');
-  void img.offsetWidth;
-  img.classList.add(cls);
-  setTimeout(()=>img.classList.remove(cls), ms||1200);
-}
-function reactPartner(stage, kind){
-  if(!stage) return;
-  const img=stage.querySelector('.pimg');
-  const C={
-    touch:{cls:'poke', ms:700,  n:5,  emoji:'💗', sound:'poke',   lines:REACT_LINES.touch,   frame:'happy'},
-    play: {cls:'spin2',ms:1000, n:9,  emoji:'✨', sound:'tickle', lines:REACT_LINES.play,    frame:'waving'},
-    hug:  {cls:'hug',  ms:1100, n:11, emoji:'💗', sound:'love',   lines:REACT_LINES.hug,     frame:'happy'},
-    poke: {cls:'poke', ms:700,  n:6,  emoji:null, sound:'poke',   lines:REACT_LINES.poke,    frame:'surprised'}
-  };
-  const cfg=C[kind]||C.poke;
-  playAnim(img, cfg.cls, cfg.ms);
-  swapFrame(img, cfg.frame, cfg.ms);          // 切真表情帧：惊/笑/挥手，而不是干晃
-  spawnFx(stage, cfg.n, cfg.emoji);
-  sayBubble(stage, randOf(cfg.lines));
-  ding(cfg.sound);
-  try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
-  const hint=stage.querySelector('.gpoke-hint'); if(hint) hint.style.opacity='0';
-}
-function makeDraggable(stage){
-  if(!stage || stage.__drag) return;
-  stage.__drag=true;
-  stage.classList.add('pokable');
-  let sx=0, sy=0, dx=0, dy=0, down=false, moved=false;
-  const img=stage.querySelector('.pimg');
-  const pt=e=>{ const t=e.touches&&e.touches[0]; return t||e; };
-  const onDown=e=>{
-    if(e.button!=null && e.button!==0) return;
-    const p=pt(e); sx=p.clientX; sy=p.clientY; down=true; moved=false;
-    if(img){ img.style.animation='none'; img.style.transition='none'; }
-    stage.classList.add('dragging');
-    try{ stage.setPointerCapture(e.pointerId); }catch(err){}   // 捕获指针：拖出边界也不丢
-  };
-  const onMove=e=>{
-    if(!down) return;
-    const p=pt(e); dx=p.clientX-sx; dy=p.clientY-sy;
-    if(!moved && (Math.abs(dx)>6||Math.abs(dy)>6)) moved=true;
-    if(moved && img){
-      img.style.transform='translate('+dx.toFixed(0)+'px,'+dy.toFixed(0)+'px) rotate('+(dx*0.05).toFixed(1)+'deg)';
-      if(e.cancelable) e.preventDefault();
-    }
-  };
-  const onUp=()=>{
-    if(!down) return;
-    down=false; stage.classList.remove('dragging');
-    if(moved && img){
-      img.style.transition='transform .6s cubic-bezier(.34,1.56,.64,1)';
-      img.style.transform='';
-      setTimeout(()=>{ img.style.transition=''; img.style.transform=''; img.style.animation=''; }, 660);
-    }else{
-      if(img){ img.style.transition=''; img.style.transform=''; img.style.animation=''; }
-      reactPartner(stage,'poke');
-    }
-  };
-  stage.addEventListener('pointerdown', onDown);
-  stage.addEventListener('pointermove', onMove, {passive:false});
-  stage.addEventListener('pointerup', onUp);
-  stage.addEventListener('pointercancel', onUp);
-}
-/* 大屏待机：每隔一阵随机一个小伙伴轻轻动一下，整面墙"活着" */
-function startAmbient(){
-  if(window.__gpAmbient) return; window.__gpAmbient=true;
-  setInterval(()=>{
-    if(document.hidden) return;
-    if(document.querySelector('#overlay.show')) return;   // 成长卡打开时不打扰
-    const imgs=document.querySelectorAll('.partner .blob .pimg');
-    if(!imgs.length) return;
-    const img=imgs[Math.floor(Math.random()*imgs.length)];
-    playAnim(img,'hop',600);
-    const blob=img.closest('.blob');
-    if(blob) spawnFx(blob,2,null);
-  },7000);
-}
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', startAmbient);
-else startAmbient();
+/* 伙伴互动引擎（音效 + 反应 + 拖拽 + 眨眼 + 粒子/气泡）已抽到共享模块
+   frontend/partner-engine.js（配套样式 partner-engine.css）。老师大屏与学生端共用同一份，
+   改一处两端同时生效，避免双份漂移。 */
 
 /* =====================================================================
    渲染：班级切换 / 顶部 / 星球 / 光荣榜 / 点评面板

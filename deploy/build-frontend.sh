@@ -27,6 +27,12 @@ if [ -d "$SRC/assets" ]; then
   echo "✓ 静态资源已同步到 $OUT/assets"
 fi
 
+# ── 复制共享伙伴互动引擎（老师大屏 + 学生端共用，与 HTML 同目录以便相对路径引用）──
+for f in "partner-engine.js" "partner-engine.css"; do
+  if [ -f "$SRC/$f" ]; then cp "$SRC/$f" "$OUT/$f"; fi
+done
+echo "✓ 共享引擎已同步到 $OUT/partner-engine.js / partner-engine.css"
+
 # ── 构建后自动体检：script 标签配对 + JS 语法。坏了直接中止，绝不发布「打不开」的页面 ──
 for f in teacher-dashboard.html partner-demo.html index.html; do
   [ -f "$OUT/$f" ] && bash deploy/check-frontend.sh "$OUT/$f"

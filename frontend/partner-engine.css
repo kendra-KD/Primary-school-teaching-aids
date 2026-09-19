@@ -1,0 +1,53 @@
+/* =====================================================================
+   伙伴互动引擎共享样式（老师大屏 + 学生端共用，与 partner-engine.js 配套）
+   使用具体颜色值，不依赖各页面自有设计 token，保证两端视觉一致。
+   ===================================================================== */
+
+/* ===== 伙伴"活起来"：待机摇摆 + 戳一戳果冻反馈 + 飘心粒子 + 台词气泡 ===== */
+.pwrap{position:relative;z-index:1;width:100%;height:100%;display:grid;place-items:center;animation:sway 7.5s ease-in-out infinite;will-change:transform;}
+/* 伙伴自带暖光晕：让素材的浅色残影读成"刻意的光"，而不是脏方块 */
+.aura{position:absolute;inset:-12%;border-radius:50%;pointer-events:none;z-index:0;
+  background:radial-gradient(circle at 50% 48%, rgba(255,178,200,.36) 0%, rgba(255,178,200,.16) 46%, transparent 73%);
+  filter:blur(7px);}
+@keyframes sway{0%,100%{transform:rotate(-1.2deg) translateX(-1px)}50%{transform:rotate(1.2deg) translateX(1px)}}
+/* 大屏整面墙错峰摇摆（仅老师端 .partner 生效，学生端无此容器则忽略） */
+.partner:nth-child(2n) .pwrap{animation-delay:-2.3s;}
+.partner:nth-child(3n) .pwrap{animation-delay:-4.6s;}
+.pokable{cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;}
+.pimg.poke{animation:jelly .62s cubic-bezier(.34,1.56,.64,1);}
+@keyframes jelly{0%{transform:scale(1)}18%{transform:scale(1.13,.87) translateY(3px)}40%{transform:scale(.9,1.15) translateY(-7px)}60%{transform:scale(1.07,.95)}78%{transform:scale(.98,1.02)}100%{transform:scale(1)}}
+.pimg.hug{animation:hugSqueeze 1.05s cubic-bezier(.34,1.56,.64,1);}
+@keyframes hugSqueeze{0%{transform:scale(1)}22%{transform:scale(.87,1.07) translateY(4px)}52%{transform:scale(1.11,.91) translateY(-5px)}74%{transform:scale(.98,1.02)}100%{transform:scale(1)}}
+.pimg.spin2{animation:spinFun .95s cubic-bezier(.45,0,.25,1);}
+@keyframes spinFun{0%{transform:rotate(0) scale(1)}40%{transform:rotate(160deg) scale(1.09)}72%{transform:rotate(300deg) scale(.97)}100%{transform:rotate(360deg) scale(1)}}
+.pimg.hop{animation:hop .55s cubic-bezier(.3,1.6,.5,1);}
+@keyframes hop{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-9px) scale(1.12)}60%{transform:translateY(0) scale(.96)}100%{transform:translateY(0) scale(1)}}
+.pfx{position:absolute;left:50%;top:50%;line-height:1;pointer-events:none;z-index:9;
+  animation:pfxUp 1.2s cubic-bezier(.2,.75,.35,1) forwards;will-change:transform,opacity;}
+@keyframes pfxUp{0%{opacity:0;transform:translate(-50%,-50%) scale(.35) rotate(0)}
+  16%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(calc(var(--rot,0deg)*.3))}
+  100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),calc(-50% + var(--dy,-80px))) scale(1.25) rotate(var(--rot,0deg))}}
+.gbubble{position:absolute;left:50%;bottom:calc(100% - 6px);transform-origin:50% 100%;background:rgba(24,19,42,.94);
+  border:1px solid rgba(255,255,255,.14);color:#fff;font-size:13.5px;font-weight:800;padding:8px 13px;border-radius:15px;
+  white-space:nowrap;pointer-events:none;z-index:14;box-shadow:0 10px 30px rgba(0,0,0,.45);
+  animation:bubbleIn 2.3s cubic-bezier(.34,1.56,.64,1) forwards;}
+.gbubble::after{content:"";position:absolute;left:50%;top:100%;margin-left:-6px;border:6px solid transparent;border-top-color:rgba(24,19,42,.94);}
+@keyframes bubbleIn{0%{opacity:0;transform:translateX(-50%) scale(.5)}10%{opacity:1;transform:translateX(-50%) scale(1.08)}
+  18%{transform:translateX(-50%) scale(1)}84%{opacity:1;transform:translateX(-50%) scale(1)}
+  100%{opacity:0;transform:translateX(-50%) translateY(-14px) scale(.94)}}
+/* 互动按钮区（摸摸头 / 逗它玩 / 抱抱它） */
+.gplay{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px;}
+.gpbtn{font:inherit;font-size:13px;font-weight:900;padding:9px 14px;border-radius:13px;cursor:pointer;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#fff;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1),border-color .18s,box-shadow .18s;}
+.gpbtn:hover{border-color:#FF9EC9;transform:translateY(-2px) scale(1.05);box-shadow:0 8px 22px rgba(0,0,0,.35);}
+.gpbtn:active{transform:scale(.95);}
+.gpbtn:focus-visible{outline:2px solid #FF9EC9;outline-offset:2px;}
+.gpoke-hint{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);font-size:11px;font-weight:800;
+  color:rgba(255,255,255,.85);background:rgba(10,8,20,.45);border-radius:9px;padding:2px 10px;pointer-events:none;
+  animation:hintFloat 2.2s ease-in-out infinite;}
+@keyframes hintFloat{0%,100%{transform:translateX(-50%) translateY(0);opacity:.7}50%{transform:translateX(-50%) translateY(-4px);opacity:1}}
+.gbig.dragging .pimg{filter:drop-shadow(0 14px 18px rgba(0,0,0,.5));}
+@media(prefers-reduced-motion:reduce){
+  .pwrap,.partner,.pimg,.crt,.gpoke-hint{animation:none !important;}
+}

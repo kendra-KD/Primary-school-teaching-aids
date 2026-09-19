@@ -100,8 +100,12 @@
     background:radial-gradient(ellipse, color-mix(in srgb,var(--c,#C4A7FF) 45%,transparent) 0%, transparent 70%);
     filter:blur(2px);z-index:0;pointer-events:none;}
   .crt{width:100%;height:100%;display:block;overflow:visible;animation:breathe 3.6s ease-in-out infinite;transform-origin:50% 82%;}
-  .pimg{width:100%;height:100%;object-fit:contain;display:block;overflow:visible;
-    filter:drop-shadow(0 0 8px color-mix(in srgb,var(--c,transparent) 50%,transparent));}
+  .pimg{width:100%;height:100%;object-fit:contain;display:block;overflow:visible;position:relative;z-index:1;
+    filter:drop-shadow(0 0 8px color-mix(in srgb,var(--c,transparent) 50%,transparent));
+    animation:breathe 3.6s ease-in-out infinite;transform-origin:50% 82%;
+    /* 原图是带影棚底色+水印的方图：长椭圆遮罩把底色/水印柔化淡出，配合 .ava-home::before 暖光晕读作"自带光环" */
+    -webkit-mask-image:radial-gradient(ellipse 41% 50% at 50% 50%, #000 0 66%, rgba(0,0,0,.62) 80%, rgba(0,0,0,.26) 90%, transparent 98%);
+    mask-image:radial-gradient(ellipse 41% 50% at 50% 50%, #000 0 66%, rgba(0,0,0,.62) 80%, rgba(0,0,0,.26) 90%, transparent 98%);}
   .pimg[style*="--c"]{filter:drop-shadow(0 0 10px color-mix(in srgb,var(--c) 60%,transparent)) drop-shadow(0 2px 4px color-mix(in srgb,var(--c) 30%,transparent));}
   @keyframes breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-2px) scale(1.02)}}
   .c-eye{transform-box:fill-box;transform-origin:center;animation:blink 5.5s infinite;}
@@ -115,6 +119,8 @@
 
   /* R43: 伙伴点击互动 — 部位反馈 */
   .ava-home{position:relative;width:128px;height:128px;}
+  .ava-home::before{content:"";position:absolute;inset:-12%;border-radius:50%;pointer-events:none;z-index:0;
+    background:radial-gradient(circle at 50% 48%, rgba(255,178,200,.36) 0%, rgba(255,178,200,.16) 46%, transparent 73%);filter:blur(7px);}
   .ava-home::after{content:"";position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);
     width:80px;height:16px;border-radius:50%;
     background:radial-gradient(ellipse, color-mix(in srgb,var(--c,#C4A7FF) 50%,transparent) 0%, transparent 70%);
@@ -164,6 +170,8 @@
   .log .empty{color:#a99ec8;text-align:center;font-size:13px;padding:8px;}
   .hop-fx{animation:hop .6s cubic-bezier(.3,1.6,.5,1);}
 </style>
+<link rel="stylesheet" href="partner-engine.css">
+<script src="partner-engine.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -361,6 +369,11 @@ function PartnerActor(el, kind, color){
   this.react = function(frame, dur){
     dur = dur || 1200;
     self.render(frame);
+    if(self.el){
+      spawnFx(self.el, 6, '💗');
+      sayBubble(self.el, randOf(REACT_LINES.poke));
+      ding('love');
+    }
     clearTimeout(self._reactT);
     self._reactT = setTimeout(function(){ self.render('normal'); }, dur);
   };
@@ -373,13 +386,6 @@ function PartnerActor(el, kind, color){
       self.render(seq[i % 2]); i++;
       if(i >= steps){ clearInterval(self._talk); self.render('normal'); }
     }, 300);
-  };
-  this.startIdle = function(){
-    clearInterval(self._blink);
-    self._blink = setInterval(function(){
-      self.render('blinking');
-      setTimeout(function(){ if(self.el.querySelector('img.pimg')) self.render('normal'); }, 160);
-    }, 4500);
   };
   this.stop = function(){ clearInterval(self._blink); clearInterval(self._talk); clearTimeout(self._reactT); };
   this.render('normal');
@@ -863,16 +869,15 @@ const PET_PARTS = [
 ];
 let petClickCount = 0;
 
-// R98-v5: 整图点击 = 随机可爱反应（汤姆猫式互动）；不再依赖 SVG 热区
+// R98-v5: 整图点击 = 随机可爱反应（汤姆猫式互动）；按住拖走、松手弹性回弹
 function setupHomePet(){
   const wrap=$('homeAva');
   if(!wrap) return;
-  wrap.style.cursor='pointer';
-  wrap.onclick=function(){
+  makeDraggable(wrap, { onTap: function(){
     if(!homeActor) return;
-    const rnd=['happy','waving','loving','thinking'];
+    const rnd=['happy','waving','loving','surprised'];
     homeActor.react(rnd[Math.floor(Math.random()*rnd.length)], 1200);
-  };
+  }});
 }
 
 function onPetClick(part){
@@ -925,7 +930,7 @@ function drawHome(v){
   if(!homeActor){ homeActor = new PartnerActor($('homeAva'), v.student.partner_kind, color); }
   else { homeActor.setKind(v.student.partner_kind, color); }
   $('homeAva').style.setProperty('--c', color || '#C4A7FF');
-  homeActor.startIdle();
+  startBlink($('homeAva'));
   setupHomePet();
   $('homeName').textContent=(v.student.nickname||k.name)+' · Lv'+stage;
   $('homeSub').textContent=k.name+' · 已完成 '+(v.activities||[]).length+' 次互动';
