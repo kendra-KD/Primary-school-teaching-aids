@@ -2,6 +2,8 @@
 // 创建/重置老师账号（生产环境关闭注册后用这个建号）
 // 用法：node scripts/create-teacher.js teacher@school.edu 密码 显示名
 //      DB_* 环境变量同 .env，可用 `set -a; . .env; set +a` 加载
+// 宿主机直接跑（非容器内）需覆盖为本地可达地址，否则 DB_HOST=gp-db 解析不了会 5s 超时：
+//      export DB_HOST=127.0.0.1; export DB_PORT=5434
 
 import bcrypt from 'bcryptjs';
 import { queryOne, pool } from '../src/db.js';
