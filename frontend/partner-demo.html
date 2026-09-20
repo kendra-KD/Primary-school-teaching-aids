@@ -74,8 +74,10 @@
   .field input{border:2px solid #EFE6F5;border-radius:14px;padding:12px 14px;font-size:15px;font-family:inherit;width:100%;outline:none;}
   .field input:focus{border-color:var(--lav);}
   .swatches{display:flex;gap:10px;flex-wrap:wrap;}
-  .sw{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.12);transition:transform .15s;}
-  .sw.sel{transform:scale(1.18);box-shadow:0 0 0 3px var(--ink);}
+  .sw{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.12);transition:transform .15s, box-shadow .2s;}
+  /* R78: 选中色板带主色光晕，强化实时反馈 */
+  .sw.sel{transform:scale(1.18);box-shadow:0 0 0 3px var(--ink), 0 0 14px 4px color-mix(in srgb, var(--c, transparent) 60%, transparent);}
+  .sw:hover{transform:scale(1.1);}
   /* 预览 */
   .preview{text-align:center;padding:8px 0 4px;}
   .preview .big{font-size:84px;display:inline-block;animation:floaty 3.5s ease-in-out infinite;}
@@ -95,10 +97,14 @@
   /* 真实伙伴生物（与老师大屏同款 SVG） */
   .ava{width:56px;height:56px;margin:0 auto;display:block;}
   .ava-big{width:120px;height:120px;margin:6px auto;display:block;animation:floaty 3.5s ease-in-out infinite;position:relative;}
+  /* R78: 选主色实时反馈 — 光环随 --c 变色，选中色板时光环放大加亮 */
+  .ava-big::before{content:"";position:absolute;inset:-18%;border-radius:50%;pointer-events:none;z-index:0;
+    background:radial-gradient(circle at 50% 48%, color-mix(in srgb,var(--c,#C4A7FF) 38%,transparent) 0%, color-mix(in srgb,var(--c,#C4A7FF) 14%,transparent) 50%, transparent 72%);
+    filter:blur(8px);transition:background .25s ease, inset .25s ease;}
   .ava-big::after{content:"";position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
     width:70px;height:14px;border-radius:50%;
-    background:radial-gradient(ellipse, color-mix(in srgb,var(--c,#C4A7FF) 45%,transparent) 0%, transparent 70%);
-    filter:blur(2px);z-index:0;pointer-events:none;}
+    background:radial-gradient(ellipse, color-mix(in srgb,var(--c,#C4A7FF) 55%,transparent) 0%, transparent 70%);
+    filter:blur(3px);z-index:0;pointer-events:none;transition:background .25s ease;}
   .crt{width:100%;height:100%;display:block;overflow:visible;animation:breathe 3.6s ease-in-out infinite;transform-origin:50% 82%;}
   .pimg{width:100%;height:100%;object-fit:contain;display:block;overflow:visible;position:relative;z-index:1;
     filter:drop-shadow(0 0 8px color-mix(in srgb,var(--c,transparent) 50%,transparent));
@@ -755,6 +761,7 @@ function choosePartner(x,silent){
   selKind=x.kind;
   document.querySelectorAll('#lib .pcard').forEach(c=>c.classList.toggle('sel', c.dataset.kind===x.kind));
   $('pvEmoji').innerHTML=creature(x.kind, selColor);
+  $('pvEmoji').style.setProperty('--c', selColor); // R78: 选伙伴时同步光环主色
   $('pvName').textContent=x.name;
   $('nick').value = me.nickname || x.name;
   renderSwatches();
@@ -770,9 +777,13 @@ function renderSwatches(){
     const s=document.createElement('div');
     s.className='sw'+(selColor===c?' sel':'');
     s.style.background=c; s.title=c;
+    s.style.setProperty('--c', c); // R78: 选中态光晕用当前色
     s.onclick=()=>{ selColor=c; renderSwatches(); if(selKind) $('pvEmoji').innerHTML=creature(selKind, selColor); };
     box.appendChild(s);
   });
+  // R78: 预览区光环也跟着主色变
+  const pv=$('pvEmoji');
+  if(pv) pv.style.setProperty('--c', selColor);
 }
 
 async function claim(){
