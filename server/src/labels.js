@@ -22,10 +22,12 @@ export const LABELS = {
   tidy_up: { name: '主动整理 / 归位器材', group: '责任', delta: 2, eco: 1, vine: false, fx: 'tidy' },
   persist_observe: { name: '坚持长期观察', group: '责任', delta: 3, eco: 1, vine: false, fx: 'evolve' },
 
-  // 负向：可恢复、不羞辱
-  unsafe_act: { name: '不安全操作', group: '恢复', delta: -2, eco: 0, vine: false, fx: 'droop', negative: true },
-  hurt_life: { name: '怠慢实验生物 / 植物', group: '恢复', delta: -3, eco: 0, vine: false, fx: 'hurt', negative: true },
-  untidy: { name: '器材未归位', group: '恢复', delta: -1, eco: 0, vine: false, fx: 'mess', negative: true }
+  // R63 负向：正向化改造 —— delta 归零「暂时搁置、不倒扣」。
+  // 伙伴仍会进入待关注态（fx 驱动的 wilt/injured），但成长值与活力不再被扣减；
+  // 语义从「惩罚倒扣」变为「温柔提醒 + 需要陪伴」，负向行为只作记录不作惩罚。
+  unsafe_act: { name: '先停一下·注意安全', group: '恢复', delta: 0, eco: 0, vine: false, fx: 'droop', negative: true },
+  hurt_life: { name: '一起爱护小生命', group: '恢复', delta: 0, eco: 0, vine: false, fx: 'hurt', negative: true },
+  untidy: { name: '记得让器材归位', group: '恢复', delta: 0, eco: 0, vine: false, fx: 'mess', negative: true }
 };
 
 export const LABEL_KEYS = Object.keys(LABELS);

@@ -102,4 +102,85 @@ export default async function quizRoutes(fastify) {
     const labels = rows.map(r => r.label).filter(Boolean);
     return { labels };
   });
+
+  // R66: AI 出题简化版（PRD 闭环 B 核心）
+  // 老师粘贴教学要点 → LLM 生成 8-12 题草稿 JSON → 前端预览编辑 → 走现有批量入库接口
+  // 不入库，只返回草稿；LLM 走 OpenAI 兼容协议（tos.run / DeepSeek / 通义 / Kimi 均可）
+  fastify.post('/api/classes/:id/questions/ai-generate', auth, async (req, reply) => {
+    const classId = assertUuid(req.params.id, 'id');
+    await assertOwnsClass(req.user.sub, classId);
+
+    const points = assertText(req.body?.points, '教学要点', { max: 500, min: 2 });
+    const count = req.body?.count === undefined ? 10 : assertInt(req.body.count, '题目数量', { min: 4, max: 12 });
+    const grade = req.body?.grade === undefined || req.body?.grade === null ? null : assertInt(req.body.grade, '年级', { min: 1, max: 6 });
+    const unit = req.body?.unit ? assertText(req.body.unit, '单元', { max: 30 }) : null;
+
+    const baseUrl = process.env.LLM_BASE_URL;
+    const apiKey = process.env.LLM_API_KEY;
+    const model = process.env.LLM_MODEL || 'deepseek-chat';
+    if (!baseUrl || !apiKey) throw httpError(503, 'AI 出题未配置：请在 .env 设置 LLM_BASE_URL / LLM_API_KEY / LLM_MODEL');
+
+    const gradeHint = grade ? `（${grade}年级难度）` : '（小学难度）';
+    const unitHint = unit ? `\n本课主题/单元：${unit}` : '';
+    const sys = `你是小学科学命题专家。根据老师给的教学要点，生成 ${count} 道单选题草稿，供小学生课间答题使用。${gradeHint}${unitHint}
+严格要求：
+1. 每题 4 个选项（A/B/C/D），只有 1 个正确答案。
+2. 题干和选项语言通俗、贴近小学生活，避免生僻字。
+3. 难度适中，正确答案位置随机分布。
+4. 返回 JSON 数组，元素结构：{"question":"题干","options":["A","B","C","D"],"answer":0,"explanation":"一句话解析"}，answer 是正确选项的索引（0-3）。
+5. 不要输出任何多余文字、不要 markdown 代码块，只输出 JSON 数组。`;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    try {
+      const resp = await fetch(baseUrl.replace(/\/+$/, '') + '/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'system', content: sys }, { role: 'user', content: `教学要点：\n${points}` }],
+          temperature: 0.7,
+          max_tokens: 2000
+        }),
+        signal: controller.signal
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => '');
+        throw httpError(502, `AI 服务异常 (${resp.status})：${errText.slice(0, 200)}`);
+      }
+
+      const data = await resp.json();
+      const raw = data?.choices?.[0]?.message?.content;
+      if (!raw) throw httpError(502, 'AI 返回为空');
+      const cleaned = String(raw).replace(/^```(?:json)?/i, '').replace(/```$/g, '').trim();
+      let parsed;
+      try { parsed = JSON.parse(cleaned); }
+      catch { throw httpError(502, 'AI 返回不是合法 JSON，请重试'); }
+      if (!Array.isArray(parsed) || !parsed.length) throw httpError(502, 'AI 返回格式异常');
+
+      // 服务端做最后一道结构校验，剔除不合规条目
+      const drafts = parsed.filter(q => {
+        if (!q || typeof q.question !== 'string' || !q.question.trim()) return false;
+        if (!Array.isArray(q.options) || q.options.length < 2 || q.options.length > 6) return false;
+        if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= q.options.length) return false;
+        return true;
+      }).map(q => ({
+        question: String(q.question).trim().slice(0, 500),
+        options: q.options.map(o => String(o).trim().slice(0, 200)),
+        answer: q.answer,
+        explanation: q.explanation ? String(q.explanation).trim().slice(0, 500) : '',
+        grade, unit, recommended_labels: []
+      }));
+
+      if (!drafts.length) throw httpError(502, 'AI 生成的题目未通过格式校验，请重试或调整要点');
+      return { drafts, count: drafts.length, model };
+    } catch (err) {
+      if (err.name === 'AbortError') throw httpError(504, 'AI 响应超时（30s），请重试或精简教学要点');
+      if (err.statusCode) throw err;
+      throw httpError(502, `AI 调用失败：${err.message || '未知错误'}`);
+    } finally {
+      clearTimeout(timer);
+    }
+  });
 }

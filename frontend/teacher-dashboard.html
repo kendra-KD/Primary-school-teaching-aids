@@ -157,11 +157,13 @@ body::before{
 .partner:hover .jump-hint{opacity:.96;}
 .partner .grp{font-size:10px;color:var(--txt2);}
 .partner .badge{position:absolute;top:8px;left:8px;font-size:14px;}
-.partner .carepill{position:absolute;bottom:-6px;font-size:10px;font-weight:800;color:#fff;background:var(--bad);
-  border-radius:8px;padding:1px 6px;box-shadow:0 0 10px var(--bad);}
+/* R63：状态提示改「温暖召唤」语义，弃用 --bad 错误红（红色=错误，会造成羞辱感） */
+.partner .carepill{position:absolute;bottom:-6px;font-size:10px;font-weight:800;color:#fff;background:#FFB88C;
+  border-radius:8px;padding:1px 6px;box-shadow:0 0 10px rgba(255,184,140,.65);}
 .partner .carepill.idle{background:#FF9EC4;box-shadow:0 0 10px #FF9EC4;}
-.partner.wilt{filter:saturate(1.05);}
-.partner.injured .blob{animation:shake .5s;}
+.partner.wilt{filter:saturate(1.08) brightness(1.02);}
+/* R63：待关注态 = 安静休息（缓慢呼吸），弃用 shake 抖动（抖动在视觉语言里=出错/故障） */
+.partner.injured .blob{animation:breathe 3.4s ease-in-out infinite;}
 .partner.loved{box-shadow:0 0 18px rgba(255,158,201,.5);}
 .partner .spark{position:absolute;top:6px;left:50%;margin-left:-12px;font-size:22px;animation:sparkFloat 2.5s ease-out forwards;pointer-events:none;z-index:5;}
 .partner.rcycle{outline:3px solid var(--accent);outline-offset:2px;box-shadow:0 0 22px var(--accent);transform:translateY(-3px) scale(1.04);}
@@ -179,6 +181,8 @@ body::before{
 @keyframes rise{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-34px)}}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .pin-shake{animation:shake .35s ease-in-out 2;}
+/* R63：待关注伙伴的「安静呼吸」，替代抖动 */
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(.965)}}
 /* 大屏计时器全屏模式 */
 .fullscreen-timer{position:fixed;inset:0;z-index:9999;background:rgba(16,12,28,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .fullscreen-timer .fs-num{font-size:clamp(8rem,22vw,20rem);font-weight:900;color:#A8E6CF;font-variant-numeric:tabular-nums;line-height:1;text-shadow:0 0 40px rgba(168,230,207,.4);}
@@ -602,7 +606,7 @@ hidden{display:none!important;}
   <div class="modal toolbox-drawer" style="position:relative;max-width:360px;width:90%;margin-right:0">
     <button class="close" id="toolboxClose">×</button>
     <h2>🧰 教师工具箱</h2>
-    <div style="font-size:12px;color:var(--txt2);margin-bottom:14px">录题/审批/带班记录集中于此</div>
+    <div style="font-size:12px;color:var(--txt2);margin-bottom:14px">录题/AI 出题/审批/带班记录集中于此</div>
     <div class="toolbox-list">
       <button class="btn toolbox-item" id="tbQuizBtn">
         <span class="tb-icon">📝</span>
@@ -617,10 +621,10 @@ hidden{display:none!important;}
         <span class="tb-icon">📋</span>
         <div><div class="tb-title">带班记录</div><div class="tb-sub">历史班级归档</div></div>
       </button>
-      <div class="toolbox-item toolbox-placeholder" style="opacity:.5;cursor:not-allowed">
+      <button class="btn toolbox-item" id="tbAiBtn">
         <span class="tb-icon">✨</span>
-        <div><div class="tb-title">AI 出题</div><div class="tb-sub">B 闭环预留，暂未开放</div></div>
-      </div>
+        <div><div class="tb-title">AI 出题</div><div class="tb-sub">粘贴教学要点，一键生成题目</div></div>
+      </button>
     </div>
   </div>
 </div>
@@ -762,10 +766,11 @@ const TAG_GROUPS=[
     {label:'主动整理/归位器材', v:2, effect:'glow', key:'tidy_up'},
     {label:'坚持长期观察(达成)', v:3, effect:'evolve', key:'persist_observe'},
   ]},
-  {name:'温柔提醒', color:'#FFB3B3', neg:true, tags:[
-    {label:'不安全操作→蔫了', v:0, effect:'wilt', key:'unsafe_act'},
-    {label:'破坏怠慢生命→受伤', v:0, effect:'injured', key:'hurt_life'},
-    {label:'未整理器材→整洁度↓', v:0, effect:'tidy', key:'untidy'},
+  // R63：负向标签改为「温柔提醒」，文案去掉「蔫了/受伤/↓」等负向表达；v 恒为 0（不倒扣，只记录 + 触发待关注态）
+  {name:'温柔提醒', color:'#FFD6A5', neg:true, tags:[
+    {label:'先停一下·注意安全', v:0, effect:'wilt', key:'unsafe_act'},
+    {label:'一起爱护小生命', v:0, effect:'injured', key:'hurt_life'},
+    {label:'记得让器材归位', v:0, effect:'tidy', key:'untidy'},
   ]},
 ];
 
@@ -1059,9 +1064,10 @@ function renderPlanet(){
   $('planetGrid').style.gridTemplateColumns=`repeat(${cols},1fr)`;
   $('planetGrid').innerHTML=cls.students.map((s,i)=>{
     const stateCls = s.state==='active'?'active':s.state;
-    // R63：负向 badge 转正向（🥀→☀️ 想晒太阳 / 🩹→💗 等你回来）
-    const badge = s.state==='loved'?'💗':s.state==='injured'?'💗':s.state==='wilt'?'☀️':'';
-    const care = s.state==='injured'?'<div class="carepill">等你去爱护 💗</div>':'';
+    // R63：三态用不同图标 + 图标/文案双通道传达（不只靠颜色，兼顾无障碍）
+    // loved 被爱护→💗 / injured 待陪伴→🌙（安静休息）/ wilt 想晒太阳→☀️
+    const badge = s.state==='loved'?'💗':s.state==='injured'?'🌙':s.state==='wilt'?'☀️':'';
+    const care = s.state==='injured'?'<div class="carepill">陪陪它吧 🌙</div>':'';
     // R63：离线≥3天正向召唤（仅当该生有过互动记录、且最近一次已超过3天才提示，避免误报）
     const lastAct = (s.acts&&s.acts.length)? Math.max.apply(null, s.acts.map(a=>new Date(a.created_at).getTime())) : 0;
     const idle = lastAct && (Date.now()-lastAct > 3*86400000);
@@ -1247,7 +1253,7 @@ function applyTag(gi,ti){
     s.score+=tag.v; cls.eco+=tag.v; flash(blob,'glow'); ding('glow'); renderVines();
   }
   else if(eff==='wilt'){ s.state='wilt'; ding('neg'); toast(`${s.n} 的伙伴想晒太阳啦，明天见 ☀️`); }
-  else if(eff==='injured'){ s.state='injured'; ding('neg'); toast(`${s.n} 的伙伴在等你回来，用「照料」抱抱它 💗`); }
+  else if(eff==='injured'){ s.state='injured'; ding('neg'); toast(`${s.n} 的伙伴在等你回来，点开成长卡的「🤗 抱抱它」陪陪它 💗`); }
   else if(eff==='tidy'){ cls.tidy=Math.max(0,cls.tidy-8); toast('星球整洁度下降，课后一起整理吧 🧹'); }
 
   if(eff!=='wilt'&&eff!=='injured'&&eff!=='tidy') s.ask = (TAG_GROUPS[gi].name==='思维'&&ti===0)? s.ask+1 : s.ask;
@@ -1427,7 +1433,8 @@ function openGrowthCard(i){
     ? `已与 <b>${connected.length}</b> 位伙伴连起藤蔓：<br>${connected.map(c=>esc(c.n)).join('、')}<br>合作越多，共生越繁荣 🌿`
     : `还没有连接藤蔓～<br>多用「小组合作 / 帮助同学」点评，<br>就能织出专属关系网 🌿`;
 
-  const stColor={active:'#5AA0C8',wilt:'#B0A89C',loved:'#FF8FB0',injured:'#FF9E9E'}[s.state];
+  // R63：状态色改暖色板（原先 injured 用红、wilt 用灰，都是负向/枯萎语义）
+  const stColor={active:'#5AA0C8',wilt:'#E8C46A',loved:'#FF8FB0',injured:'#8E86E8'}[s.state];
   const stTxt=stateText(s.state);
 
   // R34：学生自助互动明细（签到/答题/观察/作业），让老师的点评与成长值有依据
@@ -2240,6 +2247,9 @@ function bindControls(){
   bind('tbQuizBtn', openQuizPanel);
   bind('tbPartnerReqBtn', openPartnerRequests);
   bind('tbMyClassesBtn', openMyClasses);
+  // R66: 工具箱「AI 出题」→ 关闭抽屉、打开录题面板并自动展开 AI 出题区
+  bind('tbAiBtn', ()=>{ closeToolbox(); openQuizPanel();
+    setTimeout(()=>{ const a=$('qAiArea'); if(a){ a.style.display='block'; a.scrollIntoView({behavior:'smooth',block:'nearest'}); const t=$('qAiPoints'); if(t) t.focus(); } },150); });
   // A减法重构：工具箱抽屉 + 班级设置浮层
   bind('toolboxBtn', openToolbox);
   bind('toolboxClose', closeToolbox);
@@ -2421,7 +2431,8 @@ function openQuizPanel(){
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn" onclick="GP_addOption()">+ 添加选项</button>
-          <button class="btn" id="qBatchBtn" style="margin-left:auto">📋 批量导入</button>
+          <button class="btn" id="qAiBtn" style="margin-left:auto">🤖 AI 出题</button>
+          <button class="btn" id="qBatchBtn">📋 批量导入</button>
           <button class="btn primary" id="qSaveBtn">💾 保存题目</button>
         </div>
         <div id="qBatchArea" style="display:none;margin-top:10px;padding:12px;border:1px dashed var(--line);border-radius:10px;background:var(--glass)">
@@ -2443,6 +2454,27 @@ function openQuizPanel(){
             <span id="qBatchHint" style="font-size:12px;color:var(--txt2);align-self:center"></span>
           </div>
         </div>
+        <!-- R66: AI 出题区 -->
+        <div id="qAiArea" style="display:none;margin-top:10px;padding:12px;border:1px dashed #7A6BFF;border-radius:10px;background:var(--glass)">
+          <div style="font-size:12px;color:var(--txt2);margin-bottom:6px">
+            🤖 粘贴本课教学要点（≤500 字），AI 生成 8-12 题草稿 → 预览可编辑 → 一键导入题库
+          </div>
+          <textarea id="qAiPoints" rows="4" placeholder="例：本课学习植物根的吸收作用。要点：1. 根主要吸收水分和无机盐；2. 根毛区是吸收的主要部位；3. 根尖四区（根冠/分生/伸长/根毛）；4. 向水性。"
+            style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--glass);color:var(--txt);resize:vertical;font:inherit;font-size:12px"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+            <label style="font-size:12px;color:var(--txt2)">题数</label>
+            <select id="qAiCount" style="padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--glass);color:var(--txt);font-size:12px">
+              <option value="8">8</option><option value="10" selected>10</option><option value="12">12</option>
+            </select>
+            <button class="btn primary" id="qAiDoBtn" style="background:#7A6BFF">✨ 生成题目</button>
+            <span id="qAiHint" style="font-size:12px;color:var(--txt2);align-self:center"></span>
+          </div>
+          <div id="qAiDraft" style="margin-top:10px;display:none"></div>
+          <div id="qAiActions" style="display:none;margin-top:8px;gap:8px;align-items:center">
+            <button class="btn primary" id="qAiImportBtn" style="background:#7A6BFF">📥 全部导入题库</button>
+            <button class="btn" id="qAiClearBtn">清空草稿</button>
+          </div>
+        </div>
         <div id="qHint" style="font-size:12px;min-height:18px"></div>
       </div>
       <div style="border-top:1px solid var(--line);padding-top:12px">
@@ -2456,6 +2488,10 @@ function openQuizPanel(){
     $('qBatchBtn').onclick=()=>{ const a=$('qBatchArea'); a.style.display=a.style.display==='none'?'block':'none'; };
     $('qBatchDoBtn').onclick=GP_batchImport;
     $('qBatchFile').onchange=GP_batchFileLoad;
+    $('qAiBtn').onclick=()=>{ const a=$('qAiArea'); a.style.display=a.style.display==='none'?'block':'none'; };
+    $('qAiDoBtn').onclick=GP_aiGenerate;
+    $('qAiImportBtn').onclick=GP_aiImport;
+    $('qAiClearBtn').onclick=()=>{ GP_aiDrafts=[]; $('qAiDraft').innerHTML=''; $('qAiDraft').style.display='none'; $('qAiActions').style.display='none'; };
     GP_addOption(); GP_addOption(); // 默认 2 个选项
     GP_renderLabelChips();
   }
@@ -2529,7 +2565,83 @@ function GP_batchFileLoad(e){
   reader.onerror=()=>toast('文件读取失败');
   reader.readAsText(file,'UTF-8');
 }
-async function GP_batchImport(){
+async /* R66：AI 出题 —— 粘贴教学要点 → LLM 生成草稿 → 预览编辑 → 一键导入 */
+let GP_aiDrafts=[];
+async function GP_aiGenerate(){
+  const points=$('qAiPoints').value.trim();
+  if(points.length<2){ $('qAiHint').textContent='请先输入教学要点'; return; }
+  const cid=remoteClassId(); if(!cid){ $('qAiHint').textContent='请先选择班级'; return; }
+  const count=parseInt($('qAiCount').value,10)||10;
+  const grade=$('qGrade').value?parseInt($('qGrade').value,10):null;
+  const unit=$('qUnit').value.trim()||null;
+  const btn=$('qAiDoBtn'); btn.disabled=true; btn.textContent='⏳ 生成中…';
+  $('qAiHint').textContent='AI 正在命题，约 10-20 秒…';
+  try{
+    const data=await GP.api('/api/classes/'+cid+'/questions/ai-generate',{method:'POST',
+      body:JSON.stringify({points,count,grade,unit})});
+    GP_aiDrafts=data.drafts||[];
+    if(!GP_aiDrafts.length){ $('qAiHint').textContent='AI 未生成有效题目，请重试'; return; }
+    $('qAiHint').textContent=`✅ AI 生成了 ${GP_aiDrafts.length} 道草稿，可逐题编辑后导入`;
+    GP_renderAiDrafts();
+  }catch(err){
+    const msg=err.message||'未知错误';
+    $('qAiHint').textContent='❌ '+(err.code?`[${err.code}] `:'')+msg;
+  }finally{ btn.disabled=false; btn.textContent='✨ 生成题目'; }
+}
+function GP_renderAiDrafts(){
+  const box=$('qAiDraft'); box.style.display='block';
+  box.innerHTML=GP_aiDrafts.map((q,i)=>`
+    <div class="ai-q" data-i="${i}" style="margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--glass)">
+      <div style="display:flex;gap:6px;align-items:flex-start">
+        <textarea data-k="question" rows="2" style="flex:1;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--txt);resize:vertical;font:inherit;font-size:12px">${escHtml(q.question)}</textarea>
+        <button class="btn" onclick="GP_aiRemoveDraft(${i})" style="padding:2px 6px;font-size:12px">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+        ${q.options.map((o,j)=>`
+          <label style="display:flex;gap:6px;align-items:center;font-size:12px">
+            <input type="radio" name="ai_ans_${i}" value="${j}" ${j===q.answer?'checked':''} style="cursor:pointer">
+            <input data-k="opt" data-j="${j}" value="${escHtml(o)}" style="flex:1;padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--txt);font-size:12px">
+          </label>`).join('')}
+      </div>
+      <input data-k="explanation" value="${escHtml(q.explanation||'')}" placeholder="解析（选填）" style="width:100%;margin-top:6px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--txt);font-size:11px">
+    </div>`).join('');
+  $('qAiActions').style.display='flex';
+}
+function GP_aiRemoveDraft(i){
+  GP_aiDrafts.splice(i,1);
+  if(!GP_aiDrafts.length){ $('qAiDraft').innerHTML=''; $('qAiDraft').style.display='none'; $('qAiActions').style.display='none'; return; }
+  GP_renderAiDrafts();
+}
+async function GP_aiImport(){
+  if(!GP_aiDrafts.length){ toast('没有草稿可导入'); return; }
+  const cid=remoteClassId(); if(!cid){ toast('请先选择班级'); return; }
+  const grade=$('qGrade').value?parseInt($('qGrade').value,10):null;
+  const unit=$('qUnit').value.trim()||null;
+  // 收集编辑后的草稿
+  const items=[];
+  document.querySelectorAll('#qAiDraft .ai-q').forEach(card=>{
+    const i=+card.dataset.i; const d=GP_aiDrafts[i]; if(!d) return;
+    const question=card.querySelector('[data-k=question]').value.trim();
+    const options=[...card.querySelectorAll('[data-k=opt]')].map(inp=>inp.value.trim());
+    const answerEl=card.querySelector(`input[name=ai_ans_${i}]:checked`);
+    const answer=answerEl?parseInt(answerEl.value,10):d.answer;
+    const explanation=card.querySelector('[data-k=explanation]').value.trim()||'';
+    if(question && options.length>=2 && options[answer]) items.push({question,options,answer,explanation,grade,unit,recommended_labels:[]});
+  });
+  if(!items.length){ toast('没有有效题目'); return; }
+  const btn=$('qAiImportBtn'); btn.disabled=true; btn.textContent='⏳ 导入中…';
+  let ok=0,fail=0;
+  for(let k=0;k<items.length;k++){
+    try{
+      await GP.api('/api/classes/'+cid+'/questions',{method:'POST',body:JSON.stringify(items[k])});
+      ok++;
+    }catch(e){ fail++; }
+  }
+  btn.disabled=false; btn.textContent='📥 全部导入题库';
+  $('qAiHint').textContent=`✅ 导入 ${ok} 题${fail?`，❌ 失败 ${fail} 题`:''}`;
+  if(ok>0){ GP_aiDrafts=[]; $('qAiDraft').innerHTML=''; $('qAiDraft').style.display='none'; $('qAiActions').style.display='none'; $('qAiPoints').value=''; GP_loadQuestions(); }
+}
+function GP_batchImport(){
   const text=$('qBatchText').value.trim();
   if(!text){ $('qBatchHint').textContent='请粘贴题目或上传文件'; return; }
   const {parsed,errs}=GP_parseBatch(text);
