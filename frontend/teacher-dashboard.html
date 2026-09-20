@@ -2565,7 +2565,7 @@ function GP_batchFileLoad(e){
   reader.onerror=()=>toast('文件读取失败');
   reader.readAsText(file,'UTF-8');
 }
-async /* R66：AI 出题 —— 粘贴教学要点 → LLM 生成草稿 → 预览编辑 → 一键导入 */
+/* R66：AI 出题 —— 粘贴教学要点 → LLM 生成草稿 → 预览编辑 → 一键导入 */
 let GP_aiDrafts=[];
 async function GP_aiGenerate(){
   const points=$('qAiPoints').value.trim();
@@ -2641,7 +2641,7 @@ async function GP_aiImport(){
   $('qAiHint').textContent=`✅ 导入 ${ok} 题${fail?`，❌ 失败 ${fail} 题`:''}`;
   if(ok>0){ GP_aiDrafts=[]; $('qAiDraft').innerHTML=''; $('qAiDraft').style.display='none'; $('qAiActions').style.display='none'; $('qAiPoints').value=''; GP_loadQuestions(); }
 }
-function GP_batchImport(){
+async function GP_batchImport(){
   const text=$('qBatchText').value.trim();
   if(!text){ $('qBatchHint').textContent='请粘贴题目或上传文件'; return; }
   const {parsed,errs}=GP_parseBatch(text);
