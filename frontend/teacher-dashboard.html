@@ -1973,12 +1973,13 @@ const GP={
     this.token=''; this.teacher=null; this.ready=false;
     this.lessonToken='';
     localStorage.removeItem('gp_token');
+    // 清掉本地残留的云端班级缓存（gp_class_r* 等），避免下次登录看到旧账号数据
+    Object.keys(localStorage).filter(k=>/^gp_class_/.test(k)).forEach(k=>localStorage.removeItem(k));
     renderGPBtn();
   },
 
   async pullAll(){
     const data=await this.api('/api/classes');
-    if(!data.classes.length){ toast('账号下还没有班级，请先在后台建班'); return; }
     const order=[], map={};
     for(const rc of data.classes){
       const lid='r'+rc.id.replace(/-/g,'').slice(0,8);
@@ -1987,12 +1988,25 @@ const GP={
       CLASSES[lid]={id:lid,name:rc.name,theme:rc.theme||'科学班生态',stagePct:0,eco:0,tidy:80,students:[],
         remoteId:rc.id, code:rc.class_code||'', switch_code_set: !!rc.switch_code_set};
     }
+    // 清掉本地演示/残留班级，只保留云端拉回的（避免切换账号后看到旧账号的班级）
     CLASS_ORDER.length=0; order.forEach(id=>CLASS_ORDER.push(id));
     Object.keys(CLASSES).forEach(k=>{ if(!map[k]) delete CLASSES[k]; });
+    // 同步清掉本地 localStorage 残留的旧班级缓存（gp_class_c1 等）
+    const staleIds=Object.keys(localStorage).filter(k=>/^gp_class_/.test(k));
+    staleIds.forEach(k=>{ if(!order.includes(k.replace('gp_class_',''))) localStorage.removeItem(k); });
     this.clsMap=map;
-    for(const lid of order) await this.pullState(lid);
+    if(order.length){
+      for(const lid of order) await this.pullState(lid);
+      if(!CLASSES[currentClass]) currentClass=order[0];
+    }else{
+      // 空账号：回退到一个空的本地占位班级，保证大屏不空白
+      const emptyId='local_empty';
+      CLASSES[emptyId]={id:emptyId,name:'（暂无班级）',theme:'请先建班',stagePct:0,eco:0,tidy:80,students:[]};
+      CLASS_ORDER.push(emptyId);
+      currentClass=emptyId;
+      toast('账号下还没有班级，请先点「➕ 建班」创建');
+    }
     this.ready=true;
-    if(!CLASSES[currentClass]) currentClass=order[0];
     renderTopbar(); renderPlanet(); renderBoard(); renderDock(); updateSelPanel();
   },
 
