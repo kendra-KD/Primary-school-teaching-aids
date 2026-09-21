@@ -226,7 +226,8 @@ export default async function eventRoutes(fastify) {
         theme_pack: cls.theme_pack,
         eco_value: ecoValue,
         stage: classStageOf(ecoValue),
-        switch_code_set: !!cls.switch_code
+        switch_code_set: !!cls.switch_code,
+        highlight_today: cls.highlight_today || null
       },
       students: studentRows.map((row) => ({ ...shapeStudent(row), activities: actMap[row.id] || [] })),
       board: {
@@ -240,6 +241,22 @@ export default async function eventRoutes(fastify) {
       vines: vineRows.map((v) => ({ a_id: v.a_id, b_id: v.b_id, label_key: v.label_key })),
       today_events: Number(todayRows[0]?.n || 0)
     };
+  });
+
+  // R62: 标记 / 取消「今日亮点」学生（老师手动推选，覆盖自动位；隔天失效由前端按日期判断）
+  fastify.patch('/api/classes/:id/highlight', auth, async (req) => {
+    const classId = assertUuid(req.params.id, 'id');
+    await assertOwnsClass(req.user.sub, classId);
+    const sid = req.body?.student_id ? assertUuid(req.body.student_id, 'student_id') : null;
+    if (sid) {
+      const st = await assertOwnsStudent(req.user.sub, sid);
+      if (st.class_id !== classId) throw badRequest('该学生不属于此班级');
+    }
+    // 东八区日期，避免容器 UTC 时区导致跨天误判
+    const d = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+    const payload = sid ? { d, sid } : null; // 传 null / 不传 = 取消今日亮点
+    await query('UPDATE classes SET highlight_today=$1 WHERE id=$2', [payload, classId]);
+    return { ok: true, highlight_today: payload };
   });
 
   // R52: 撤销最近一条点评 — 需授课会话令牌

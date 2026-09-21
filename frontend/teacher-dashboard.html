@@ -270,6 +270,10 @@ body::before{
 .bcard .bt{font-size:11px;color:var(--txt2);}
 .bcard .bn{font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .bcard .bv{font-size:11px;color:var(--accent);font-weight:800;white-space:nowrap;}
+/* R62: 今日亮点 · 老师推荐 —— 默认位视觉升级（发光边框 + 徽章） */
+.bcard.hl-card{background:linear-gradient(135deg,#FFF6D6,#FFE9C7);box-shadow:0 0 0 2px #FFD27A,0 6px 18px rgba(255,193,94,.35);}
+.bcard.hl-card .bt{display:flex;align-items:center;gap:6px;color:#9A6B1E;}
+.bcard .hbadge{display:inline-block;font-size:10px;font-weight:900;color:#fff;background:#FFB02E;border-radius:20px;padding:1px 8px;box-shadow:0 2px 6px rgba(255,176,46,.5);}
 
 /* ===== 点评 Dock ===== */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:10px 16px 14px;
@@ -510,6 +514,7 @@ hidden{display:none!important;}
         <div class="selcard empty" id="selCard">👆 先点一个伙伴</div>
         <div class="sel-actions">
           <button class="btn primary" id="openCard" disabled>查看成长卡</button>
+          <button class="btn" id="hlBtn" style="display:none">⭐ 标为今日亮点</button>
           <button class="btn" id="clearSel" disabled>取消选择</button>
         </div>
       </div>
@@ -1100,10 +1105,13 @@ function renderPlanet(){
 function renderBoard(){
   const cls=CLASSES[currentClass]; const S=cls.students;
   // R62：今日亮点 / 进步之星 —— 基于今日得分(today)，突出"今天"的积极行为，不展示总分名次（去排名）
+  // R62 升级：老师手动标记的「今日亮点」优先于自动位展示（去排名核心卖点）
+  const hl = (cls.highlight && cls.highlight.d===todayStr()) ? S.find(s=>s.id===cls.highlight.sid) : null;
   const todays=S.filter(s=>(s.today||0)>0);
   let progI=0,progMax=-1; S.forEach((s,i)=>{ if((s.today||0)>progMax){progMax=(s.today||0);progI=i;} });
-  const hiName = todays.length ? esc(S[progI].n) : '今天还没人上榜呢～';
-  const hiVal  = todays.length ? `今日 +${progMax} 成长` : '快去夸夸同学们吧';
+  const hiName = hl ? esc(hl.n) : (todays.length ? esc(S[progI].n) : '今天还没人上榜呢～');
+  const hiVal  = hl ? ('老师今日推荐'+(hl.today?(' · 今日 +'+hl.today+' 成长'):'')) : (todays.length ? `今日 +${progMax} 成长` : '快去夸夸同学们吧');
+  const hiBadge = hl ? '🌟 老师推荐' : '';
   let bestPair=null,bestN=0;
   for(let i=0;i<S.length;i++)for(const j of S[i].vines){ if(j>i){const n=pairVines(i,j); if(n>bestN){bestN=n;bestPair=[i,j];}} }
   function pairVines(a,b){return (S[a].vines.includes(b)?1:0)+(S[b].vines.includes(a)?1:0);}
@@ -1111,7 +1119,7 @@ function renderBoard(){
   let loveBest=0,loveMax=-1; S.forEach((s,i)=>{const lv=(s.state==='loved'?1:0); if(lv>loveMax){loveMax=lv;loveBest=i;}});
   const tidyColor = cls.tidy>75?'#7FD1B4':cls.tidy>50?'#FFD6A5':'#FF9E9E';
   const cards=[
-    {m:'🌟',c:'#FFE5A0',t:'今日亮点',n:hiName,v:hiVal},
+    {m:'🌟',c:'#FFE5A0',t:'今日亮点',n:hiName,v:hiVal,badge:hiBadge},
     {m:'✨',c:'#B5EAD7',t:'今日被表扬',n:todays.length?todays.length+' 位同学很闪亮':'一起加油呀',v:todays.length?todays.map(s=>esc(s.n)).slice(0,3).join('、')+(todays.length>3?'…':''):'等待第一个亮点'},
     {m:'🤝',c:'#A0D2FF',t:'最佳搭档',n:bestPair?`${esc(S[bestPair[0]].n)} & ${esc(S[bestPair[1]].n)}`:'期待第一次合作',v:`${bestN} 根藤蔓`},
     {m:'💡',c:'#CDB4FF',t:'最爱提问',n:esc(S[askBest].n),v:`${S[askBest].ask} 次好问题`},
@@ -1119,9 +1127,9 @@ function renderBoard(){
     {m:'🧹',c:tidyColor,t:'星球整洁度',n:cls.tidy>75?'整洁如新':cls.tidy>50?'还算整洁':'该整理啦',v:`${cls.tidy}%`},
   ];
   $('boardList').innerHTML=cards.map(c=>`
-    <div class="bcard">
+    <div class="bcard${c.badge?' hl-card':''}">
       <div class="medal" style="background:${c.c}33">${c.m}</div>
-      <div class="bmain"><div class="bt">${c.t}</div><div class="bn">${c.n}</div></div>
+      <div class="bmain"><div class="bt">${c.t}${c.badge?`<span class="hbadge">${c.badge}</span>`:''}</div><div class="bn">${c.n}</div></div>
       <div class="bv">${c.v}</div>
     </div>`).join('');
 }
@@ -1201,10 +1209,11 @@ function renderDock(){
 
 function updateSelPanel(){
   const cls=CLASSES[currentClass];
-  const card=$('selCard'); const btn=$('openCard'),clr=$('clearSel');
+  const card=$('selCard'); const btn=$('openCard'),clr=$('clearSel'),hl=$('hlBtn');
   if(selectedId===null){
     card.className='selcard empty'; card.textContent='👆 先点一个伙伴';
     btn.disabled=clr.disabled=true; btn.style.opacity=clr.style.opacity=.5;
+    if(hl) hl.style.display='none';
     return;
   }
   const s=cls.students[selectedId];
@@ -1213,10 +1222,41 @@ function updateSelPanel(){
     <div><div class="sn">${esc(s.n)}</div>
     <div class="ss">${stateText(s.state)} · ${s.score}生态值</div></div>`;
   btn.disabled=clr.disabled=false; btn.style.opacity=clr.style.opacity=1;
+  // R62: 今日亮点标记按钮 —— 仅老师端（已登录且为真实班级）可见
+  const canHl=GP.enabled() && cls.id && cls.id!=='local_empty';
+  if(hl){
+    hl.style.display=canHl?'inline-block':'none';
+    const on=cls.highlight && cls.highlight.d===todayStr() && cls.highlight.sid===s.id;
+    hl.textContent=on?'🌟 今日已推荐（点取消）':'⭐ 标为今日亮点';
+    hl.classList.toggle('primary', !on);
+  }
+}
+
+// R62: 标记 / 取消「今日亮点」—— 调 PATCH /highlight，成功后本地更新 + 重渲染榜
+async function GP_toggleHighlight(){
+  const cls=CLASSES[currentClass];
+  if(selectedId===null || !GP.enabled()) return;
+  const s=cls.students[selectedId];
+  const m=GP.clsMap[currentClass]; if(!m) return;
+  const on = cls.highlight && cls.highlight.d===todayStr() && cls.highlight.sid===s.id;
+  const sid = on ? null : s.id;   // 已推荐 → 取消
+  try{
+    const r=await GP.api('/api/classes/'+m.remoteId+'/highlight',
+      {method:'PATCH', body:JSON.stringify({student_id:sid})});
+    cls.highlight=r.highlight_today||null;
+    renderBoard(); updateSelPanel();
+    toast(on ? ('已取消「'+s.n+'」的今日亮点') : ('已把「'+s.n+'」标为今日亮点 🌟'));
+  }catch(e){ toast('标记失败：'+(e.message||e)); }
 }
 
 // R63 伙伴状态正向化：去掉"蔫了/受伤/需照料"等负向表达，改为温暖正向召唤
 function stateText(st){return st==='active'?'活力满满':st==='wilt'?'想晒太阳啦 ☀️':st==='loved'?'被爱护中':'在等你回来 💗';}
+
+// R62: 今天日期（东八区 YYYY-MM-DD），与后端写入口径一致，用于「今日亮点」隔天失效判断
+function todayStr(){
+  const d=new Date(Date.now()+8*3600*1000);
+  return d.toISOString().slice(0,10);
+}
 
 /* =====================================================================
    交互：选择 / 点评 / 班级切换 / 计时器
@@ -2024,9 +2064,11 @@ const GP={
     c.name=data.class.name; c.theme=data.class.theme||c.theme;
     c.eco=data.class.eco_value; c.stagePct=data.class.stage.progress; c.tidy=data.board.tidiness;
     if(data.class.switch_code_set!==undefined) c.switch_code_set=!!data.class.switch_code_set;
+    c.highlight=data.class.highlight_today||null;
     const idx={}; data.students.forEach((s,i)=>{ idx[s.id]=i; });
     m.ids=data.students.map(s=>s.id);
     c.students=data.students.map((s,i)=>({
+      id:s.id,
       n:s.nickname||s.name,
       type:s.partner_kind||'worm',
       color:s.color||PALETTE[i%PALETTE.length],
@@ -2228,6 +2270,7 @@ function bindControls(){
   bind('tFsBtn', onTimerFs);
   bind('clearSel', onClearSel);
   bind('openCard', onOpenCard);
+  bind('hlBtn', GP_toggleHighlight); // R62: 标记 / 取消今日亮点
   bind('overlay', onOverlayClick);
   bind('gearBtn', openRoster);
   bind('reportBtn', openReport); // R38 班级周报 / 成长报告导出
